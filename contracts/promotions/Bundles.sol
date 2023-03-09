@@ -19,7 +19,7 @@ import {LoyaltyProgram} from "../loyaltyProgram/LoyaltyProgram.sol";
 /**
  * @title EventTicket
  * @author Pedrojok01
- * @notice Part of the Loyal-T platform from SuperUltra
+ * @notice Part of the Meed Rewards platform from SuperUltra
  * @dev Bundles assets into an NFT:
  *  - Can either be airdrop to a specified membership level, or
  *  - Minted upon condition.

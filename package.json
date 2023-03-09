@@ -1,14 +1,14 @@
 {
-  "name": "loyal-t",
-  "description": "Core smart contracts of SuperUltra | Loyal-T V1",
+  "name": "meed-rewards",
+  "description": "Core smart contracts of SuperUltra | Meed Rewards V1",
   "license": "BUSL-1.1",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "homepage": "https://www.superultra.io/",
   "author": "Pedrojok01",
   "keywords": [],
   "repository": {
     "type": "git",
-    "url": "https://github.com/superultra-io/Loyal-T"
+    "url": "https://github.com/superultra-io/Meed"
   },
   "scripts": {
     "lint": "solhint \"contracts/**/*.sol\"",

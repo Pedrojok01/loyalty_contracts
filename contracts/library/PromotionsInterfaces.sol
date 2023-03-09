@@ -8,7 +8,7 @@ import {IBundles} from "../interfaces/IBundles.sol";
 /**
  * @title PromotionsInterfaces
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Loyal-T platform from SuperUltra
+ * @notice Part of the Meed Rewards platform from SuperUltra
  * @dev Stores all kinds of Promotions interfaces;
  *
  * * Include with:

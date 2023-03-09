@@ -4,7 +4,7 @@ pragma solidity 0.8.18;
 /**
  * @title Errors
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Loyal-T platform from SuperUltra
+ * @notice Part of the Meed Rewards platform from SuperUltra
  * @dev Stores all the errors used in the contracts:
  * - saves gas;
  * - makes the code more readable;
@@ -61,10 +61,20 @@ contract Errors {
     error Bundles__TokenURIQueryForNonexistentToken();
 
     // Subscriptions
-    error Subscriptions__NotOwnerOrApproved();
+    error Subscriptions__TokenNotOwned();
     error Subscriptions__UserAlreadyOwnsSubscription();
+    error Subscriptions__NoSubscriptionFound();
+    error Subscriptions__SubscriptionExpired();
+    error Subscriptions__UpgradePlanBeforeRenewal();
+    error Subscriptions__InvalidPlan();
+    error Subscriptions__CannotDowngradeTier(); // to be deleted once implemented
+    error Subscriptions__AlreadySubscribedToTier();
     error Subscriptions__IncorrectPrice();
-    error Subscriptions__InvalidTier();
+    error Subscriptions__PaymentFailed();
+    error Subscriptions__WithdrawToAddressZero();
+    error Subscriptions__WithdrawalFailed();
+    error Subscriptions__PleaseUpgradeYourPlan();
+    error MyNFT_URIqueryForNonexistentToken();
 
     // TimeLimited
     error TimeLimited__TokenExpired();

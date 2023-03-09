@@ -13,7 +13,7 @@ import {LoyaltyProgram} from "../loyaltyProgram/LoyaltyProgram.sol";
 /**
  * @title Expirable
  * @author Pedrojok01
- * @notice Part of the Loyal-T platform from SuperUltra
+ * @notice Part of the Meed Rewards platform from SuperUltra
  * @dev ERC721 time limited NFT | Auto-burn at expiration:
  *  - Can either be airdrop to a specified membership level, or
  *  - Minted upon condition.

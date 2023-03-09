@@ -11,7 +11,7 @@ import {LoyaltyProgram} from "../loyaltyProgram/LoyaltyProgram.sol";
 /**
  * @title Redeemable
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Loyal-T platform from SuperUltra
+ * @notice Part of the Meed Rewards platform from SuperUltra
  * @dev Reedemable are NFTs that can be redeemed for a product or a discount;
  *  - The redeemanle type is defined by its id (0-5)
  *  - productIdOrCurrency indicate either the ID of the redeemable product or the currency in case of reduction voucher;

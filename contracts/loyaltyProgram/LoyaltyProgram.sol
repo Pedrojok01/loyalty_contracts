@@ -13,7 +13,7 @@ import {ILoyaltyProgram} from "../interfaces/ILoyaltyProgram.sol";
 /**
  * @title LoyaltyProgram
  * @author Pedrojok01
- * @notice Part of the Loyal-T platform from SuperUltra
+ * @notice Part of the Meed Rewards platform from SuperUltra
  * @dev ERC721 Soulbound NFT with the following features:
  *  - Deployer can mint to recipients.
  *  - No transfer capability.

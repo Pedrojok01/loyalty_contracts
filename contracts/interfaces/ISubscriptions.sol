@@ -3,6 +3,12 @@
 pragma solidity 0.8.18;
 
 interface ISubscriptions {
+    enum Plan {
+        BASIC,
+        PRO,
+        ENTERPRISE
+    }
+
     /// @notice Emitted when a subscription expiration changes
     /// @dev When a subscription is canceled, the expiration value should also be 0.
     event SubscriptionUpdate(uint256 indexed tokenId, uint64 expiration);
@@ -11,12 +17,12 @@ interface ISubscriptions {
     /// Throws if `tokenId` is not a valid NFT
     /// @param tokenId The NFT to renew the subscription for
     /// @param duration The number of seconds to extend a subscription for
-    function renewSubscription(uint256 tokenId, uint64 duration) external payable;
+    function renewSubscription(uint256 tokenId, Plan plan, bool duration) external payable;
 
     /// @notice Cancels the subscription of an NFT
     /// @dev Throws if `tokenId` is not a valid NFT
     /// @param tokenId The NFT to cancel the subscription for
-    function cancelSubscription(uint256 tokenId) external payable;
+    function cancelSubscription(uint256 tokenId) external returns (bool);
 
     /// @notice Gets the expiration date of a subscription
     /// @dev Throws if `tokenId` is not a valid NFT

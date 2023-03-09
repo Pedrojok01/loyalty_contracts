@@ -13,7 +13,7 @@ import {Expirable} from "../promotions/Expirable.sol";
 /**
  * @title PromotionFactory
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Loyal-T platform from SuperUltra
+ * @notice Part of the Meed Rewards platform from SuperUltra
  * @dev Contracts factory do deploy the LoyaltyProgram Soulbound ERC721;
  *  - Deployer can launch its own Membership program.
  *  - Deployer will receive NFT id 0, proving its ownership.
