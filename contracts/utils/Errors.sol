@@ -1,0 +1,75 @@
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.18;
+
+/**
+ * @title Errors
+ * @author Pierre Estrabaud (@Pedrojok01)
+ * @notice Part of the Loyal-T platform from SuperUltra
+ * @dev Stores all the errors used in the contracts:
+ * - saves gas;
+ * - makes the code more readable;
+ * - easier to maintain;
+ *
+ * Include with `using Errors for Errors.Error;`
+ */
+
+contract Errors {
+    // LoyaltyProgram
+    error LoyaltyProgram_AlreadyMember();
+    error LoyaltyProgram_InvalidPromotionType();
+
+    // LoyaltyProgramFactory
+    error LoyaltyProgramFactory_AlreadyExists();
+
+    // PromotionFactory
+    error PromotionFactory_TypeNotSupported();
+
+    // BundlesFactory
+    error BundlesFactory_TypeNotSupported();
+
+    // Redeemable
+    error Redeemable__TokenNotRedeemable(uint256 id);
+    error Redeemable__TokenNotOwned();
+    error Redeemable__WrongType();
+    error Redeemable__WrongId();
+    error Redeemable__EventExpired();
+    error Redeemable__ArraysDontMatch();
+    error Redeemable__WrongValue();
+    error Redeemable__NonExistantUser();
+    error Redeemable__InsufficientLevel();
+
+    // Expirable
+    error Expirable__InvalidMintType();
+    error Expirable__InvalidDate();
+    error Expirable__NonExistantUser();
+    error Expirable__InsufficientLevel();
+    error Expirable__EventExpired();
+    error Expirable__EventNotExpired();
+    error Expirable__TicketNotOwned();
+    error Expirable__NotOwnerOrApproved();
+    error Expirable__TicketAlreadyUsed(uint256 ticketId);
+
+    // Bundles
+    error Bundles__MintToAddress0();
+    error Bundles__ArraysDontMatch();
+    error Bundles__NumbersDontMatch();
+    error Bundles__MaxSupplyReached();
+    error Bundles__EventExpired();
+    error Bundles__CantSendZeroAmount();
+    error Bundles__ValuesDontMatch();
+    error Bundles__TokenNotOwned();
+    error Bundles__TokenURIQueryForNonexistentToken();
+
+    // Subscriptions
+    error Subscriptions__NotOwnerOrApproved();
+    error Subscriptions__UserAlreadyOwnsSubscription();
+    error Subscriptions__IncorrectPrice();
+    error Subscriptions__InvalidTier();
+
+    // TimeLimited
+    error TimeLimited__TokenExpired();
+
+    // Activation
+    error Activation__PromotionCurrentlyInactive();
+    error Activation__PromotionCurrentlyActive();
+}

@@ -5,6 +5,7 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 
 import {ILoyaltyProgram} from "../interfaces/ILoyaltyProgram.sol";
 import {LoyaltyProgram} from "./LoyaltyProgram.sol";
+import {Errors} from "../utils/Errors.sol";
 
 /**
  * @title LoyaltyProgramFactory
@@ -25,7 +26,7 @@ import {LoyaltyProgram} from "./LoyaltyProgram.sol";
  * 3f3c9b69  =>  _createNewLoyaltyProgram(uint256,string,string,string,bytes16,bytes16)
  */
 
-contract LoyaltyProgramFactory is Context {
+contract LoyaltyProgramFactory is Context, Errors {
     /*///////////////////////////////////////////////////////////////////////////////
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
@@ -83,13 +84,18 @@ contract LoyaltyProgramFactory is Context {
         string memory name,
         string memory symbol,
         string memory uri,
+        bool tierTracker,
+        uint64[4] memory amounts,
         bytes16 productType,
         bytes16 location
     ) external returns (ILoyaltyProgram newLoyalty) {
         uint256 loyaltyID = loyaltyList.length;
-        require(getLoyaltyAddress[loyaltyID] == ILoyaltyProgram(address(0)), "Factory: Loyalty exists");
 
-        return _createNewLoyaltyProgram(loyaltyID, name, symbol, uri, productType, location);
+        if (getLoyaltyAddress[loyaltyID] != ILoyaltyProgram(address(0))) {
+            revert LoyaltyProgramFactory_AlreadyExists();
+        }
+
+        return _createNewLoyaltyProgram(loyaltyID, name, symbol, uri, tierTracker, amounts, productType, location);
     }
 
     event NewLoyaltyCreated(
@@ -128,12 +134,14 @@ contract LoyaltyProgramFactory is Context {
         string memory _name,
         string memory _symbol,
         string memory _uri,
+        bool _tierTracker,
+        uint64[4] memory amounts,
         bytes16 _productType,
         bytes16 _location
     ) private returns (ILoyaltyProgram newLoyalty) {
         address owner = _msgSender();
 
-        newLoyalty = ILoyaltyProgram(new LoyaltyProgram(_name, _symbol, _uri, owner, _productType));
+        newLoyalty = ILoyaltyProgram(new LoyaltyProgram(_name, _symbol, _uri, _tierTracker, owner, amounts));
 
         getLoyaltyIDPerOwner[owner].push(_loyaltyID);
         getLoyaltyIDPerName[_name] = _loyaltyID;

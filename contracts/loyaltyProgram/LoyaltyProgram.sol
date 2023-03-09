@@ -2,11 +2,12 @@
 pragma solidity 0.8.18;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
+import {Adminable} from "../utils/Adminable.sol";
 import {Counters} from "../utils/Counters.sol";
+import {Activation} from "../utils/Activation.sol";
+import {PromoLib} from "../library/PromoLib.sol";
 import {ILoyaltyProgram} from "../interfaces/ILoyaltyProgram.sol";
 
 /**
@@ -20,26 +21,42 @@ import {ILoyaltyProgram} from "../interfaces/ILoyaltyProgram.sol";
 
 /** TODO:
  *  - Add level system based on purchases
+ *  - Add identity proof to ensure only one NFT per person?
  *  - Send unique NFT to brand creator to recognise him
- *  - Add special function to differentiate our NFT from others
  *
  */
 
-contract LoyaltyProgram is ILoyaltyProgram, ERC721, ERC721Enumerable, Pausable, Ownable {
+contract LoyaltyProgram is ILoyaltyProgram, ERC721, ERC721Enumerable, Adminable {
     using Counters for Counters.Counter;
+    using PromoLib for PromoLib.Data;
 
     /*///////////////////////////////////////////////////////////////////////////////
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
-    bytes32 public immutable PRODUCT_TYPE;
+    bool public immutable TIER_TRACKER; // true = buyVolume, false = amountVolume
     string private _baseURIextended;
     Counters.Counter private _tokenIdCounter;
+    PromoLib.Data private promoLib;
 
+    struct TierStructure {
+        uint64 silver;
+        uint64 gold;
+        uint64 platinum;
+        uint64 diamond;
+    }
+
+    TierStructure public tierStructure;
+
+    /**
+     * @dev Store all data per member, fit in 1 storage slot
+     */
     struct Membership {
-        uint8 level;
-        uint88 tokenId;
-        address owner;
+        uint8 level; // 1 byte
+        uint16 buyVolume; // 2 bytes (up to 65,535)
+        uint32 amountVolume; // 4 bytes (up to 4,294,967,295)
+        uint40 tokenId; // 5 bytes (up to 1,099,511,627,775)
+        address owner; // 20 bytes
     }
 
     mapping(address => Membership) public membership;
@@ -53,70 +70,196 @@ contract LoyaltyProgram is ILoyaltyProgram, ERC721, ERC721Enumerable, Pausable, 
         string memory _name,
         string memory _symbol,
         string memory _uri,
+        bool _tierTracker,
         address _owner,
-        bytes32 _productType
+        uint64[4] memory amounts
     ) ERC721(_name, _symbol) {
-        PRODUCT_TYPE = _productType;
+        TIER_TRACKER = _tierTracker;
         _baseURIextended = _uri;
         transferOwnership(_owner);
-        pause();
+        _initializeTierStructure(amounts[0], amounts[1], amounts[2], amounts[3]);
+        mint(_owner);
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
-                                        MINT
+                                        WRITE
     ///////////////////////////////////////////////////////////////////////////////*/
 
     /**
      * @dev An external method for the owner to mint Soulbound NFTs. Can only mint 1 per address.
      */
-    function mint() external {
-        address member = _msgSender();
-        // require(balanceOf(member) == 0, "LoyaltyProgram: Already owned");
-        require(membership[member].level == 0, "LoyaltyProgram: Already owned");
+    function mint(address to) public onlyOwnerOrAdmin {
+        if (membership[to].level != 0) {
+            revert LoyaltyProgram_AlreadyMember();
+        }
 
-        uint88 tokenId = _tokenIdCounter.current();
+        uint40 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
 
-        Membership memory newMembership = Membership({level: 1, tokenId: tokenId, owner: member});
-        membership[member] = newMembership;
+        Membership memory newMembership = Membership({
+            level: 1,
+            buyVolume: 0,
+            amountVolume: 0,
+            tokenId: tokenId,
+            owner: to
+        });
+        membership[to] = newMembership;
 
-        uint256 ts = totalSupply();
-        _safeMint(member, ts);
+        _safeMint(to, tokenId);
+    }
+
+    function updateMember(address member, uint16 buyVolume, uint32 amountVolume) external onlyOwnerOrAdmin {
+        Membership memory memberData = membership[member];
+        if (memberData.level == 0) {
+            this.mint(member);
+        }
+        memberData.buyVolume += buyVolume;
+        memberData.amountVolume += amountVolume;
+        membership[member] = memberData;
+
+        if (memberData.level != 5) {
+            _updateMemberLevel(member, memberData);
+        }
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
                                         VIEW
     ///////////////////////////////////////////////////////////////////////////////*/
-    function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721Enumerable) returns (bool) {
-        return super.supportsInterface(interfaceId);
+
+    /**
+     * @dev Allows to get the level of a member
+     */
+    function isMember(address member) external view returns (bool) {
+        return membership[member].owner == member;
     }
 
-    // Declare a function to get the level of an NFT
-    function getLevel() external view returns (uint256) {
-        return membership[_msgSender()].level;
+    /**
+     * @dev Allows to get the level of a member
+     */
+    function getMemberLevel(address member) external view returns (uint8) {
+        return membership[member].level;
+    }
+
+    function getAllPromotions() external view returns (PromoLib.Promotion[] memory allPromotions) {
+        return PromoLib._getAllPromotions(promoLib);
+    }
+
+    function getAllPromotionsPaging(
+        uint256 offset,
+        uint256 limit
+    ) external view returns (PromoLib.Promotion[] memory pagedPromotions, uint256 nextOffset, uint256 total) {
+        uint256 totalPromotions = promoLib.promotions.length;
+        if (limit == 0) {
+            limit = 1;
+        }
+
+        if (limit > totalPromotions - offset) {
+            limit = totalPromotions - offset;
+        }
+
+        PromoLib.Promotion[] memory values = new PromoLib.Promotion[](limit);
+        for (uint256 i = 0; i < limit; i++) {
+            values[i] = promoLib.promotions[offset + i];
+        }
+
+        return (values, offset + limit, totalPromotions);
+    }
+
+    function getAllPromotionsPerType(
+        PromoLib.PromotionsType _type
+    ) external view returns (PromoLib.Promotion[] memory promotionsPerType) {
+        uint256 totalPromotions = promoLib.promotions.length;
+
+        for (uint256 i = 0; i < totalPromotions; i++) {
+            if (promoLib.promotions[i].promotionsType == _type) {
+                promotionsPerType[i] = promoLib.promotions[i];
+            }
+        }
+    }
+
+    /**
+     * @dev Allows to get all promotions per status
+     * @param status The status of the promotion:
+     *  - true = active
+     *  - false = inactive
+     * @return activePromotions An array of promotions
+     */
+    function getAllPromotionsPerStatus(
+        bool status
+    ) external view returns (PromoLib.Promotion[] memory activePromotions) {
+        uint256 totalPromotions = promoLib.promotions.length;
+        uint256 promoIndex;
+
+        for (uint256 i = 0; i < totalPromotions; i++) {
+            if (promoLib.promotions[i].active == status) {
+                activePromotions[promoIndex] = promoLib.promotions[i];
+                promoIndex++;
+            }
+        }
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721Enumerable) returns (bool) {
+        return super.supportsInterface(interfaceId);
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
                                         RESTRICTED
     ///////////////////////////////////////////////////////////////////////////////*/
 
+    function switchStatus(address promotion, bool status) external onlyOwnerOrAdmin {
+        PromoLib._setPromotionStatus(promotion, status, promoLib);
+    }
+
     /**
      * @dev Updates the baseURI that will be used to retrieve NFT metadata.
      * @param baseURI_ The baseURI to be used.
      */
-    function setBaseURI(string calldata baseURI_) external onlyOwner {
+    function setBaseURI(string calldata baseURI_) external onlyOwnerOrAdmin {
         _baseURIextended = baseURI_;
+    }
+
+    /**
+     * @dev Allows to add a promotion to the list of promotions (both array & mapping)
+     * @param promotion The address of the loyalty program contract
+     */
+    function addPromotion(address promotion, PromoLib.PromotionsType _type) external onlyOwnerOrAdmin {
+        PromoLib._addPromotion(promotion, _type, promoLib);
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
                                     INTERNAL / PRIVATE
     ///////////////////////////////////////////////////////////////////////////////*/
 
-    /**
-     * @dev Pauses the NFT, preventing any transfers. Called by default on a SBT.
-     */
-    function pause() internal {
-        _pause();
+    function _initializeTierStructure(uint64 _amount1, uint64 _amount2, uint64 _amount3, uint64 _amount4) private {
+        tierStructure = TierStructure({silver: _amount1, gold: _amount2, platinum: _amount3, diamond: _amount4});
     }
+
+    function _updateMemberLevel(address _member, Membership memory _memberData) private {
+        uint8 currentLevel = _memberData.level;
+        uint8 newLevel;
+        uint32 currentVolume = TIER_TRACKER ? uint32(_memberData.buyVolume) : _memberData.amountVolume;
+
+        if (currentVolume >= tierStructure.diamond) {
+            newLevel = 5;
+        } else if (currentVolume >= tierStructure.platinum) {
+            newLevel = 4;
+        } else if (currentVolume >= tierStructure.gold) {
+            newLevel = 3;
+        } else if (currentVolume >= tierStructure.silver) {
+            newLevel = 2;
+        } else newLevel = currentLevel;
+
+        if (newLevel != currentLevel) {
+            _updateMemberLevelInternal(_member, newLevel);
+        }
+    }
+
+    function _updateMemberLevelInternal(address _member, uint8 _newLevel) private {
+        membership[_member].level = _newLevel;
+        emit LevelUpdated(_member, _newLevel);
+    }
+
+    event LevelUpdated(address indexed member, uint8 level);
 
     function _beforeTokenTransfer(
         address from,
@@ -124,7 +267,6 @@ contract LoyaltyProgram is ILoyaltyProgram, ERC721, ERC721Enumerable, Pausable, 
         uint256 firstTokenId,
         uint256 batchSize
     ) internal override(ERC721, ERC721Enumerable) {
-        require(_msgSender() == owner() && paused(), "LoyaltyProgram: Not owner");
         super._beforeTokenTransfer(from, to, firstTokenId, batchSize);
     }
 

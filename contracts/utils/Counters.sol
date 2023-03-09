@@ -4,6 +4,10 @@
 pragma solidity 0.8.18;
 
 /**
+ * @notice Replaced openzepplin uint256 with uint40 to save gas;
+ */
+
+/**
  * @title Counters
  * @author Matt Condon (@shrugs)
  * @dev Provides counters that can only be incremented, decremented or reset. This can be used e.g. to track the number
@@ -16,10 +20,10 @@ library Counters {
         // This variable should never be directly accessed by users of the library: interactions must be restricted to
         // the library's function. As of Solidity v0.5.2, this cannot be enforced, though there is a proposal to add
         // this feature: see https://github.com/ethereum/solidity/issues/4637
-        uint88 _value; // default: 0
+        uint40 _value; // default: 0
     }
 
-    function current(Counter storage counter) internal view returns (uint88) {
+    function current(Counter storage counter) internal view returns (uint40) {
         return counter._value;
     }
 
@@ -30,7 +34,7 @@ library Counters {
     }
 
     function decrement(Counter storage counter) internal {
-        uint88 value = counter._value;
+        uint40 value = counter._value;
         require(value > 0, "Counter: decrement overflow");
         unchecked {
             counter._value = value - 1;
