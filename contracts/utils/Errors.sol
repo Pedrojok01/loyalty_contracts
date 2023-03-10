@@ -14,15 +14,12 @@ pragma solidity 0.8.18;
  */
 
 contract Errors {
-    // LoyaltyProgram
-    error LoyaltyProgram_AlreadyMember();
-    error LoyaltyProgram_InvalidPromotionType();
+    // MeedProgram
+    error MeedProgram_AlreadyMember();
+    error MeedProgram_InvalidPromotionType();
 
-    // LoyaltyProgramFactory
-    error LoyaltyProgramFactory_AlreadyExists();
-
-    // PromotionFactory
-    error PromotionFactory_TypeNotSupported();
+    // MeedProgramFactory
+    error MeedProgramFactory_AlreadyExists();
 
     // BundlesFactory
     error BundlesFactory_TypeNotSupported();
@@ -59,6 +56,7 @@ contract Errors {
     error Bundles__ValuesDontMatch();
     error Bundles__TokenNotOwned();
     error Bundles__TokenURIQueryForNonexistentToken();
+    error Bundles__TokenIdDoesntMatch();
 
     // Subscriptions
     error Subscriptions__TokenNotOwned();
@@ -75,6 +73,11 @@ contract Errors {
     error Subscriptions__WithdrawalFailed();
     error Subscriptions__PleaseUpgradeYourPlan();
     error MyNFT_URIqueryForNonexistentToken();
+
+    // SubscriberChecks
+    error SubscriberChecks__PleaseSubscribeFirst();
+    error SubscriberChecks__PleaseSubscribeToProOrEnterpriseFirst();
+    error SubscriberChecks__PleaseSubscribeToEnterpriseFirst();
 
     // TimeLimited
     error TimeLimited__TokenExpired();

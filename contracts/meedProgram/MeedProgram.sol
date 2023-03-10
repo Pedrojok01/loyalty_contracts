@@ -8,10 +8,10 @@ import {Adminable} from "../utils/Adminable.sol";
 import {Counters} from "../utils/Counters.sol";
 import {Activation} from "../utils/Activation.sol";
 import {PromoLib} from "../library/PromoLib.sol";
-import {ILoyaltyProgram} from "../interfaces/ILoyaltyProgram.sol";
+import {IMeedProgram} from "../interfaces/IMeedProgram.sol";
 
 /**
- * @title LoyaltyProgram
+ * @title MeedProgram
  * @author Pedrojok01
  * @notice Part of the Meed Rewards platform from SuperUltra
  * @dev ERC721 Soulbound NFT with the following features:
@@ -26,7 +26,7 @@ import {ILoyaltyProgram} from "../interfaces/ILoyaltyProgram.sol";
  *
  */
 
-contract LoyaltyProgram is ILoyaltyProgram, ERC721, ERC721Enumerable, Adminable {
+contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     using Counters for Counters.Counter;
     using PromoLib for PromoLib.Data;
 
@@ -90,7 +90,7 @@ contract LoyaltyProgram is ILoyaltyProgram, ERC721, ERC721Enumerable, Adminable 
      */
     function mint(address to) public onlyOwnerOrAdmin {
         if (membership[to].level != 0) {
-            revert LoyaltyProgram_AlreadyMember();
+            revert MeedProgram_AlreadyMember();
         }
 
         uint40 tokenId = _tokenIdCounter.current();

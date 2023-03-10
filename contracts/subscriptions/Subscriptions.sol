@@ -166,6 +166,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
      * @dev Cancel a subscription in case of auto-renewal
      * NOT IMPLEMENTED YET
      */
+    // solhint-disable-next-line no-empty-blocks
     function cancelSubscription(uint256 tokenId) external view returns (bool) {}
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -185,9 +186,9 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
      * @notice Returns true if the subsciption is renewable (always true for this contract)
      * @param tokenId The id of the subscription
      */
-    // solhint-disable-next-line
     function isRenewable(uint256 tokenId) external view returns (bool) {
-        return true;
+        if (_exists(tokenId)) return true;
+        return false;
     }
 
     function calculateSubscriptionPrice(Plan plan, bool duration) public view returns (uint256) {
@@ -242,7 +243,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
         fees[Plan.ENTERPRISE] = 0.5 ether;
     }
 
-    function _emitSubscriptionNFT(address subscriber) internal returns (uint40) {
+    function _emitSubscriptionNFT(address subscriber) private returns (uint40) {
         _tokenIds.increment();
         uint40 newTokenId = _tokenIds.current();
 

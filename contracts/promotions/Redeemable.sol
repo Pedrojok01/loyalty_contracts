@@ -6,7 +6,8 @@ import {ERC1155Burnable} from "@openzeppelin/contracts/token/ERC1155/extensions/
 
 import {IRedeemable} from "../interfaces/IRedeemable.sol";
 import {TimeLimited} from "../utils/TimeLimited.sol";
-import {LoyaltyProgram} from "../loyaltyProgram/LoyaltyProgram.sol";
+import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
+import {MeedProgram} from "../meedProgram/MeedProgram.sol";
 
 /**
  * @title Redeemable
@@ -27,12 +28,29 @@ import {LoyaltyProgram} from "../loyaltyProgram/LoyaltyProgram.sol";
  *  - 6. Call the redeem function to burn the NFT;
  */
 
-contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited {
+/**
+ *  Sighash   |   Function Signature
+ * =================================
+ * 836a1040  =>  mint(uint256,address,uint256)
+ * 104d4a1a  =>  batchMint(uint256,address[],uint8)
+ * f32c02ab  =>  redeem(address,uint256,uint32)
+ * f48cc326  =>  isRedeemable(uint256)
+ * e82e55cd  =>  getRedeemable(uint256)
+ * 8e264182  =>  getTotalRedeemablesSupply()
+ * 3bc06d6c  =>  addNewRedeemableNFT(RedeemableType,uint120,bytes32)
+ * 02fe5305  =>  setURI(string)
+ * 0b075f1a  =>  _isValidType(RedeemableType)
+ * d410d6e2  =>  _isValidId(uint256)
+ * ffdc4334  =>  _addNewRedeemableNFT(RedeemableType,uint120)
+ * 810bdd65  =>  _onlyOngoing()
+ */
+
+contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, SubscriberChecks {
     /*///////////////////////////////////////////////////////////////////////////////
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
-    LoyaltyProgram private immutable loyaltyProgram;
+    MeedProgram private immutable meedProgram;
 
     enum RedeemableType {
         ProductId, // 0
@@ -54,10 +72,11 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited {
         string memory _uri,
         address _owner,
         uint256 _expirationDate,
-        address _loyaltyProgram
-    ) ERC1155(_uri) TimeLimited(_expirationDate) {
+        address _meedProgram,
+        address _contractAddress
+    ) ERC1155(_uri) TimeLimited(_expirationDate) SubscriberChecks(_contractAddress) {
         _setURI(_uri);
-        loyaltyProgram = LoyaltyProgram(_loyaltyProgram);
+        meedProgram = MeedProgram(_meedProgram);
         transferOwnership(_owner);
         transferAdminship(_owner);
     }
@@ -77,9 +96,13 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited {
     @param to Address which will receive the limited NFTs;
     @param lvlMin Level required to mint the NFT (set to 0 for no level requirement);
     */
-    function mint(uint256 id, address to, uint256 lvlMin) external onlyOwnerOrAdmin onlyOngoing onlyActive {
+    function mint(
+        uint256 id,
+        address to,
+        uint256 lvlMin
+    ) external onlyOwnerOrAdmin onlyOngoing onlyActive onlySubscribers {
         if (!_isValidId(id)) revert Redeemable__WrongId();
-        uint8 currentLevel = loyaltyProgram.getMemberLevel(to);
+        uint8 currentLevel = meedProgram.getMemberLevel(to);
         if (currentLevel == 0) revert Redeemable__NonExistantUser();
         if (currentLevel < uint8(lvlMin)) revert Redeemable__InsufficientLevel();
 
@@ -93,7 +116,11 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited {
      * @param to Array of addresses to mint to; must be members of the loyalty program;
      * @param lvlMin Level required to mint the NFT (set to 0 for no level requirement);
      */
-    function batchMint(uint256 id, address[] calldata to, uint8 lvlMin) external onlyOwnerOrAdmin onlyOngoing {
+    function batchMint(
+        uint256 id,
+        address[] calldata to,
+        uint8 lvlMin
+    ) external onlyOwnerOrAdmin onlyOngoing onlyActive onlyProOrEnterprise {
         uint256 lentgh = to.length;
         for (uint256 i = 0; i < lentgh; i++) {
             this.mint(id, to[i], lvlMin);
@@ -106,7 +133,7 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited {
 
         redeemableNFTs[tokenId].circulatingSupply--;
         burn(from, tokenId, 1);
-        loyaltyProgram.updateMember(from, 1, amount);
+        meedProgram.updateMember(from, 1, amount);
 
         emit Redeemed(from, tokenId);
     }
@@ -185,7 +212,7 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited {
         if (this.isExpired()) {
             if (this.isActive()) {
                 this.deactivate();
-                loyaltyProgram.switchStatus(address(this), false);
+                meedProgram.switchStatus(address(this), false);
             }
             revert Expirable__EventExpired();
         }

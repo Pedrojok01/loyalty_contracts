@@ -4,8 +4,8 @@
   "rules": {
     "compiler-version": ["error", "0.8.18"],
     "prettier/prettier": "error",
-    "max-line-length": ["warn", 120],
-    "code-complexity": ["error", 9],
+    "max-line-length": ["warn", 125],
+    "code-complexity": ["error", 11],
     "func-visibility": ["error", { "ignoreConstructors": true }],
     "constructor-syntax": "error",
     "not-rely-on-time": "off",

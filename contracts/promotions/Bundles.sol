@@ -14,7 +14,8 @@ import {ERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/utils/ERC11
 import {Adminable} from "../utils/Adminable.sol";
 import {TimeLimited} from "../utils/TimeLimited.sol";
 import {IBundles} from "../interfaces/IBundles.sol";
-import {LoyaltyProgram} from "../loyaltyProgram/LoyaltyProgram.sol";
+import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
+import {MeedProgram} from "../meedProgram/MeedProgram.sol";
 
 /**
  * @title EventTicket
@@ -27,26 +28,39 @@ import {LoyaltyProgram} from "../loyaltyProgram/LoyaltyProgram.sol";
  * Contract based on the EIP-3589: https://eips.ethereum.org/EIPS/eip-3589
  */
 
-contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
+/**
+ * Sighash   |   Function Signature
+ * ================================
+ * 1a7efeca  =>  hash(uint256,address[],uint256[])
+ * e7e3d030  =>  safeMint(address,uint256,address[],uint256[])
+ * 808bf31b  =>  batchMint(address,uint256,address[],uint256[][],uint256)
+ * b7c8ac45  =>  burn(address,uint256,uint256,address[],uint256[])
+ * c87b56dd  =>  tokenURI(uint256)
+ * 01ffc9a7  =>  supportsInterface(bytes4)
+ * 810bdd65  =>  _onlyOngoing()
+ */
+
+contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, SubscriberChecks {
     using SafeERC20 for IERC20;
 
     string private _baseURIextended;
-    LoyaltyProgram immutable loyaltyProgram;
+    MeedProgram private immutable meedProgram;
     uint256 public immutable maxPackSupply;
-    uint256 nonce;
+    uint256 private nonce;
 
     constructor(
         string memory _name,
         string memory _symbol,
         string memory _uri,
         uint256 _expirationDate,
-        address _loyaltyProgram,
+        address _meedProgram,
         uint256 _data,
-        address _owner
-    ) ERC721(_name, _symbol) TimeLimited(_expirationDate) {
+        address _owner,
+        address _contractAddress
+    ) ERC721(_name, _symbol) TimeLimited(_expirationDate) SubscriberChecks(_contractAddress) {
         maxPackSupply = _data;
         _baseURIextended = _uri;
-        loyaltyProgram = LoyaltyProgram(_loyaltyProgram);
+        meedProgram = MeedProgram(_meedProgram);
         transferOwnership(_owner);
         transferAdminship(_owner);
     }
@@ -61,15 +75,16 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
     ///////////////////////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Generate a hash of all assets sent to the escrow contract. This hash is used as token_id and is the "key" to claim the assets back.
+     * @dev Returns a hash of all assets sent to the escrow contract. This hash is used as token_id and is the "key"
+     *  to claim the assets back.
      * @param _salt Index-like parameter incremented by one with each new created NFT to prevent collision.
-     * @param _addresses Array containing all the contract addresses of every assets sent to the escrow contract. See layout below.
-     * @param _numbers Array containing numbers, amounts and IDs for every assets sent to the escrow contract. See layout below.
+     * @param _addresses Array containing all the contract addresses of every assets sent to the escrow contract.
+     * @param _numbers Array containing numbers, amounts and IDs for every assets sent to the escrow contract.
      *
      * @notice layout of _addresses:
      *   erc20 addresses | erc721 addresses | erc1155 addresses
      * @notice layout of _numbers:
-     *   eth | erc20.length | erc721.length | erc1155.length | erc20 amounts | erc721 ids | erc1155 ids | erc1155 amounts
+     *  eth | erc20.length | erc721.length | erc1155.length | erc20 amounts | erc721 ids | erc1155 ids | erc1155 amounts
      */
     function hash(
         uint256 _salt,
@@ -94,11 +109,15 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
      * @param _numbers Array containing numbers, amounts and IDs for every assets sent to the escrow contract.
      */
     function safeMint(
-        address _to,
+        address to,
+        uint256 lvlMin,
         address[] calldata _addresses,
         uint256[] memory _numbers
-    ) external payable override onlyOwnerOrAdmin onlyOngoing returns (uint256 tokenId) {
-        if (_to == address(0)) revert Bundles__MintToAddress0();
+    ) external payable override onlyOwnerOrAdmin onlyOngoing onlyActive onlyEnterprise returns (uint256 tokenId) {
+        if (to == address(0)) revert Bundles__MintToAddress0();
+        uint8 currentLevel = meedProgram.getMemberLevel(to);
+        if (currentLevel == 0) revert Redeemable__NonExistantUser();
+        if (currentLevel < uint8(lvlMin)) revert Redeemable__InsufficientLevel();
         if (_addresses.length != _numbers[1] + _numbers[2] + _numbers[3]) revert Bundles__ArraysDontMatch();
         if (_addresses.length != _numbers.length - 4 - _numbers[3]) revert Bundles__NumbersDontMatch();
         if (maxPackSupply != 0 && nonce >= maxPackSupply) revert Bundles__MaxSupplyReached();
@@ -126,8 +145,8 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
             );
         }
         tokenId = hash(nonce, _addresses, _numbers);
-        super._mint(_to, tokenId);
-        emit BundleAsset(_to, tokenId, nonce, _addresses, _numbers);
+        super._mint(to, tokenId);
+        emit BundleAsset(to, tokenId, nonce, _addresses, _numbers);
         nonce++;
     }
 
@@ -135,12 +154,15 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
 
     /**
      * @dev Burn a previously emitted NFT to claim all the associated assets from the escrow contract.
-     * @param _addresses Array containing all the contract addresses of every assets sent to the escrow contract. Emitted in the BundleAsset event (see interface).
-     * @param _arrayOfNumbers Array of arrays containing numbers, amounts and IDs for every batch of assets sent to the escrow contract.
+     * @param _addresses Array containing all the contract addresses of every assets sent to the escrow contract.
+     *  Emitted in the BundleAsset event (see interface).
+     * @param _arrayOfNumbers Array of arrays containing numbers, amounts and IDs for every batch of assets sent
+     *  to the escrow contract.
      * @param _amountOfPacks === the number of packs that will be minted in this batch.
      */
     function batchMint(
         address _to,
+        uint256 _lvlMin,
         address[] calldata _addresses,
         uint256[][] calldata _arrayOfNumbers,
         uint256 _amountOfPacks
@@ -150,7 +172,7 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
         if (maxPackSupply != 0 && nonce + _amountOfPacks > maxPackSupply) revert Bundles__MaxSupplyReached();
 
         for (uint256 i = 0; i < _amountOfPacks; i++) {
-            this.safeMint(_to, _addresses, _arrayOfNumbers[i]);
+            this.safeMint(_to, _lvlMin, _addresses, _arrayOfNumbers[i]);
         }
 
         emit BatchBundleAsset(_to, _amountOfPacks);
@@ -162,8 +184,10 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
      * @dev Burn a previously emitted NFT to claim all the associated assets from the escrow contract.
      * @param _tokenId === hash of all associated assets.
      * @param _salt === nonce. Emitted in the BundleAsset event (see interface).
-     * @param _addresses Array containing all the contract addresses of every assets sent to the escrow contract. Emitted in the BundleAsset event (see interface).
-     * @param _numbers Array containing numbers, amounts and IDs for every assets sent to the escrow contract. Emitted in the BundleAsset event (see interface).
+     * @param _addresses Array containing all the contract addresses of every assets sent to the escrow contract.
+     *  Emitted in the BundleAsset event (see interface).
+     * @param _numbers Array containing numbers, amounts and IDs for every assets sent to the escrow contract.
+     *  Emitted in the BundleAsset event (see interface).
      */
     function burn(
         address _to,
@@ -171,9 +195,9 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
         uint256 _salt,
         address[] calldata _addresses,
         uint256[] calldata _numbers
-    ) external override onlyOngoing {
+    ) external override onlyOngoing onlyActive {
         if (_msgSender() != ownerOf(_tokenId)) revert Bundles__TokenNotOwned();
-        require(_tokenId == hash(_salt, _addresses, _numbers));
+        if (_tokenId != hash(_salt, _addresses, _numbers)) revert Bundles__TokenIdDoesntMatch();
 
         super._burn(_tokenId);
 
@@ -225,7 +249,7 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
         if (this.isExpired()) {
             if (this.isActive()) {
                 this.deactivate();
-                loyaltyProgram.switchStatus(address(this), false);
+                meedProgram.switchStatus(address(this), false);
             }
             revert Expirable__EventExpired();
         }

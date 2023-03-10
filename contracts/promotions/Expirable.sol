@@ -8,22 +8,31 @@ import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/
 import {Counters} from "../utils/Counters.sol";
 import {TimeLimited} from "../utils/TimeLimited.sol";
 import {IExpirable} from "../interfaces/IExpirable.sol";
-import {LoyaltyProgram} from "../loyaltyProgram/LoyaltyProgram.sol";
+import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
+import {MeedProgram} from "../meedProgram/MeedProgram.sol";
 
 /**
  * @title Expirable
  * @author Pedrojok01
  * @notice Part of the Meed Rewards platform from SuperUltra
- * @dev ERC721 time limited NFT | Auto-burn at expiration:
+ * @dev ERC721 time limited NFT | Auto-burn when used:
  *  - Can either be airdrop to a specified membership level, or
  *  - Minted upon condition.
  */
 
-/** TODO:
- *  - Add auto-burn mechanism
+/**
+ * Sighash   |   Function Signature
+ * ================================
+ * a1448194  =>  safeMint(address,uint256)
+ * 1312b88f  =>  batchMint(address[],uint8)
+ * fdc175f2  =>  consumeTiket(address,uint256)
+ * fa5a3d81  =>  getTicketsPerAddress(address)
+ * 7dc379fa  =>  getTicket(uint256)
+ * 743976a0  =>  _baseURI()
+ * 810bdd65  =>  _onlyOngoing()*
  */
 
-contract Expirable is ERC721, IExpirable, TimeLimited {
+contract Expirable is ERC721, IExpirable, TimeLimited, SubscriberChecks {
     using Counters for Counters.Counter;
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -31,7 +40,7 @@ contract Expirable is ERC721, IExpirable, TimeLimited {
     ///////////////////////////////////////////////////////////////////////////////*/
 
     string private _baseURIextended;
-    LoyaltyProgram immutable loyaltyProgram;
+    MeedProgram private immutable meedProgram;
     Counters.Counter private _tokenIdCounter;
 
     struct Ticket {
@@ -48,10 +57,11 @@ contract Expirable is ERC721, IExpirable, TimeLimited {
         string memory _uri,
         address _owner,
         uint256 _expirationDate,
-        address _loyaltyProgram
-    ) ERC721(_name, _symbol) TimeLimited(_expirationDate) {
+        address _meedProgram,
+        address _contractAddress
+    ) ERC721(_name, _symbol) TimeLimited(_expirationDate) SubscriberChecks(_contractAddress) {
         _baseURIextended = _uri;
-        loyaltyProgram = LoyaltyProgram(_loyaltyProgram);
+        meedProgram = MeedProgram(_meedProgram);
         transferOwnership(_owner);
         transferAdminship(_owner);
     }
@@ -70,8 +80,8 @@ contract Expirable is ERC721, IExpirable, TimeLimited {
      * @param to Address to mint to; must be a member of the loyalty program;
      * @param lvlMin Level required to mint the NFT (set to 0 for no level requirement);
      */
-    function safeMint(address to, uint256 lvlMin) external onlyOwnerOrAdmin onlyOngoing onlyActive {
-        uint8 currentLevel = loyaltyProgram.getMemberLevel(to);
+    function safeMint(address to, uint256 lvlMin) external onlyOwnerOrAdmin onlyOngoing onlyActive onlyProOrEnterprise {
+        uint8 currentLevel = meedProgram.getMemberLevel(to);
         if (currentLevel == 0) revert Expirable__NonExistantUser();
         if (currentLevel < uint8(lvlMin)) revert Expirable__InsufficientLevel();
 
@@ -90,13 +100,21 @@ contract Expirable is ERC721, IExpirable, TimeLimited {
      * @param to Array of addresses to mint to; must be members of the loyalty program;
      * @param lvlMin Level required to mint the NFT (set to 0 for no level requirement);
      */
-    function batchMint(address[] calldata to, uint8 lvlMin) external onlyOwnerOrAdmin onlyOngoing onlyActive {
+    function batchMint(
+        address[] calldata to,
+        uint8 lvlMin
+    ) external onlyOwnerOrAdmin onlyOngoing onlyActive onlyEnterprise {
         uint256 lentgh = to.length;
         for (uint256 i = 0; i < lentgh; i++) {
             this.safeMint(to[i], lvlMin);
         }
     }
 
+    /**
+     * @dev Consume a ticket, burning it and marking it as used;
+     * @param from Current owner of the ticket;
+     * @param ticketId TicketId of the ticket to consume;
+     */
     function consumeTiket(address from, uint256 ticketId) external onlyOngoing onlyActive {
         if (tickets[uint88(ticketId)].used) revert Expirable__TicketAlreadyUsed(ticketId);
         if (tickets[uint88(ticketId)].owner != from) revert Expirable__TicketNotOwned();
@@ -106,8 +124,6 @@ contract Expirable is ERC721, IExpirable, TimeLimited {
 
         emit TicketConsumed(from, ticketId);
     }
-
-    event TicketConsumed(address indexed from, uint256 ticketId);
 
     /*///////////////////////////////////////////////////////////////////////////////
                                         VIEW
@@ -138,7 +154,7 @@ contract Expirable is ERC721, IExpirable, TimeLimited {
         if (this.isExpired()) {
             if (this.isActive()) {
                 this.deactivate();
-                loyaltyProgram.switchStatus(address(this), false);
+                meedProgram.switchStatus(address(this), false);
             }
             revert Expirable__EventExpired();
         }

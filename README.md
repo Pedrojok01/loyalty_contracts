@@ -1,13 +1,27 @@
-# Sample Hardhat Project
+# Meed Rewards | From SuperUltra
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+Initial smart-contracts draft for Meed Rewards. Not to be used for production (yet!).
 
-Try running some of the following tasks:
+Compile:
 
 ```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.ts
+yarn compile
+```
+
+Test:
+
+```shell
+yarn test
+```
+
+Slither-analyzer:
+
+```shell
+yarn slither
+```
+
+Deploy:
+
+```shell
+yarn deploy
 ```

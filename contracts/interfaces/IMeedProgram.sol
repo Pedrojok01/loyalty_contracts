@@ -4,13 +4,13 @@ pragma solidity 0.8.18;
 import {PromoLib} from "../library/PromoLib.sol";
 
 /**
- * @title Interface for LoyaltyProgram.sol contract;
+ * @title Interface for MeedProgram.sol contract;
  * @author @Pedrojok01
  * @notice Part of the Meed Rewards platform from SuperUltra
  * @dev Allows the factory to communicate with each game;
  */
 
-interface ILoyaltyProgram {
+interface IMeedProgram {
     /**
      * @dev An external method for the owner to mint Soulbound NFTs. Can only mint 1 per address.
      */

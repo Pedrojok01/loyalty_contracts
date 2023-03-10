@@ -4,13 +4,13 @@ pragma solidity 0.8.18;
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 
 import {PromoLib} from "../library/PromoLib.sol";
-import {Errors} from "../utils/Errors.sol";
 import {IMeedProgram} from "../interfaces/IMeedProgram.sol";
+import {Errors} from "../utils/Errors.sol";
 
-import {Bundles} from "../promotions/Bundles.sol";
+import {Redeemable} from "../promotions/Redeemable.sol";
 
 /**
- * @title BundlesFactory
+ * @title RedeemableFactory
  * @author Pierre Estrabaud (@Pedrojok01)
  * @notice Part of the Meed Rewards platform from SuperUltra
  * @dev Contracts factory do deploy the MeedProgram Soulbound ERC721;
@@ -19,7 +19,7 @@ import {Bundles} from "../promotions/Bundles.sol";
  *  - Stores all brand details into the Brand struct (allows filters)
  */
 
-contract BundlesFactory is Context, Errors {
+contract RedeemableFactory is Context, Errors {
     using PromoLib for PromoLib.Promotion;
 
     address private immutable CONTROL_ADDRESS;
@@ -34,35 +34,24 @@ contract BundlesFactory is Context, Errors {
 
     /**
      * @dev Call this function to create a new MeedProgram contract.
-     * @param name  Name of the new MeedProgram (user input).
-     * @param symbol  Symbol of the new MeedProgram (user input).
      * @param uri  URI of the new MeedProgram (user input).
-     * * @param data Data of the new MeedProgram (user input).
+     * @param data Data of the new MeedProgram (user input).
      * @param meedProgram  MeedProgram address (user input).
-     * @param _type  Type of products sold (user input).
+     * @param _type  Type of the promotions to be created (user input).
      * @return newPromotion Instance of the newly created promotion.
      */
     function createNewPromotion(
-        string memory name,
-        string memory symbol,
         string memory uri,
-        uint256 expirationDate,
-        address meedProgram,
         uint256 data,
+        address meedProgram,
         PromoLib.PromotionsType _type
     ) external returns (address newPromotion) {
-        if (_type == PromoLib.PromotionsType.Bundles || _type == PromoLib.PromotionsType.Stamps) {
-            newPromotion = address(
-                new Bundles(name, symbol, uri, expirationDate, meedProgram, data, _msgSender(), CONTROL_ADDRESS)
-            );
-        } else {
-            revert BundlesFactory_TypeNotSupported();
-        }
+        newPromotion = address(new Redeemable(uri, _msgSender(), data, meedProgram, CONTROL_ADDRESS));
 
         IMeedProgram program = IMeedProgram(meedProgram);
         program.addPromotion(newPromotion, _type);
 
-        emit NewLoyaltyCreated(_msgSender(), newPromotion, name);
+        emit NewLoyaltyCreated(_msgSender(), newPromotion, "");
         return newPromotion;
     }
 
