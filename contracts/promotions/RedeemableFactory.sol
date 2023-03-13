@@ -35,7 +35,7 @@ contract RedeemableFactory is Context, Errors {
     /**
      * @dev Call this function to create a new MeedProgram contract.
      * @param uri  URI of the new MeedProgram (user input).
-     * @param data Data of the new MeedProgram (user input).
+     * @param data Data of the new MeedProgram (user input) ( = expirationDate)
      * @param meedProgram  MeedProgram address (user input).
      * @param _type  Type of the promotions to be created (user input).
      * @return newPromotion Instance of the newly created promotion.
@@ -51,9 +51,9 @@ contract RedeemableFactory is Context, Errors {
         IMeedProgram program = IMeedProgram(meedProgram);
         program.addPromotion(newPromotion, _type);
 
-        emit NewLoyaltyCreated(_msgSender(), newPromotion, "");
+        emit NewPromotionCreated(_msgSender(), newPromotion);
         return newPromotion;
     }
 
-    event NewLoyaltyCreated(address owner, address indexed newPromotion, string newPromotionName);
+    event NewPromotionCreated(address indexed owner, address indexed newPromotion);
 }

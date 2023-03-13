@@ -38,6 +38,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     string private _baseURIextended;
     Counters.Counter private _tokenIdCounter;
     PromoLib.Data private promoLib;
+    address[3] private factories;
 
     struct TierStructure {
         uint64 silver;
@@ -61,6 +62,11 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
 
     mapping(address => Membership) public membership;
 
+    modifier onlyFactory() {
+        _onlyFactory();
+        _;
+    }
+
     /**
      * @param _name NFT Name
      * @param _symbol NFT Symbol
@@ -72,10 +78,12 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         string memory _uri,
         bool _tierTracker,
         address _owner,
-        uint64[4] memory amounts
+        uint64[4] memory amounts,
+        address[3] memory _factories
     ) ERC721(_name, _symbol) {
         TIER_TRACKER = _tierTracker;
         _baseURIextended = _uri;
+        factories = _factories;
         transferOwnership(_owner);
         _initializeTierStructure(amounts[0], amounts[1], amounts[2], amounts[3]);
         mint(_owner);
@@ -109,10 +117,11 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     }
 
     function updateMember(address member, uint16 buyVolume, uint32 amountVolume) external onlyOwnerOrAdmin {
-        Membership memory memberData = membership[member];
-        if (memberData.level == 0) {
-            this.mint(member);
+        if (membership[member].level == 0) {
+            mint(member);
         }
+
+        Membership memory memberData = membership[member];
         memberData.buyVolume += buyVolume;
         memberData.amountVolume += amountVolume;
         membership[member] = memberData;
@@ -125,6 +134,11 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     /*///////////////////////////////////////////////////////////////////////////////
                                         VIEW
     ///////////////////////////////////////////////////////////////////////////////*/
+
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        if (!_exists(tokenId)) revert MeedProgram_TokenDoesNotExist();
+        return _baseURIextended;
+    }
 
     /**
      * @dev Allows to get the level of a member
@@ -167,14 +181,24 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
 
     function getAllPromotionsPerType(
         PromoLib.PromotionsType _type
-    ) external view returns (PromoLib.Promotion[] memory promotionsPerType) {
+    ) external view returns (PromoLib.Promotion[] memory) {
         uint256 totalPromotions = promoLib.promotions.length;
+
+        PromoLib.Promotion[] memory promotionsPerType = new PromoLib.Promotion[](totalPromotions);
+        uint256 count = 0;
 
         for (uint256 i = 0; i < totalPromotions; i++) {
             if (promoLib.promotions[i].promotionsType == _type) {
-                promotionsPerType[i] = promoLib.promotions[i];
+                promotionsPerType[count] = promoLib.promotions[i];
+                count++;
             }
         }
+
+        // Resize the promotionsPerType array to the correct size
+        assembly {
+            mstore(promotionsPerType, count)
+        }
+        return promotionsPerType;
     }
 
     /**
@@ -184,18 +208,25 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
      *  - false = inactive
      * @return activePromotions An array of promotions
      */
-    function getAllPromotionsPerStatus(
-        bool status
-    ) external view returns (PromoLib.Promotion[] memory activePromotions) {
+    function getAllPromotionsPerStatus(bool status) external view returns (PromoLib.Promotion[] memory) {
         uint256 totalPromotions = promoLib.promotions.length;
-        uint256 promoIndex;
+
+        PromoLib.Promotion[] memory activePromotions = new PromoLib.Promotion[](totalPromotions);
+        uint256 count = 0;
 
         for (uint256 i = 0; i < totalPromotions; i++) {
             if (promoLib.promotions[i].active == status) {
-                activePromotions[promoIndex] = promoLib.promotions[i];
-                promoIndex++;
+                activePromotions[count] = promoLib.promotions[i];
+                count++;
             }
         }
+
+        // Resize the promotionsPerType array to the correct size
+        assembly {
+            mstore(activePromotions, count)
+        }
+
+        return activePromotions;
     }
 
     function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC721Enumerable) returns (bool) {
@@ -222,7 +253,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
      * @dev Allows to add a promotion to the list of promotions (both array & mapping)
      * @param promotion The address of the loyalty program contract
      */
-    function addPromotion(address promotion, PromoLib.PromotionsType _type) external onlyOwnerOrAdmin {
+    function addPromotion(address promotion, PromoLib.PromotionsType _type) external onlyFactory {
         PromoLib._addPromotion(promotion, _type, promoLib);
     }
 
@@ -272,5 +303,11 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
 
     function _baseURI() internal view override returns (string memory) {
         return _baseURIextended;
+    }
+
+    function _onlyFactory() private view {
+        if (_msgSender() != factories[0] && _msgSender() != factories[1] && _msgSender() != factories[2]) {
+            revert MeedProgram_NotAuthorized();
+        }
     }
 }

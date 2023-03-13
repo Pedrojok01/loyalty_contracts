@@ -31,6 +31,8 @@ contract MeedProgramFactory is Context, Errors {
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
+    address[3] private factories;
+
     /**
      * @dev Main brand details to allow:
      * - For filters in UI/UX;
@@ -67,6 +69,10 @@ contract MeedProgramFactory is Context, Errors {
      */
     IMeedProgram[] public loyaltyList;
 
+    constructor(address[3] memory _factories) {
+        factories = _factories;
+    }
+
     /*///////////////////////////////////////////////////////////////////////////////
                                         FACTORY
     ///////////////////////////////////////////////////////////////////////////////*/
@@ -98,7 +104,7 @@ contract MeedProgramFactory is Context, Errors {
         return _createNewMeedProgram(loyaltyID, name, symbol, uri, tierTracker, amounts, productType, location);
     }
 
-    event NewLoyaltyCreated(
+    event NewMeedProgramCreated(
         address owner,
         IMeedProgram indexed newLoyaltyAddress,
         uint256 indexed newLoyaltyID,
@@ -141,7 +147,7 @@ contract MeedProgramFactory is Context, Errors {
     ) private returns (IMeedProgram newLoyalty) {
         address owner = _msgSender();
 
-        newLoyalty = IMeedProgram(new MeedProgram(_name, _symbol, _uri, _tierTracker, owner, amounts));
+        newLoyalty = IMeedProgram(new MeedProgram(_name, _symbol, _uri, _tierTracker, owner, amounts, factories));
 
         getMeedIDPerOwner[owner].push(_loyaltyID);
         getLoyaltyIDPerName[_name] = _loyaltyID;
@@ -151,7 +157,7 @@ contract MeedProgramFactory is Context, Errors {
         Brand memory newBrand = Brand({productType: _productType, location: _location, owner: owner});
         brands[_loyaltyID] = newBrand;
 
-        emit NewLoyaltyCreated(owner, newLoyalty, _loyaltyID, _name);
+        emit NewMeedProgramCreated(owner, newLoyalty, _loyaltyID, _name);
 
         return newLoyalty;
     }

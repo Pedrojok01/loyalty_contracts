@@ -55,9 +55,9 @@ contract ExpirableFactory is Context, Errors {
         IMeedProgram program = IMeedProgram(meedProgram);
         program.addPromotion(newPromotion, _type);
 
-        emit NewLoyaltyCreated(_msgSender(), newPromotion, name);
+        emit NewPromotionCreated(_msgSender(), newPromotion, name);
         return newPromotion;
     }
 
-    event NewLoyaltyCreated(address owner, address indexed newPromotion, string newPromotionName);
+    event NewPromotionCreated(address owner, address indexed newPromotion, string newPromotionName);
 }

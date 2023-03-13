@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: CC0-1.0
 pragma solidity 0.8.18;
 
+import "hardhat/console.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Counters} from "../utils/Counters.sol";
@@ -19,6 +20,7 @@ import {Errors} from "../utils/Errors.sol";
  *  - Handle case where a user has multiple subscriptions
  *  - Handle case where a user pay for a plan and immediately upgrade (cheating)
  *  - Implement a way to downgrade a subscription
+ *  - Add possible discount on upgrade ?? (ex: 10% off on upgrade from Basic to Pro)
  */
 
 contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
@@ -35,12 +37,12 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
         Plan plan; // 1 byte
         uint40 tokenId; // 5 bytes
         uint64 expiration; // 8 bytes
-        bool duration; // false = monthly, true = anually
+        uint64 startTime; // 8 bytes
     }
 
     mapping(Plan => uint256) public fees; // Map plan to price
     mapping(address => uint40) private _tokenOfOwner; // Map user to tokenId
-    mapping(address => Subscriber) public subscribers; // Map user to subscriber
+    mapping(address => Subscriber) private subscribers; // Map user to subscriber
 
     /*///////////////////////////////////////////////////////////////////////////////
                                         MODIFIERS
@@ -80,12 +82,10 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
      */
     function subscribe(Plan plan, bool duration) public payable {
         address subscriber = _msgSender();
-        if (balanceOf(subscriber) == 0) revert Subscriptions__UserAlreadyOwnsSubscription();
+        if (balanceOf(subscriber) != 0) revert Subscriptions__UserAlreadyOwnsSubscription();
 
         // Handle payment per tier & duration
-        uint256 toPay = calculateSubscriptionPrice(plan, duration);
-        if (toPay != msg.value) revert Subscriptions__IncorrectPrice();
-        _handlePayment(toPay);
+        _checkAmountPaid(plan, duration);
 
         uint64 expiration = duration ? uint64(block.timestamp + 365 days) : uint64(block.timestamp + 30 days);
         uint40 tokenID = _emitSubscriptionNFT(subscriber);
@@ -94,7 +94,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
             tokenId: tokenID,
             expiration: expiration,
             plan: plan,
-            duration: duration
+            startTime: uint64(block.timestamp)
         });
 
         subscribers[subscriber] = newSubscriber;
@@ -114,14 +114,22 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
         if (ownerOf(tokenId) != subscriber) revert Subscriptions__TokenNotOwned();
         Subscriber memory temp = subscribers[subscriber];
 
+        // Handle payment per tier & duration
+        _checkAmountPaid(plan, duration);
+
         if (temp.plan != plan) {
             if (temp.expiration > block.timestamp) revert Subscriptions__UpgradePlanBeforeRenewal();
-            else this.changeSubscriptionPlan(tokenId, plan);
-        } else {
-            uint256 toPay = calculateSubscriptionPrice(plan, duration);
-            if (toPay != msg.value) revert Subscriptions__IncorrectPrice();
-            _handlePayment(toPay);
 
+            // Update subscription (expiration, startTime & plan)
+            temp.expiration = duration ? uint64(block.timestamp + 365 days) : uint64(block.timestamp + 30 days);
+            temp.startTime = uint64(block.timestamp);
+            temp.plan = plan;
+
+            subscribers[subscriber] = temp;
+
+            emit SubscriptionUpdate(tokenId, temp.expiration);
+        } else {
+            // Update subscription expiration
             uint64 durationToAdd = duration ? 365 days : 30 days;
             if (temp.expiration < block.timestamp) {
                 temp.expiration = uint64(block.timestamp + durationToAdd);
@@ -143,24 +151,18 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
         if (ownerOf(tokenId) != subscriber) revert Subscriptions__TokenNotOwned();
 
         Subscriber memory temp = subscribers[subscriber];
-        if (temp.expiration <= block.timestamp) revert Subscriptions__SubscriptionExpired();
         if (temp.plan >= plan) revert Subscriptions__CannotDowngradeTier(); // Simpler for now
 
         // Calculate payment adjustment for remaining time
-        uint256 remainingTime = temp.expiration - block.timestamp;
-        uint256 duration = temp.duration ? 365 days : 30 days;
-        uint256 currentPrice = fees[temp.plan];
-        uint256 newPrice = fees[plan];
-
-        uint256 alreadyPaid = currentPrice * ((duration - remainingTime) / duration);
-        uint256 leftOnInitialPayment = currentPrice - alreadyPaid;
-        uint256 adjustment = (newPrice * remainingTime) / duration;
-        uint256 cost = adjustment - leftOnInitialPayment;
-
+        (uint256 remainingTime, uint256 cost) = this.getRemainingTimeAndPrice(tokenId, plan);
         if (msg.value != cost) revert Subscriptions__IncorrectPrice();
         temp.plan = plan;
         subscribers[subscriber] = temp;
+
+        emit SubscriptionUpgraded(tokenId, remainingTime, cost);
     }
+
+    event SubscriptionUpgraded(uint256 tokenId, uint256 remainingTime, uint256 cost);
 
     /**
      * @dev Cancel a subscription in case of auto-renewal
@@ -172,6 +174,14 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
     /*///////////////////////////////////////////////////////////////////////////////
                                             VIEW
     ///////////////////////////////////////////////////////////////////////////////*/
+
+    function totalSupply() external view returns (uint256) {
+        return _tokenIds.current();
+    }
+
+    function getSubscriber(address user) external view returns (Subscriber memory) {
+        return subscribers[user];
+    }
 
     /**
      * @notice Returns the expiration date of a subscription
@@ -195,17 +205,33 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
         return duration ? fees[plan] * 10 : fees[plan];
     }
 
+    function getRemainingTimeAndPrice(uint256 tokenId, Plan plan) external view returns (uint256, uint256) {
+        address owner = ownerOf(tokenId);
+
+        Subscriber memory temp = subscribers[owner];
+        if (temp.expiration <= block.timestamp) return (0, 0);
+
+        // Calculate the remaining time left in the subscription
+        uint256 remainingTime = temp.expiration - block.timestamp;
+        uint256 remainingTimeInDay = (remainingTime + 120) / 1 days; // add 2 minutes buffer to round up
+
+        // Calculate the cost difference of the remaining subscription time
+        uint256 leftOnInitialPayment = ((fees[temp.plan] * remainingTimeInDay) / 30);
+        uint256 cost = ((fees[plan] * remainingTimeInDay) / 30) - leftOnInitialPayment;
+
+        return (remainingTime, cost);
+    }
+
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        if (!_exists(tokenId)) revert MyNFT_URIqueryForNonexistentToken();
+        if (!_exists(tokenId)) revert Subscriptions__NoSubscriptionFound();
 
         Subscriber memory subscriber = subscribers[ownerOf(tokenId)];
-        uint256 plan = uint256(subscriber.plan);
 
-        if (plan == uint256(Plan.BASIC)) {
+        if (subscriber.plan == Plan.BASIC) {
             return baseURIs[0];
-        } else if (plan == uint256(Plan.PRO)) {
+        } else if (subscriber.plan == Plan.PRO) {
             return baseURIs[1];
-        } else if (plan == uint256(Plan.ENTERPRISE)) {
+        } else if (subscriber.plan == Plan.ENTERPRISE) {
             return baseURIs[2];
         } else {
             revert Subscriptions__InvalidPlan();
@@ -243,6 +269,11 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
         fees[Plan.ENTERPRISE] = 0.5 ether;
     }
 
+    function _checkAmountPaid(Plan plan, bool duration) private view {
+        uint256 toPay = calculateSubscriptionPrice(plan, duration);
+        if (toPay != msg.value) revert Subscriptions__IncorrectPrice();
+    }
+
     function _emitSubscriptionNFT(address subscriber) private returns (uint40) {
         _tokenIds.increment();
         uint40 newTokenId = _tokenIds.current();
@@ -250,11 +281,6 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
         _tokenOfOwner[subscriber] = newTokenId;
         _mint(subscriber, newTokenId);
         return newTokenId;
-    }
-
-    function _handlePayment(uint256 price) private {
-        (bool sent, ) = address(this).call{value: price}("");
-        if (!sent) revert Subscriptions__PaymentFailed();
     }
 
     function _onlySubscribers() private view {

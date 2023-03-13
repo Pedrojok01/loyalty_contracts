@@ -9,20 +9,32 @@ pragma solidity 0.8.18;
  * - saves gas;
  * - makes the code more readable;
  * - easier to maintain;
- *
- * Include with `using Errors for Errors.Error;`
  */
 
 contract Errors {
     // MeedProgram
     error MeedProgram_AlreadyMember();
     error MeedProgram_InvalidPromotionType();
+    error MeedProgram_TokenDoesNotExist();
+    error MeedProgram_NotAuthorized();
 
     // MeedProgramFactory
     error MeedProgramFactory_AlreadyExists();
 
     // BundlesFactory
     error BundlesFactory_TypeNotSupported();
+
+    // Bundles
+    error Bundles__MintToAddress0();
+    error Bundles__ArraysDontMatch();
+    error Bundles__NumbersDontMatch();
+    error Bundles__MaxSupplyReached();
+    error Bundles__EventExpired();
+    error Bundles__CantSendZeroAmount();
+    error Bundles__ValuesDontMatch();
+    error Bundles__TokenNotOwned();
+    error Bundles__TokenURIQueryForNonexistentToken();
+    error Bundles__TokenIdDoesntMatch();
 
     // Redeemable
     error Redeemable__TokenNotRedeemable(uint256 id);
@@ -46,18 +58,6 @@ contract Errors {
     error Expirable__NotOwnerOrApproved();
     error Expirable__TicketAlreadyUsed(uint256 ticketId);
 
-    // Bundles
-    error Bundles__MintToAddress0();
-    error Bundles__ArraysDontMatch();
-    error Bundles__NumbersDontMatch();
-    error Bundles__MaxSupplyReached();
-    error Bundles__EventExpired();
-    error Bundles__CantSendZeroAmount();
-    error Bundles__ValuesDontMatch();
-    error Bundles__TokenNotOwned();
-    error Bundles__TokenURIQueryForNonexistentToken();
-    error Bundles__TokenIdDoesntMatch();
-
     // Subscriptions
     error Subscriptions__TokenNotOwned();
     error Subscriptions__UserAlreadyOwnsSubscription();
@@ -72,7 +72,6 @@ contract Errors {
     error Subscriptions__WithdrawToAddressZero();
     error Subscriptions__WithdrawalFailed();
     error Subscriptions__PleaseUpgradeYourPlan();
-    error MyNFT_URIqueryForNonexistentToken();
 
     // SubscriberChecks
     error SubscriberChecks__PleaseSubscribeFirst();

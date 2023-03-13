@@ -94,7 +94,7 @@ abstract contract Adminable is Context, Ownable, Errors {
      * @dev Transfers adminship of the contract to a new account (`newAdmin`).
      * Can only be called by the current owner or admin.
      */
-    function transferAdminship(address newAdmin) public virtual onlyOwner onlyAdmin {
+    function transferAdminship(address newAdmin) public virtual onlyOwnerOrAdmin {
         if (newAdmin == address(0)) revert Adminable__AddressZero();
         _transferAdminship(newAdmin);
     }
