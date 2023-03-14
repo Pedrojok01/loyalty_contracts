@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.18;
 
+// import "hardhat/console.sol";
+
 /**
  * @title PromoLib
  * @author Pierre Estrabaud (@Pedrojok01)
@@ -28,8 +30,9 @@ library PromoLib {
     }
 
     struct Data {
-        mapping(address => Promotion) promotion;
-        Promotion[] promotions;
+        mapping(address => Promotion) promotion; // Allows to get a promotion by its address
+        mapping(address => uint256) promotionIndex; // Keet track of the index of the promotion in the array
+        Promotion[] promotions; // Array of all the promotions per MeedProgram
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -46,6 +49,7 @@ library PromoLib {
 
         self.promotion[_promotion] = newPromotion;
         self.promotions.push(newPromotion);
+        self.promotionIndex[_promotion] = self.promotions.length - 1;
     }
 
     /**
@@ -54,6 +58,7 @@ library PromoLib {
      */
     function _setPromotionStatus(address _promotion, bool _status, Data storage self) internal {
         self.promotion[_promotion].active = _status;
+        self.promotions[self.promotionIndex[_promotion]].active = _status;
     }
 
     /*///////////////////////////////////////////////////////////////////////////////

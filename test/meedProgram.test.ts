@@ -222,8 +222,8 @@ describe("Susbcriptions Contract", function () {
     expect(newPromos.length).to.equal(1);
   });
 
-  it("should be possible to add a promotion", async () => {
-    const { meedProgram, owner, user1, admin, redeemableFactory } = await loadFixture(deployFixture);
+  it("should be possible to get all promotion per type & status & paging", async () => {
+    const { meedProgram, redeemableFactory } = await loadFixture(deployFixture);
 
     // Create a few promos via the factory
     const createFewPromos = async () => {
@@ -251,6 +251,47 @@ describe("Susbcriptions Contract", function () {
 
     const inactives = await meedProgram.getAllPromotionsPerStatus(false);
     expect(inactives.length).to.equal(0);
+
+    // Now, get all promos paged (offset, limit)
+    const [paged, offset, total] = await meedProgram.getAllPromotionsPaging(0, 10);
+    expect(paged.length).to.equal(Number(total));
+    expect(Number(offset)).to.equal(6);
+
+    const [, ,] = await meedProgram.getAllPromotionsPaging(100, 500);
+    const [, ,] = await meedProgram.getAllPromotionsPaging(0, 0);
+  });
+
+  it("should be possible to deactivate a promotion if authorized", async () => {
+    const { meedProgram, owner, user1, redeemableFactory } = await loadFixture(deployFixture);
+
+    // Create a new promo via the factory
+    const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
+    const receipt = await redeemableFactory.createNewPromotion("ipfs://uri", expirationDate, meedProgram.address, 0);
+    await expect(receipt).to.emit(redeemableFactory, "NewPromotionCreated").withArgs(owner.address, anyValue);
+
+    // Check the new state  (1 promo)
+    const newPromos = await meedProgram.getAllPromotions();
+    expect(newPromos[0].active).to.equal(true);
+    const activesBefore = await meedProgram.getAllPromotionsPerStatus(true);
+    expect(activesBefore.length).to.equal(1);
+    const inactivesBefore = await meedProgram.getAllPromotionsPerStatus(false);
+    expect(inactivesBefore.length).to.equal(0);
+
+    // revert if not owner or admin
+    await expect(
+      meedProgram.connect(user1).switchStatus(newPromos[0].promotionAddress, false)
+    ).to.be.revertedWithCustomError(meedProgram, "Adminable__NotAuthorized");
+
+    // Deactivate the promo
+    await meedProgram.connect(owner).switchStatus(newPromos[0].promotionAddress, false);
+    const promoUpdated = await meedProgram.getAllPromotions();
+
+    expect(promoUpdated[0].active).to.equal(false);
+
+    const activesAfter = await meedProgram.getAllPromotionsPerStatus(true);
+    expect(activesAfter.length).to.equal(0);
+    const inactivesAfter = await meedProgram.getAllPromotionsPerStatus(false);
+    expect(inactivesAfter.length).to.equal(1);
   });
 
   /*///////////////////////////////////////////////////////////////////////////////

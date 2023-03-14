@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.18;
 
+// import "hardhat/console.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
@@ -84,6 +85,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         TIER_TRACKER = _tierTracker;
         _baseURIextended = _uri;
         factories = _factories;
+
         transferOwnership(_owner);
         _initializeTierStructure(amounts[0], amounts[1], amounts[2], amounts[3]);
         mint(_owner);
@@ -155,16 +157,25 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     }
 
     function getAllPromotions() external view returns (PromoLib.Promotion[] memory allPromotions) {
-        return PromoLib._getAllPromotions(promoLib);
+        // return PromoLib._getAllPromotions(promoLib);
+        return promoLib.promotions;
     }
 
     function getAllPromotionsPaging(
         uint256 offset,
         uint256 limit
     ) external view returns (PromoLib.Promotion[] memory pagedPromotions, uint256 nextOffset, uint256 total) {
+        uint256 max_limit = 100;
+
         uint256 totalPromotions = promoLib.promotions.length;
+
+        if (offset >= totalPromotions) {
+            offset = 0;
+        }
         if (limit == 0) {
             limit = 1;
+        } else if (limit > max_limit) {
+            limit = max_limit;
         }
 
         if (limit > totalPromotions - offset) {
