@@ -18,3 +18,12 @@ export const compareTimestamp = (value1: number, value2: number) => {
     return true;
   } else return false;
 };
+
+export function bytes16ToString(bytes: string): string {
+  let string = "";
+  for (let i = 0; i < bytes.length; i += 2) {
+    let byte = parseInt(bytes.slice(i, i + 2), 16);
+    string += String.fromCharCode(byte);
+  }
+  return string.trimStart().replace(/\0/g, "");
+}

@@ -1,11 +1,10 @@
 require("@nomicfoundation/hardhat-chai-matchers");
-import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { MeedProgram, RedeemableFactory, Subscriptions } from "../typechain-types";
 import {
-  pricePerPlan,
   meedProgram_name,
   meedProgram_symbol,
   meedProgram_uri,
@@ -15,11 +14,8 @@ import {
   subscriptions_symbol,
   subscriptions_uris,
 } from "./constant";
-import { compareTimestamp, formatNumber } from "./helpers/utils";
-import { PromiseOrValue } from "../typechain-types/common";
-import { Overrides } from "ethers";
 
-describe("Susbcriptions Contract", function () {
+describe("MeedProgram Contract", function () {
   async function deployFixture() {
     const [owner, user1, user2, user3, admin] = await ethers.getSigners();
 

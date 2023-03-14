@@ -22,7 +22,7 @@ import {Errors} from "../utils/Errors.sol";
  * ================================
  * e35af2b8  =>  createNewMeedProgram(string,string,string,bool,uint64[4],bytes16,bytes16)
  * 8a61cb3f  =>  getMeedProgramPerIndex(uint256)
- * 8372de9e  =>  getNumberOfMeedProgram()
+ * 8372de9e  =>  getTotalMeedPrograms()
  * 5bf700a7  =>  _createNewMeedProgram(uint256,string,string,string,bool,uint64[4],bytes16,bytes16)
  */
 
@@ -31,7 +31,7 @@ contract MeedProgramFactory is Context, Errors {
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
-    address[3] private factories;
+    address[3] public factories;
 
     /**
      * @dev Main brand details to allow:
@@ -45,29 +45,29 @@ contract MeedProgramFactory is Context, Errors {
     }
 
     /**
-     * @notice Map all loyalty IDs per owner;
+     * @notice Map all MeedProgram IDs per owner;
      */
-    mapping(address => uint256[]) public getMeedIDPerOwner;
+    mapping(address => uint256[]) private meedIDPerOwner;
 
     /**
-     * @notice Map all loyalty IDs per name;
+     * @notice Map all MeedProgram IDs per name;
      */
-    mapping(string => uint256) public getLoyaltyIDPerName;
+    mapping(string => uint256) private meedIDPerName;
 
     /**
-     * @notice Map all loyalty addresses per ID;
+     * @notice Map all MeedProgram addresses per ID;
      */
-    mapping(uint256 => IMeedProgram) public getLoyaltyAddress;
+    mapping(uint256 => IMeedProgram) private meedAddress;
 
     /**
      * @notice Map all brands details per ID;
      */
-    mapping(uint256 => Brand) public brands;
+    mapping(uint256 => Brand) private brands;
 
     /**
      * @notice Array containing all created MeedProgram addresses;
      */
-    IMeedProgram[] public loyaltyList;
+    IMeedProgram[] private meedProgramList;
 
     constructor(address[3] memory _factories) {
         factories = _factories;
@@ -84,7 +84,7 @@ contract MeedProgramFactory is Context, Errors {
      * @param uri  URI of the new MeedProgram (user input).
      * @param productType  Type of products sold (user input).
      * @param location  Store location, in case of regional stores (user input).
-     * @return newLoyalty Instance of the newly created contract.
+     * @return newMeed Instance of the newly created contract.
      */
     function createNewMeedProgram(
         string memory name,
@@ -92,43 +92,73 @@ contract MeedProgramFactory is Context, Errors {
         string memory uri,
         bool tierTracker,
         uint64[4] memory amounts,
-        bytes16 productType,
-        bytes16 location
-    ) external returns (IMeedProgram newLoyalty) {
-        uint256 loyaltyID = loyaltyList.length;
+        bytes32 productType,
+        bytes32 location
+    ) external returns (IMeedProgram newMeed) {
+        uint256 meedId = meedProgramList.length;
 
-        if (getLoyaltyAddress[loyaltyID] != IMeedProgram(address(0))) {
+        if (meedAddress[meedId] != IMeedProgram(address(0))) {
             revert MeedProgramFactory_AlreadyExists();
         }
 
-        return _createNewMeedProgram(loyaltyID, name, symbol, uri, tierTracker, amounts, productType, location);
+        if (meedIDPerName[name] != 0) {
+            revert MeedProgramFactory_NameAlreadyTaken();
+        }
+
+        return
+            _createNewMeedProgram(
+                meedId,
+                name,
+                symbol,
+                uri,
+                tierTracker,
+                amounts,
+                bytes16(productType),
+                bytes16(location)
+            );
     }
 
     event NewMeedProgramCreated(
         address owner,
-        IMeedProgram indexed newLoyaltyAddress,
-        uint256 indexed newLoyaltyID,
-        string newLoyaltyName
+        IMeedProgram indexed newMeedProgramAddress,
+        uint256 indexed newMeedProgramID,
+        string newMeedProgramName
     );
 
     /*///////////////////////////////////////////////////////////////////////////////
                                     VIEW FUNCTIONS
     ///////////////////////////////////////////////////////////////////////////////*/
 
+    function getMeedIDPerOwner(address from) external view returns (uint256[] memory) {
+        return meedIDPerOwner[from];
+    }
+
+    function getMeedIDPerName(string calldata name) external view returns (uint256) {
+        return meedIDPerName[name];
+    }
+
+    function getMeedAddressPerId(uint256 meedId) external view returns (IMeedProgram) {
+        return meedAddress[meedId];
+    }
+
     /**
      * @dev Returs a MeedProgram instance from an Id;
-     * @param loyaltyId Id of the instance to look for;
-     * @return loyaltyId Instance of the contract matching the loyaltyId;
+     * @param meedId Id of the instance to look for;
+     * @return meedId Instance of the contract matching the meedId;
      */
-    function getMeedProgramPerIndex(uint256 loyaltyId) external view returns (IMeedProgram) {
-        return loyaltyList[loyaltyId];
+    function getMeedProgramPerIndex(uint256 meedId) external view returns (IMeedProgram) {
+        return meedProgramList[meedId];
     }
 
     /**
      * @dev Returs the amount of MeedProgram created so far;
      */
-    function getNumberOfMeedProgram() external view returns (uint256) {
-        return loyaltyList.length - 1;
+    function getTotalMeedPrograms() external view returns (uint256) {
+        return meedProgramList.length;
+    }
+
+    function getBrandDetails(uint256 meedId) external view returns (Brand memory) {
+        return brands[meedId];
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -136,7 +166,7 @@ contract MeedProgramFactory is Context, Errors {
     ///////////////////////////////////////////////////////////////////////////////*/
 
     function _createNewMeedProgram(
-        uint256 _loyaltyID,
+        uint256 _meedId,
         string memory _name,
         string memory _symbol,
         string memory _uri,
@@ -144,21 +174,21 @@ contract MeedProgramFactory is Context, Errors {
         uint64[4] memory amounts,
         bytes16 _productType,
         bytes16 _location
-    ) private returns (IMeedProgram newLoyalty) {
+    ) private returns (IMeedProgram newMeedProgram) {
         address owner = _msgSender();
 
-        newLoyalty = IMeedProgram(new MeedProgram(_name, _symbol, _uri, _tierTracker, owner, amounts, factories));
+        newMeedProgram = IMeedProgram(new MeedProgram(_name, _symbol, _uri, _tierTracker, owner, amounts, factories));
 
-        getMeedIDPerOwner[owner].push(_loyaltyID);
-        getLoyaltyIDPerName[_name] = _loyaltyID;
-        getLoyaltyAddress[_loyaltyID] = newLoyalty;
-        loyaltyList.push(newLoyalty);
+        meedIDPerOwner[owner].push(_meedId);
+        meedIDPerName[_name] = _meedId;
+        meedAddress[_meedId] = newMeedProgram;
+        meedProgramList.push(newMeedProgram);
 
         Brand memory newBrand = Brand({productType: _productType, location: _location, owner: owner});
-        brands[_loyaltyID] = newBrand;
+        brands[_meedId] = newBrand;
 
-        emit NewMeedProgramCreated(owner, newLoyalty, _loyaltyID, _name);
+        emit NewMeedProgramCreated(owner, newMeedProgram, _meedId, _name);
 
-        return newLoyalty;
+        return newMeedProgram;
     }
 }

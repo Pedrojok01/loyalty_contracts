@@ -13,10 +13,9 @@ import {Redeemable} from "../promotions/Redeemable.sol";
  * @title RedeemableFactory
  * @author Pierre Estrabaud (@Pedrojok01)
  * @notice Part of the Meed Rewards platform from SuperUltra
- * @dev Contracts factory do deploy the MeedProgram Soulbound ERC721;
- *  - Deployer can launch its own Membership program.
+ * @dev Contracts factory do deploy the MeedProgram Redeemable ERC721;
+ *  - Brands can launch their own redeemable campaign.
  *  - Deployer will receive NFT id 0, proving its ownership.
- *  - Stores all brand details into the Brand struct (allows filters)
  */
 
 contract RedeemableFactory is Context, Errors {

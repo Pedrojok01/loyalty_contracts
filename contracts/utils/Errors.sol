@@ -20,6 +20,7 @@ contract Errors {
 
     // MeedProgramFactory
     error MeedProgramFactory_AlreadyExists();
+    error MeedProgramFactory_NameAlreadyTaken();
 
     // BundlesFactory
     error BundlesFactory_TypeNotSupported();
