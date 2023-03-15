@@ -37,7 +37,7 @@ contract ExpirableFactory is Context, Errors {
      * @param name  Name of the new MeedProgram (user input).
      * @param symbol  Symbol of the new MeedProgram (user input).
      * @param uri  URI of the new MeedProgram (user input).
-     * @param data Data of the new MeedProgram (user input).
+     * @param data Data of the new MeedProgram (user input) - expirationDate.
      * @param meedProgram  MeedProgram address (user input).
      * @param _type  Type of the promotions to be created (user input).
      * @return newPromotion Instance of the newly created promotion.

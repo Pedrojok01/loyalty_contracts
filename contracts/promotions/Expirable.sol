@@ -59,7 +59,7 @@ contract Expirable is ERC721, IExpirable, TimeLimited, SubscriberChecks {
         uint256 _expirationDate,
         address _meedProgram,
         address _contractAddress
-    ) ERC721(_name, _symbol) TimeLimited(_expirationDate) SubscriberChecks(_contractAddress) {
+    ) ERC721(_name, _symbol) TimeLimited(_expirationDate, address(this)) SubscriberChecks(_contractAddress) {
         _baseURIextended = _uri;
         meedProgram = MeedProgram(_meedProgram);
         transferOwnership(_owner);

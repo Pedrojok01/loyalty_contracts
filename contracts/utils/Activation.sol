@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.18;
 
+import "hardhat/console.sol";
 import {Adminable} from "../utils/Adminable.sol";
 
 /**
@@ -11,6 +12,7 @@ import {Adminable} from "../utils/Adminable.sol";
  */
 
 contract Activation is Adminable {
+    address private immutable CONTRACT_ROLE;
     bool private active = true;
 
     modifier onlyActive() {
@@ -23,10 +25,19 @@ contract Activation is Adminable {
         _;
     }
 
+    modifier onlyAuthorized() {
+        _requireAuthorized();
+        _;
+    }
+
+    constructor(address _contractRole) {
+        CONTRACT_ROLE = _contractRole;
+    }
+
     /**
      * @dev Allows the current owner or admin to activate the promotion.
      */
-    function activate() external onlyInactive onlyOwnerOrAdmin {
+    function activate() external onlyInactive onlyAuthorized {
         active = true;
         emit Activated(_msgSender());
     }
@@ -39,7 +50,7 @@ contract Activation is Adminable {
     /**
      * @dev Allows the current owner or admin to deactivate the promotion.
      */
-    function deactivate() external onlyActive onlyOwnerOrAdmin {
+    function deactivate() external onlyActive onlyAuthorized {
         active = false;
         emit Deactivated(_msgSender());
     }
@@ -68,5 +79,11 @@ contract Activation is Adminable {
      */
     function _requireDeactivated() private view {
         if (active) revert Activation__PromotionCurrentlyActive();
+    }
+
+    function _requireAuthorized() private view {
+        if (owner() != _msgSender() && admin() != _msgSender() && CONTRACT_ROLE != _msgSender()) {
+            revert Activation__NotAuthorized();
+        }
     }
 }

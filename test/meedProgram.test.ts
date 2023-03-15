@@ -276,7 +276,7 @@ describe("MeedProgram Contract", function () {
     // revert if not owner or admin
     await expect(
       meedProgram.connect(user1).switchStatus(newPromos[0].promotionAddress, false)
-    ).to.be.revertedWithCustomError(meedProgram, "Adminable__NotAuthorized");
+    ).to.be.revertedWithCustomError(meedProgram, "MeedProgram_NotAuthorized");
 
     // Deactivate the promo
     await meedProgram.connect(owner).switchStatus(newPromos[0].promotionAddress, false);

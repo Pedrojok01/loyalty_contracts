@@ -53,16 +53,6 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
         _;
     }
 
-    modifier onlyProOrEnterprise() {
-        _onlyProOrEnterprise();
-        _;
-    }
-
-    modifier onlyEnterprise() {
-        _onlyEnterprise();
-        _;
-    }
-
     constructor(string memory name_, string memory symbol_, string[3] memory uris_) ERC721(name_, symbol_) {
         require(uris_.length == 3, "Subscriptions: Invalid URIs length");
         _initialize();
@@ -238,6 +228,22 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
         }
     }
 
+    function isSubscribers(address subscriber) public view {
+        if (subscribers[subscriber].expiration < block.timestamp) revert Subscriptions__SubscriptionExpired();
+    }
+
+    function isProOrEnterprise(address subscriber) external view {
+        isSubscribers(subscriber); // Check for subscriber only
+        Plan _plan = subscribers[subscriber].plan;
+        if (_plan != Plan.PRO && _plan != Plan.ENTERPRISE) revert Subscriptions__PleaseUpgradeYourPlan();
+    }
+
+    function isEnterprise(address subscriber) external view {
+        isSubscribers(subscriber); // Check for subscriber only
+        Plan _plan = subscribers[subscriber].plan;
+        if (_plan != Plan.ENTERPRISE) revert Subscriptions__PleaseUpgradeYourPlan();
+    }
+
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return interfaceId == type(ISubscriptions).interfaceId || super.supportsInterface(interfaceId);
     }
@@ -285,17 +291,5 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
 
     function _onlySubscribers() private view {
         if (subscribers[_msgSender()].expiration < block.timestamp) revert Subscriptions__SubscriptionExpired();
-    }
-
-    function _onlyProOrEnterprise() private view {
-        _onlySubscribers(); // Check for subscriber only
-        Plan _plan = subscribers[_msgSender()].plan;
-        if (_plan != Plan.PRO && _plan != Plan.ENTERPRISE) revert Subscriptions__PleaseUpgradeYourPlan();
-    }
-
-    function _onlyEnterprise() private view {
-        _onlySubscribers(); // Check for subscriber only
-        Plan _plan = subscribers[_msgSender()].plan;
-        if (_plan != Plan.ENTERPRISE) revert Subscriptions__PleaseUpgradeYourPlan();
     }
 }

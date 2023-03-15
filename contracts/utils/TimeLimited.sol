@@ -13,7 +13,7 @@ import {Activation} from "../utils/Activation.sol";
 contract TimeLimited is Activation {
     uint256 private expirationDate; // 0 = no expiration
 
-    constructor(uint256 _expirationDate) {
+    constructor(uint256 _expirationDate, address _contractRole) Activation(_contractRole) {
         expirationDate = _expirationDate;
     }
 

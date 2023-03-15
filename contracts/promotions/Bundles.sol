@@ -57,7 +57,7 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, 
         uint256 _data,
         address _owner,
         address _contractAddress
-    ) ERC721(_name, _symbol) TimeLimited(_expirationDate) SubscriberChecks(_contractAddress) {
+    ) ERC721(_name, _symbol) TimeLimited(_expirationDate, address(this)) SubscriberChecks(_contractAddress) {
         maxPackSupply = _data;
         _baseURIextended = _uri;
         meedProgram = MeedProgram(_meedProgram);

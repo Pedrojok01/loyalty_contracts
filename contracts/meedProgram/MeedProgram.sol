@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.18;
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import {Adminable} from "../utils/Adminable.sol";
 import {Counters} from "../utils/Counters.sol";
-import {Activation} from "../utils/Activation.sol";
 import {PromoLib} from "../library/PromoLib.sol";
 import {IMeedProgram} from "../interfaces/IMeedProgram.sol";
 
@@ -65,6 +64,11 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
 
     modifier onlyFactory() {
         _onlyFactory();
+        _;
+    }
+
+    modifier onlyAuthorized() {
+        _onlyAuthorized();
         _;
     }
 
@@ -157,8 +161,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     }
 
     function getAllPromotions() external view returns (PromoLib.Promotion[] memory allPromotions) {
-        // return PromoLib._getAllPromotions(promoLib);
-        return promoLib.promotions;
+        return PromoLib._getAllPromotions(promoLib);
     }
 
     function getAllPromotionsPaging(
@@ -248,7 +251,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
                                         RESTRICTED
     ///////////////////////////////////////////////////////////////////////////////*/
 
-    function switchStatus(address promotion, bool status) external onlyOwnerOrAdmin {
+    function switchStatus(address promotion, bool status) external onlyAuthorized {
         PromoLib._setPromotionStatus(promotion, status, promoLib);
     }
 
@@ -318,6 +321,12 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
 
     function _onlyFactory() private view {
         if (_msgSender() != factories[0] && _msgSender() != factories[1] && _msgSender() != factories[2]) {
+            revert MeedProgram_NotAuthorized();
+        }
+    }
+
+    function _onlyAuthorized() private view {
+        if (_msgSender() != owner() && _msgSender() != admin() && tx.origin != owner() && tx.origin != admin()) {
             revert MeedProgram_NotAuthorized();
         }
     }

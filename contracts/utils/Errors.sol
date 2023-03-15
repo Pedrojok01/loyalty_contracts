@@ -85,4 +85,11 @@ contract Errors {
     // Activation
     error Activation__PromotionCurrentlyInactive();
     error Activation__PromotionCurrentlyActive();
+    error Activation__NotAuthorized();
+
+    // Adminable
+    error Adminable__NotAdmin();
+    error Adminable__AddressZero();
+    error Adminable__NotAuthorized();
+    error Adminable__AdminAlreadySet();
 }

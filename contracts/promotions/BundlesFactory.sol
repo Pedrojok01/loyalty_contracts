@@ -37,7 +37,7 @@ contract BundlesFactory is Context, Errors {
      * @param name  Name of the new MeedProgram (user input).
      * @param symbol  Symbol of the new MeedProgram (user input).
      * @param uri  URI of the new MeedProgram (user input).
-     * * @param data Data of the new MeedProgram (user input).
+     * @param data Data of the new MeedProgram (user input) - Max supply (0 = unlimited).
      * @param meedProgram  MeedProgram address (user input).
      * @param _type  Type of products sold (user input).
      * @return newPromotion Instance of the newly created promotion.

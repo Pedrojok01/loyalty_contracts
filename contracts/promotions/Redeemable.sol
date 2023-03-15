@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.18;
 
+import "hardhat/console.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {ERC1155Burnable} from "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 
@@ -63,6 +64,7 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
         uint8 id;
         uint120 value;
         uint120 circulatingSupply;
+        bool exist;
         // bytes32 productIdOrCurrency;
     }
 
@@ -74,7 +76,8 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
         uint256 _expirationDate,
         address _meedProgram,
         address _contractAddress
-    ) ERC1155(_uri) TimeLimited(_expirationDate) SubscriberChecks(_contractAddress) {
+    ) ERC1155(_uri) TimeLimited(_expirationDate, address(this)) SubscriberChecks(_contractAddress) {
+        require(_expirationDate > block.timestamp, "Redeemable: date should be in the future");
         _setURI(_uri);
         meedProgram = MeedProgram(_meedProgram);
         transferOwnership(_owner);
@@ -94,13 +97,13 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
     @dev Limited mint, only the owner can mint the level 2 and above NFTs;
     @param id Allow to choose the kind of NFT to be minted;
     @param to Address which will receive the limited NFTs;
-    @param lvlMin Level required to mint the NFT (set to 0 for no level requirement);
+    @param lvlMin Level required to mint the NFT (set to 1 for no level requirement);
     */
     function mint(
         uint256 id,
         address to,
         uint256 lvlMin
-    ) external onlyOwnerOrAdmin onlyOngoing onlyActive onlySubscribers {
+    ) public onlyOwnerOrAdmin onlyOngoing onlyActive onlySubscribers {
         if (!_isValidId(id)) revert Redeemable__WrongId();
         uint8 currentLevel = meedProgram.getMemberLevel(to);
         if (currentLevel == 0) revert Redeemable__NonExistantUser();
@@ -121,9 +124,9 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
         address[] calldata to,
         uint8 lvlMin
     ) external onlyOwnerOrAdmin onlyOngoing onlyActive onlyProOrEnterprise {
-        uint256 lentgh = to.length;
-        for (uint256 i = 0; i < lentgh; i++) {
-            this.mint(id, to[i], lvlMin);
+        uint256 length = to.length;
+        for (uint256 i = 0; i < length; i++) {
+            mint(id, to[i], lvlMin);
         }
     }
 
@@ -143,7 +146,7 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
     ///////////////////////////////////////////////////////////////////////////////*/
 
     function isRedeemable(uint256 tokenId) public view override returns (bool) {
-        return (_isValidId(tokenId) && this.isActive() && !this.isExpired());
+        return (_isSupplyForId(tokenId) && this.isActive() && !this.isExpired());
     }
 
     function getRedeemable(uint256 _id) external view returns (RedeemableNFT memory) {
@@ -158,6 +161,12 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
                                         RESTRICTED
     ///////////////////////////////////////////////////////////////////////////////*/
 
+    /**
+     * @dev Add a new redeemable NFT type to the contract;
+     * @param redeemType Type of the redeemable NFT (ProductId, Amount, Percentage);
+     * @param value Value of the redeemable NFT (in fiat currency or % );
+     * @param data Data of the redeemable NFT (productId for ProductId, currency for Amount);
+     */
     function addNewRedeemableNFT(
         RedeemableType redeemType,
         uint120 value,
@@ -180,6 +189,12 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
                                         PRIVATE
     ///////////////////////////////////////////////////////////////////////////////*/
 
+    function _isValidId(uint256 _id) private view returns (bool) {
+        if (_id < redeemableNFTs.length) {
+            return redeemableNFTs[_id].exist;
+        } else return false;
+    }
+
     function _isValidType(RedeemableType _redeemType) private pure returns (bool) {
         if (
             _redeemType == RedeemableType.ProductId ||
@@ -191,7 +206,7 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
         return false;
     }
 
-    function _isValidId(uint256 _id) private view returns (bool) {
+    function _isSupplyForId(uint256 _id) private view returns (bool) {
         return redeemableNFTs[_id].circulatingSupply > 0;
     }
 
@@ -204,7 +219,7 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
         redeemableNFTs[_id].redeemableType = redeemType;
         redeemableNFTs[_id].id = uint8(_id);
         redeemableNFTs[_id].value = _value;
-        // redeemableNFTs[_id].productIdOrCurrency = _data;
+        redeemableNFTs[_id].exist = true;
         redeemableNFTs[_id].circulatingSupply = 0;
     }
 

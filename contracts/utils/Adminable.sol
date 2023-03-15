@@ -27,10 +27,6 @@ import {Errors} from "../utils/Errors.sol";
 abstract contract Adminable is Context, Ownable, Errors {
     address private _admin;
 
-    error Adminable__NotAdmin();
-    error Adminable__AddressZero();
-    error Adminable__NotAuthorized();
-
     event AdminshipTransferred(address indexed previousAdmin, address indexed newAdmin);
 
     /**
@@ -38,14 +34,6 @@ abstract contract Adminable is Context, Ownable, Errors {
      */
     constructor() {
         _transferAdminship(_msgSender());
-    }
-
-    /**
-     * @dev Throws if called by any account other than the admin.
-     */
-    modifier onlyAdmin() {
-        _checkAdmin();
-        _;
     }
 
     modifier onlyOwnerOrAdmin() {
@@ -58,13 +46,6 @@ abstract contract Adminable is Context, Ownable, Errors {
      */
     function admin() public view virtual returns (address) {
         return _admin;
-    }
-
-    /**
-     * @dev Throws if the sender is not the admin.
-     */
-    function _checkAdmin() internal view virtual {
-        if (admin() != _msgSender()) revert Adminable__NotAdmin();
     }
 
     /**
@@ -88,6 +69,17 @@ abstract contract Adminable is Context, Ownable, Errors {
      */
     function removeAdminship() public virtual onlyOwner {
         _transferAdminship(address(0));
+    }
+
+    /**
+     * @dev Adds adminship of the contract to a new account (`to`).
+     * Allows to add an admin back after it has been removed.
+     * there can only be one admin at a time.
+     * @param newAdmin the address of the new admin
+     */
+    function addAdminship(address newAdmin) public virtual onlyOwner {
+        if (admin() != address(0)) revert Adminable__AdminAlreadySet();
+        _transferAdminship(newAdmin);
     }
 
     /**

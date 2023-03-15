@@ -1,18 +1,16 @@
 require("@nomicfoundation/hardhat-chai-matchers");
-import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import {
   BundlesFactory,
   ExpirableFactory,
-  MeedProgram,
   MeedProgramFactory,
   RedeemableFactory,
   Subscriptions,
 } from "../typechain-types";
 import {
-  pricePerPlan,
   meedProgram_name,
   meedProgram_symbol,
   meedProgram_uri,
@@ -186,5 +184,134 @@ describe("Promotions Factories Contract", function () {
     expect(bytes16ToString(brandDetails.productType)).to.equal("food");
     expect(bytes16ToString(brandDetails.location)).to.equal("HK");
     expect(brandDetails.owner).to.equal(owner.address);
+  });
+
+  /*///////////////////////////////////////////////////////////////////////////////
+                            CREATE NEW REDEEMABLE PROMO
+    ///////////////////////////////////////////////////////////////////////////////*/
+
+  it("should be possible to create new redeemable promo via the factory", async () => {
+    const { meedProgramFactory, redeemableFactory, owner } = await loadFixture(deployFixture);
+
+    // 1. Create a new Meed Program
+    await meedProgramFactory.createNewMeedProgram(
+      meedProgram_name,
+      meedProgram_symbol,
+      meedProgram_uri,
+      false,
+      meedProgram_amounts,
+      utils.formatBytes32String("food"),
+      utils.formatBytes32String("HK")
+    );
+
+    const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
+
+    // 2. Create a new promo via the redeemable factory
+    const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
+    const receipt = await redeemableFactory.createNewPromotion("ipfs://uri", expirationDate, meedProgramAddress, 1);
+    await expect(receipt).to.emit(redeemableFactory, "NewPromotionCreated").withArgs(owner.address, anyValue);
+
+    const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
+
+    // Check the new state  (1 promo)
+    const allPromos = await meedProgram.getAllPromotions();
+    expect(allPromos.length).to.equal(1);
+  });
+
+  /*///////////////////////////////////////////////////////////////////////////////
+                            CREATE NEW EXPIRABLE PROMO
+    ///////////////////////////////////////////////////////////////////////////////*/
+
+  it("should be possible to create new redeemable promo via the factory", async () => {
+    const { meedProgramFactory, expirableFactory, owner } = await loadFixture(deployFixture);
+
+    // 1. Create a new Meed Program
+    await meedProgramFactory.createNewMeedProgram(
+      meedProgram_name,
+      meedProgram_symbol,
+      meedProgram_uri,
+      false,
+      meedProgram_amounts,
+      utils.formatBytes32String("food"),
+      utils.formatBytes32String("HK")
+    );
+
+    const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
+
+    // 2. Create a new promo via the redeemable factory
+    const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
+    const receipt = await expirableFactory.createNewPromotion(
+      "SuperPromo",
+      "SUP",
+      "ipfs://uri",
+      expirationDate,
+      meedProgramAddress,
+      2
+    );
+    await expect(receipt)
+      .to.emit(expirableFactory, "NewPromotionCreated")
+      .withArgs(owner.address, anyValue, "SuperPromo");
+
+    const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
+
+    // Check the new state  (1 promo)
+    const allPromos = await meedProgram.getAllPromotions();
+    expect(allPromos.length).to.equal(1);
+  });
+
+  /*///////////////////////////////////////////////////////////////////////////////
+                            CREATE NEW SPECIALS PROMO
+    ///////////////////////////////////////////////////////////////////////////////*/
+
+  it("should be possible to create new expirable promo via the factory", async () => {
+    const { meedProgramFactory, bundlesFactory, owner } = await loadFixture(deployFixture);
+
+    // 1. Create a new Meed Program
+    await meedProgramFactory.createNewMeedProgram(
+      meedProgram_name,
+      meedProgram_symbol,
+      meedProgram_uri,
+      false,
+      meedProgram_amounts,
+      utils.formatBytes32String("food"),
+      utils.formatBytes32String("HK")
+    );
+
+    const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
+
+    // 2. Create a new promo via the redeemable factory
+    const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
+
+    // revert if wrong type
+    await expect(
+      bundlesFactory.createNewPromotion(
+        "SuperPromo",
+        "SUP",
+        "ipfs://uri",
+        expirationDate,
+        meedProgramAddress,
+        10_000,
+        2
+      )
+    ).to.be.revertedWithCustomError(bundlesFactory, "BundlesFactory_TypeNotSupported");
+
+    const receipt = await bundlesFactory.createNewPromotion(
+      "SuperPromo",
+      "SUP",
+      "ipfs://uri",
+      expirationDate,
+      meedProgramAddress,
+      10_000,
+      4
+    );
+    await expect(receipt)
+      .to.emit(bundlesFactory, "NewPromotionCreated")
+      .withArgs(owner.address, anyValue, "SuperPromo");
+
+    const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
+
+    // Check the new state  (1 promo)
+    const allPromos = await meedProgram.getAllPromotions();
+    expect(allPromos.length).to.equal(1);
   });
 });
