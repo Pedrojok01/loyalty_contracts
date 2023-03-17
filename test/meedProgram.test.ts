@@ -130,7 +130,7 @@ describe("MeedProgram Contract", function () {
     // revert if not owner or admin
     await expect(meedProgram.connect(user1).updateMember(user1.address, 1, 50)).to.be.revertedWithCustomError(
       meedProgram,
-      "Adminable__NotAuthorized"
+      "MeedProgram_NotAuthorized"
     );
 
     // Update the member after purchase (without tier increase)

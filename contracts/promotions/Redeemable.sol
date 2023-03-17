@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.18;
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {ERC1155Burnable} from "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 
@@ -77,7 +77,7 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
         address _meedProgram,
         address _contractAddress
     ) ERC1155(_uri) TimeLimited(_expirationDate, address(this)) SubscriberChecks(_contractAddress) {
-        require(_expirationDate > block.timestamp, "Redeemable: date should be in the future");
+        require(_expirationDate > block.timestamp, "Redeemable: invalid date");
         _setURI(_uri);
         meedProgram = MeedProgram(_meedProgram);
         transferOwnership(_owner);
@@ -130,7 +130,11 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
         }
     }
 
-    function redeem(address from, uint256 tokenId, uint32 amount) external override onlyOngoing onlyActive {
+    function redeem(
+        address from,
+        uint256 tokenId,
+        uint32 amount
+    ) external override onlyOngoing onlyActive onlyOwnerOrAdmin {
         if (!isRedeemable(tokenId)) revert Redeemable__TokenNotRedeemable(tokenId);
         if (!(balanceOf(from, tokenId) >= 1)) revert Redeemable__TokenNotOwned();
 
@@ -145,11 +149,13 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
                                         VIEW
     ///////////////////////////////////////////////////////////////////////////////*/
 
-    function isRedeemable(uint256 tokenId) public view override returns (bool) {
-        return (_isSupplyForId(tokenId) && this.isActive() && !this.isExpired());
+    function isRedeemable(uint256 _id) public view override returns (bool) {
+        if (!_isValidId(_id)) revert Redeemable__WrongId();
+        return (_isSupplyForId(_id) && this.isActive() && !this.isExpired());
     }
 
     function getRedeemable(uint256 _id) external view returns (RedeemableNFT memory) {
+        if (!_isValidId(_id)) revert Redeemable__WrongId();
         return redeemableNFTs[_id];
     }
 
@@ -221,6 +227,18 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
         redeemableNFTs[_id].value = _value;
         redeemableNFTs[_id].exist = true;
         redeemableNFTs[_id].circulatingSupply = 0;
+    }
+
+    function burn(address account, uint256 id, uint256 value) public override {
+        require(
+            account == _msgSender() ||
+                isApprovedForAll(account, _msgSender()) ||
+                _msgSender() == owner() ||
+                _msgSender() == admin(),
+            "ERC1155: not owner or approved"
+        );
+
+        _burn(account, id, value);
     }
 
     function _onlyOngoing() internal override {

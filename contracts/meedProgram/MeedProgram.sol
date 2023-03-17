@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.18;
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
@@ -122,19 +122,8 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         _safeMint(to, tokenId);
     }
 
-    function updateMember(address member, uint16 buyVolume, uint32 amountVolume) external onlyOwnerOrAdmin {
-        if (membership[member].level == 0) {
-            mint(member);
-        }
-
-        Membership memory memberData = membership[member];
-        memberData.buyVolume += buyVolume;
-        memberData.amountVolume += amountVolume;
-        membership[member] = memberData;
-
-        if (memberData.level != 5) {
-            _updateMemberLevel(member, memberData);
-        }
+    function updateMember(address member, uint16 buyVolume, uint32 amountVolume) external onlyAuthorized {
+        _updateMember(member, buyVolume, amountVolume);
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -277,6 +266,21 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
 
     function _initializeTierStructure(uint64 _amount1, uint64 _amount2, uint64 _amount3, uint64 _amount4) private {
         tierStructure = TierStructure({silver: _amount1, gold: _amount2, platinum: _amount3, diamond: _amount4});
+    }
+
+    function _updateMember(address member, uint16 buyVolume, uint32 amountVolume) private {
+        if (membership[member].level == 0) {
+            mint(member);
+        }
+
+        Membership memory memberData = membership[member];
+        memberData.buyVolume += buyVolume;
+        memberData.amountVolume += amountVolume;
+        membership[member] = memberData;
+
+        if (memberData.level != 5) {
+            _updateMemberLevel(member, memberData);
+        }
     }
 
     function _updateMemberLevel(address _member, Membership memory _memberData) private {

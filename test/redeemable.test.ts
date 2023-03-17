@@ -14,6 +14,7 @@ import {
   subscriptions_name,
   subscriptions_symbol,
   subscriptions_uris,
+  plan,
 } from "./constant";
 import { utils } from "ethers";
 
@@ -84,6 +85,17 @@ describe("Redeemable Promotion Contract", function () {
 
     expect(await meedProgramFactory.factories(0)).to.equal(redeemableFactory.address);
     expect(await redeemable.owner()).to.equal(owner.address);
+  });
+
+  it("should revert when adding new promo if invalid expiration date", async () => {
+    const { meedProgramFactory, redeemableFactory, redeemable, owner } = await loadFixture(deployFixture);
+
+    const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
+    const expirationDate = (Math.floor(Date.now() / 1000) - duration.month).toString();
+
+    await expect(
+      redeemableFactory.createNewPromotion("ipfs://uri", expirationDate, meedProgramAddress, 1)
+    ).to.be.revertedWith("Redeemable: date should be in the future");
   });
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -162,7 +174,7 @@ describe("Redeemable Promotion Contract", function () {
     const { subscriptions, meedProgram, redeemable, owner, user1 } = await loadFixture(deployFixture);
 
     await redeemable.connect(owner).addNewRedeemableNFT(1, 10, utils.formatBytes32String("percent"));
-    await subscriptions.connect(owner).subscribe(0, false, { value: pricePerPlan.basic });
+    await subscriptions.connect(owner).subscribe(plan.basic, false, { value: pricePerPlan.basic });
 
     // Add user to the Meed program
     await meedProgram.connect(owner).mint(user1.address);
@@ -202,7 +214,7 @@ describe("Redeemable Promotion Contract", function () {
     );
 
     // Subscribe owner, then try again
-    await subscriptions.connect(owner).subscribe(0, false, { value: pricePerPlan.basic });
+    await subscriptions.connect(owner).subscribe(plan.basic, false, { value: pricePerPlan.basic });
     const brand = await subscriptions.getSubscriber(owner.address);
     expect(brand.startTime).to.not.equal(0);
 
@@ -223,7 +235,7 @@ describe("Redeemable Promotion Contract", function () {
     const { subscriptions, meedProgram, redeemable, owner, user1, user2, user3 } = await loadFixture(deployFixture);
 
     // Subscribe owner, then add redeeeemable NFTs, then add users to the Meed program
-    await subscriptions.connect(owner).subscribe(0, false, { value: pricePerPlan.basic });
+    await subscriptions.connect(owner).subscribe(plan.basic, false, { value: pricePerPlan.basic });
     await redeemable.connect(owner).addNewRedeemableNFT(1, 10, utils.formatBytes32String("percent"));
     await meedProgram.connect(owner).mint(user1.address);
     await meedProgram.connect(owner).mint(user2.address);
@@ -232,14 +244,102 @@ describe("Redeemable Promotion Contract", function () {
     // Try batch minting without plan requirement
     const to = [user1.address, user2.address, user3.address];
 
+    await expect(redeemable.connect(user1).batchMint(0, to, 1)).to.be.revertedWithCustomError(
+      redeemable,
+      "Adminable__NotAuthorized"
+    );
+
     await expect(redeemable.connect(owner).batchMint(0, to, 1)).to.be.revertedWithCustomError(
       redeemable,
       "SubscriberChecks__PleaseSubscribeToProOrEnterpriseFirst"
     );
 
     // Upgrade plan, then try again
-    const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(1, 2);
-    await subscriptions.connect(owner).changeSubscriptionPlan(1, 2, { value: toPayMore });
+    const tokenId = 1;
+    const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(tokenId, plan.enterprise);
+    await subscriptions.connect(owner).changeSubscriptionPlan(tokenId, plan.enterprise, { value: toPayMore });
     await redeemable.connect(owner).batchMint(0, to, 1);
+  });
+
+  it("should set everything properly when minting vouchers", async () => {
+    const { subscriptions, meedProgram, redeemable, owner, user1, user2 } = await loadFixture(deployFixture);
+
+    const voucher_type = 1; // Free product
+    const voucher_value = 10;
+
+    // Subscribe owner, then add redeeeemable NFTs, then add users to the Meed program
+    await subscriptions.connect(owner).subscribe(plan.basic, false, { value: pricePerPlan.basic });
+    await redeemable
+      .connect(owner)
+      .addNewRedeemableNFT(voucher_type, voucher_value, utils.formatBytes32String("percent"));
+    await meedProgram.connect(owner).mint(user1.address);
+    await meedProgram.connect(owner).mint(user2.address);
+
+    // Batch mint to user 1 and 2
+    const to = [user1.address, user2.address];
+    const tokenId_0 = 0;
+    const tokenId_1 = 1;
+    const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(tokenId_1, plan.enterprise);
+    await subscriptions.connect(owner).changeSubscriptionPlan(tokenId_1, plan.enterprise, { value: toPayMore });
+    await redeemable.connect(owner).batchMint(0, to, 1);
+
+    // Check that all has been set properly:
+    expect(await redeemable.isRedeemable(tokenId_0)).to.equal(true);
+
+    const vouchers_before = await redeemable.getRedeemable(tokenId_0);
+    expect(vouchers_before.redeemableType).to.equal(voucher_type);
+    expect(vouchers_before.id).to.equal(tokenId_0);
+    expect(Number(vouchers_before.value)).to.equal(voucher_value);
+    expect(Number(vouchers_before.circulatingSupply)).to.equal(2); // 2 vouchers emitted
+
+    expect(await redeemable.getTotalRedeemablesSupply()).to.equal(1); // Number of voucher type (0 to 5)
+  });
+
+  it("should be possible to redeem a voucher", async () => {
+    const { subscriptions, meedProgram, redeemable, owner, user1, user2 } = await loadFixture(deployFixture);
+
+    const voucher_type = 1; // Free product
+    const voucher_value = 10;
+
+    // Subscribe owner, then add redeeeemable NFTs, then add users to the Meed program
+    await subscriptions.connect(owner).subscribe(plan.basic, false, { value: pricePerPlan.basic });
+    await redeemable
+      .connect(owner)
+      .addNewRedeemableNFT(voucher_type, voucher_value, utils.formatBytes32String("percent"));
+    await meedProgram.connect(owner).mint(user1.address);
+    await meedProgram.connect(owner).mint(user2.address);
+
+    // Batch mint to user 1 and 2
+    const to = [user1.address, user2.address];
+    const tokenId_0 = 0;
+    const tokenId_1 = 1;
+    const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(tokenId_1, plan.enterprise);
+    await subscriptions.connect(owner).changeSubscriptionPlan(tokenId_1, plan.enterprise, { value: toPayMore });
+    await redeemable.connect(owner).batchMint(0, to, 1);
+
+    // Redeem the voucher:
+    const amount = 1;
+    const receipt = await redeemable.connect(owner).redeem(user1.address, tokenId_0, amount);
+    await expect(receipt).to.emit(redeemable, "Redeemed").withArgs(user1.address, tokenId_0);
+
+    const receipt2 = await redeemable.connect(owner).redeem(user2.address, tokenId_0, amount);
+    await expect(receipt2).to.emit(redeemable, "Redeemed").withArgs(user2.address, tokenId_0);
+
+    const vouchers_after = await redeemable.getRedeemable(tokenId_0);
+    expect(Number(vouchers_after.circulatingSupply)).to.equal(0); // 2 vouchers burned
+  });
+
+  it("should be possible to change the URI if authorized", async () => {
+    const { redeemable, owner, user1 } = await loadFixture(deployFixture);
+
+    const newUri = "ipfs://new_uri";
+
+    await expect(redeemable.connect(user1).setURI(newUri)).to.be.revertedWithCustomError(
+      redeemable,
+      "Adminable__NotAuthorized"
+    );
+
+    const receipt = await redeemable.connect(owner).setURI(newUri);
+    await expect(receipt).to.emit(redeemable, "NewURISet").withArgs(newUri);
   });
 });

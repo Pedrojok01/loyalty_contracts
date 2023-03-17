@@ -2,6 +2,12 @@ import { formatNumber } from "./helpers/utils";
 import { PromiseOrValue } from "../typechain-types/common";
 import { BigNumberish, utils } from "ethers";
 
+export const plan = {
+  basic: 0,
+  pro: 1,
+  enterprise: 2,
+};
+
 export const pricePerPlan = {
   basic: utils.parseEther("0.05"),
   pro: utils.parseEther("0.1"),

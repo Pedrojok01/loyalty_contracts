@@ -80,7 +80,7 @@ contract Expirable is ERC721, IExpirable, TimeLimited, SubscriberChecks {
      * @param to Address to mint to; must be a member of the loyalty program;
      * @param lvlMin Level required to mint the NFT (set to 0 for no level requirement);
      */
-    function safeMint(address to, uint256 lvlMin) external onlyOwnerOrAdmin onlyOngoing onlyActive onlyProOrEnterprise {
+    function safeMint(address to, uint256 lvlMin) public onlyOwnerOrAdmin onlyOngoing onlyActive onlyProOrEnterprise {
         uint8 currentLevel = meedProgram.getMemberLevel(to);
         if (currentLevel == 0) revert Expirable__NonExistantUser();
         if (currentLevel < uint8(lvlMin)) revert Expirable__InsufficientLevel();
@@ -106,7 +106,7 @@ contract Expirable is ERC721, IExpirable, TimeLimited, SubscriberChecks {
     ) external onlyOwnerOrAdmin onlyOngoing onlyActive onlyEnterprise {
         uint256 lentgh = to.length;
         for (uint256 i = 0; i < lentgh; i++) {
-            this.safeMint(to[i], lvlMin);
+            safeMint(to[i], lvlMin);
         }
     }
 
@@ -140,6 +140,11 @@ contract Expirable is ERC721, IExpirable, TimeLimited, SubscriberChecks {
     /*///////////////////////////////////////////////////////////////////////////////
                                     INTERNAL / PRIVATE
     ///////////////////////////////////////////////////////////////////////////////*/
+
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        _requireMinted(tokenId);
+        return _baseURI();
+    }
 
     /**
      * @dev Base URI for computing {tokenURI}. If set, the resulting URI for each
