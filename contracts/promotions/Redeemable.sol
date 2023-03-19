@@ -125,8 +125,11 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
         uint8 lvlMin
     ) external onlyOwnerOrAdmin onlyOngoing onlyActive onlyProOrEnterprise {
         uint256 length = to.length;
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < length; ) {
             mint(id, to[i], lvlMin);
+            unchecked {
+                i++;
+            }
         }
     }
 

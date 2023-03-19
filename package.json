@@ -20,7 +20,7 @@
     "size": "hardhat size-contracts",
     "doc": "hardhat docgen",
     "cover": "hardhat coverage",
-    "slither": "slither . --exclude solc-version --buidler-ignore-compile"
+    "slither": "slither . --exclude naming-convention,solc-version,external-function --buidler-ignore-compile"
   },
   "devDependencies": {
     "@ethersproject/abi": "^5.4.7",

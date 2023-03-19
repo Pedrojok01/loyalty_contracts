@@ -33,7 +33,10 @@ contract TimeLimited is Activation {
     function updateExpirationDate(uint256 newExpirationDate) external onlyOwnerOrAdmin onlyActive {
         if (newExpirationDate < block.timestamp) revert Expirable__InvalidDate();
         expirationDate = newExpirationDate;
+        emit ExpirationDateUpdated(_msgSender(), newExpirationDate);
     }
+
+    event ExpirationDateUpdated(address indexed updater, uint256 newExpirationDate);
 
     function _onlyOngoing() internal virtual {
         if (this.isExpired()) {

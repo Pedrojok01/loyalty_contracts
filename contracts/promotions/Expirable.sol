@@ -105,8 +105,11 @@ contract Expirable is ERC721, IExpirable, TimeLimited, SubscriberChecks {
         uint8 lvlMin
     ) external onlyOwnerOrAdmin onlyOngoing onlyActive onlyEnterprise {
         uint256 lentgh = to.length;
-        for (uint256 i = 0; i < lentgh; i++) {
+        for (uint256 i = 0; i < lentgh; ) {
             safeMint(to[i], lvlMin);
+            unchecked {
+                i++;
+            }
         }
     }
 

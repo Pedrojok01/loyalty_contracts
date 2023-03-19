@@ -1,6 +1,5 @@
 require("@nomicfoundation/hardhat-chai-matchers");
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { Redeemable, MeedProgramFactory, RedeemableFactory, Subscriptions } from "../typechain-types";
@@ -64,7 +63,7 @@ describe("Redeemable Promotion Contract", function () {
     const allPromos = await meedProgram.getAllPromotions();
     expect(allPromos.length).to.equal(1);
 
-    const redeemable = await ethers.getContractAt("Redeemable", allPromos[0].promotionAddress);
+    const redeemable: Redeemable = await ethers.getContractAt("Redeemable", allPromos[0].promotionAddress);
 
     return {
       subscriptions,
@@ -72,6 +71,7 @@ describe("Redeemable Promotion Contract", function () {
       redeemableFactory,
       meedProgram,
       redeemable,
+      expirationDate,
       owner,
       user1,
       user2,
@@ -95,7 +95,7 @@ describe("Redeemable Promotion Contract", function () {
 
     await expect(
       redeemableFactory.createNewPromotion("ipfs://uri", expirationDate, meedProgramAddress, 1)
-    ).to.be.revertedWith("Redeemable: date should be in the future");
+    ).to.be.revertedWith("Redeemable: invalid date");
   });
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -341,5 +341,26 @@ describe("Redeemable Promotion Contract", function () {
 
     const receipt = await redeemable.connect(owner).setURI(newUri);
     await expect(receipt).to.emit(redeemable, "NewURISet").withArgs(newUri);
+  });
+
+  /*///////////////////////////////////////////////////////////////////////////////
+                                  EXPIRATION DATE
+  ///////////////////////////////////////////////////////////////////////////////*/
+
+  it("should be possible to get & update the campaign expiration date", async () => {
+    const { redeemable, owner, user1, expirationDate } = await loadFixture(deployFixture);
+
+    // Get & check expiration date:
+    expect(await redeemable.getExpirationDate()).to.equal(expirationDate);
+
+    // Update expiration date (revert if unauthorized)):
+    const newExpirationDate = (Math.floor(Date.now() / 1000) + duration.year * 2).toString();
+    await expect(redeemable.connect(user1).updateExpirationDate(newExpirationDate)).to.be.revertedWithCustomError(
+      redeemable,
+      "Adminable__NotAuthorized"
+    );
+
+    const receipt = await redeemable.connect(owner).updateExpirationDate(newExpirationDate);
+    await expect(receipt).to.emit(redeemable, "ExpirationDateUpdated").withArgs(owner.address, newExpirationDate);
   });
 });

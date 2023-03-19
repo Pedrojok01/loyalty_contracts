@@ -15,7 +15,7 @@ library PromoLib {
         Vouchers, // Redeemable
         FreeProducts, // Redeemable
         EventTickets, // Expirable
-        SeasonPass, // Expirable
+        VIPpass, // Expirable
         Bundles, // Specials
         Stamps // Specials
     }
@@ -37,6 +37,11 @@ library PromoLib {
                                         SETTERS
     ///////////////////////////////////////////////////////////////////////////////*/
 
+    /**
+     * @dev Add a new promotion to the array of promotions within the MeedProgram
+     * @param _promotion  The address of the promotion
+     * @param _type  The type of the promotion
+     */
     function _addPromotion(address _promotion, PromoLib.PromotionsType _type, Data storage self) internal {
         Promotion memory newPromotion = PromoLib.Promotion({
             promotionAddress: _promotion,
@@ -52,6 +57,7 @@ library PromoLib {
 
     /**
      * @dev Update promotionsStatus by passing bool into input
+     * @param _promotion The address of the promotion
      * @param _status The status of the promotion
      */
     function _setPromotionStatus(address _promotion, bool _status, Data storage self) internal {
@@ -72,7 +78,7 @@ library PromoLib {
      * Vouchers  - 0
      * FreeProducts - 1
      * EventTickets  - 2
-     * SeasonPass - 3
+     * VIPpass - 3
      * Bundles - 4
      * Stamps - 5
      */

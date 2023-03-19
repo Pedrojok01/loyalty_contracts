@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: CC0-1.0
 pragma solidity 0.8.18;
 
-// import "hardhat/console.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Errors} from "../utils/Errors.sol";
 
@@ -9,14 +8,7 @@ import {Errors} from "../utils/Errors.sol";
  * @title SubscriberChecks
  * @author Pierre Estrabaud (@Pedrojok01)
  * @notice Part of the Meed Rewards platform from SuperUltra
- * @dev Provides safe getter and setter for promotion status and type.
- *
- * Based on EIP: ERC5643
- *
- * TODO:
- *  - Handle case where a user has multiple subscriptions
- *  - Handle case where a user pay for a plan and immediately upgrade (cheating)
- *  - Implement a way to downgrade a subscription
+ * @dev Provides modifiers to valid the plan of a subscriber.
  */
 
 contract SubscriberChecks is Context, Errors {

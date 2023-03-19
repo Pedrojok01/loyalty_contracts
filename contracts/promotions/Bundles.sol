@@ -92,11 +92,17 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, 
         uint256[] memory _numbers
     ) public pure override returns (uint256 tokenId) {
         bytes32 signature = keccak256(abi.encodePacked(_salt));
-        for (uint256 i = 0; i < _addresses.length; i++) {
+        for (uint256 i = 0; i < _addresses.length; ) {
             signature = keccak256(abi.encodePacked(signature, _addresses[i]));
+            unchecked {
+                i++;
+            }
         }
-        for (uint256 j = 0; j < _numbers.length; j++) {
+        for (uint256 j = 0; j < _numbers.length; ) {
             signature = keccak256(abi.encodePacked(signature, _numbers[j]));
+            unchecked {
+                j++;
+            }
         }
         assembly {
             tokenId := signature
@@ -124,18 +130,24 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, 
 
         uint256 pointerA; //points to first erc20 address, if any
         uint256 pointerB = 4; //points to first erc20 amount, if any
-        for (uint256 i = 0; i < _numbers[1]; i++) {
+        for (uint256 i = 0; i < _numbers[1]; ) {
             if (_numbers[pointerB] <= 0) revert Bundles__CantSendZeroAmount();
 
             IERC20 token = IERC20(_addresses[pointerA++]);
             uint256 orgBalance = token.balanceOf(address(this));
             token.safeTransferFrom(_msgSender(), address(this), _numbers[pointerB]);
             _numbers[pointerB++] = token.balanceOf(address(this)) - orgBalance;
+            unchecked {
+                i++;
+            }
         }
-        for (uint256 j = 0; j < _numbers[2]; j++) {
+        for (uint256 j = 0; j < _numbers[2]; ) {
             IERC721(_addresses[pointerA++]).safeTransferFrom(_msgSender(), address(this), _numbers[pointerB++]);
+            unchecked {
+                j++;
+            }
         }
-        for (uint256 k = 0; k < _numbers[3]; k++) {
+        for (uint256 k = 0; k < _numbers[3]; ) {
             IERC1155(_addresses[pointerA++]).safeTransferFrom(
                 _msgSender(),
                 address(this),
@@ -143,6 +155,9 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, 
                 _numbers[_numbers[3] + pointerB++],
                 ""
             );
+            unchecked {
+                k++;
+            }
         }
         tokenId = hash(nonce, _addresses, _numbers);
         super._mint(to, tokenId);
@@ -171,8 +186,11 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, 
         if (msg.value != _arrayOfNumbers[0][0] * _amountOfPacks) revert Bundles__ValuesDontMatch();
         if (maxPackSupply != 0 && nonce + _amountOfPacks > maxPackSupply) revert Bundles__MaxSupplyReached();
 
-        for (uint256 i = 0; i < _amountOfPacks; i++) {
+        for (uint256 i = 0; i < _amountOfPacks; ) {
             this.safeMint(_to, _lvlMin, _addresses, _arrayOfNumbers[i]);
+            unchecked {
+                i++;
+            }
         }
 
         emit BatchBundleAsset(_to, _amountOfPacks);
@@ -203,13 +221,19 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, 
 
         uint256 pointerA; //points to first erc20 address, if there is any
         uint256 pointerB = 4; //points to first erc20 amount, if there is any
-        for (uint256 i = 0; i < _numbers[1]; i++) {
+        for (uint256 i = 0; i < _numbers[1]; ) {
             IERC20(_addresses[pointerA++]).safeTransfer(_to, _numbers[pointerB++]);
+            unchecked {
+                i++;
+            }
         }
-        for (uint256 j = 0; j < _numbers[2]; j++) {
+        for (uint256 j = 0; j < _numbers[2]; ) {
             IERC721(_addresses[pointerA++]).safeTransferFrom(address(this), _to, _numbers[pointerB++]);
+            unchecked {
+                j++;
+            }
         }
-        for (uint256 k = 0; k < _numbers[3]; k++) {
+        for (uint256 k = 0; k < _numbers[3]; ) {
             IERC1155(_addresses[pointerA++]).safeTransferFrom(
                 address(this),
                 _to,
@@ -217,6 +241,9 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, 
                 _numbers[_numbers[3] + pointerB++],
                 ""
             );
+            unchecked {
+                k++;
+            }
         }
 
         payable(_to).transfer(_numbers[0]);

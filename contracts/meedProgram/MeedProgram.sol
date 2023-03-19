@@ -175,8 +175,11 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         }
 
         PromoLib.Promotion[] memory values = new PromoLib.Promotion[](limit);
-        for (uint256 i = 0; i < limit; i++) {
+        for (uint256 i = 0; i < limit; ) {
             values[i] = promoLib.promotions[offset + i];
+            unchecked {
+                i++;
+            }
         }
 
         return (values, offset + limit, totalPromotions);
@@ -190,10 +193,14 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         PromoLib.Promotion[] memory promotionsPerType = new PromoLib.Promotion[](totalPromotions);
         uint256 count = 0;
 
-        for (uint256 i = 0; i < totalPromotions; i++) {
+        for (uint256 i = 0; i < totalPromotions; ) {
             if (promoLib.promotions[i].promotionsType == _type) {
                 promotionsPerType[count] = promoLib.promotions[i];
                 count++;
+            }
+
+            unchecked {
+                i++;
             }
         }
 
@@ -217,10 +224,14 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         PromoLib.Promotion[] memory activePromotions = new PromoLib.Promotion[](totalPromotions);
         uint256 count = 0;
 
-        for (uint256 i = 0; i < totalPromotions; i++) {
+        for (uint256 i = 0; i < totalPromotions; ) {
             if (promoLib.promotions[i].active == status) {
                 activePromotions[count] = promoLib.promotions[i];
                 count++;
+            }
+
+            unchecked {
+                i++;
             }
         }
 
