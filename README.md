@@ -2,25 +2,31 @@
 
 Initial smart-contracts draft for Meed Rewards. Not to be used for production (yet!).
 
-Compile:
+## Compile:
 
 ```shell
 yarn compile
 ```
 
-Test:
+## Test:
 
 ```shell
 yarn test
 ```
 
-Slither-analyzer:
+## Slither-analyzer:
 
 ```shell
 yarn slither
 ```
 
-Deploy:
+## Coverage:
+
+```shell
+yarn cover
+```
+
+## Deploy:
 
 ```shell
 yarn deploy
