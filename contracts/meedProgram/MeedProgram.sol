@@ -14,13 +14,11 @@ import {IMeedProgram} from "../interfaces/IMeedProgram.sol";
  * @title MeedProgram
  * @author Pedrojok01
  * @notice Part of the Meed Rewards platform from SuperUltra
- * @dev ERC721 Soulbound NFT with the following features:
+ * @dev ERC721 NFT with the following features:
  *  - Deployer can mint to recipients.
- *  - No transfer capability.
  */
 
 /** TODO:
- *  - Add level system based on purchases
  *  - Add identity proof to ensure only one NFT per person?
  *  - Send unique NFT to brand creator to recognise him
  *
@@ -73,9 +71,13 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     }
 
     /**
-     * @param _name NFT Name
-     * @param _symbol NFT Symbol
-     * @param _uri Token URI used for metadata
+     * @param _name Name of the new MeedProgram (user input).
+     * @param _symbol Symbol of the new MeedProgram (user input).
+     * @param _uri URI of the new MeedProgram (user input).
+     * @param _tierTracker  Determine how the tier structure is calculated:
+     *  - true = based on buyVolume;
+     *  - false = based on amountVolume;
+     * @param amounts  Amounts of either buyVolume or amountVolume needed to climb each tier.
      */
     constructor(
         string memory _name,

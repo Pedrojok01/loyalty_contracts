@@ -48,6 +48,9 @@ contract Errors {
     error Redeemable__NonExistantUser();
     error Redeemable__InsufficientLevel();
 
+    // Collectibles
+    error Collectibles__InvalidTokenId();
+
     // Expirable
     error Expirable__InvalidMintType();
     error Expirable__InvalidDate();

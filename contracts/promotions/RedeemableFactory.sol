@@ -37,6 +37,8 @@ contract RedeemableFactory is Context, Errors {
      * @param data Data of the new MeedProgram (user input) ( = expirationDate)
      * @param meedProgram  MeedProgram address (user input).
      * @param _type  Type of the promotions to be created (user input).
+     * - 0 = DiscountVouchers
+     * - 1 = FreeProducts
      * @return newPromotion Instance of the newly created promotion.
      */
     function createNewPromotion(

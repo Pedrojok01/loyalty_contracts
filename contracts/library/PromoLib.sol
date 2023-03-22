@@ -12,12 +12,12 @@ pragma solidity 0.8.18;
 
 library PromoLib {
     enum PromotionsType {
-        Vouchers, // Redeemable
+        DiscountVouchers, // Redeemable
         FreeProducts, // Redeemable
+        Collectibles, // Redeemable
         EventTickets, // Expirable
         VIPpass, // Expirable
-        Bundles, // Specials
-        Stamps // Specials
+        Bundles // Specials
     }
 
     struct Promotion {
@@ -75,12 +75,12 @@ library PromoLib {
 
     /**
      * @dev Returns promotionsType (uint)
-     * Vouchers  - 0
+     * DiscountVouchers  - 0
      * FreeProducts - 1
-     * EventTickets  - 2
-     * VIPpass - 3
-     * Bundles - 4
-     * Stamps - 5
+     * Collectibles - 2
+     * EventTickets  - 3
+     * VIPpass - 4
+     * Bundles - 5
      */
     function _getPromotionType(address _promotion, Data storage self) internal view returns (PromotionsType) {
         return self.promotion[_promotion].promotionsType;

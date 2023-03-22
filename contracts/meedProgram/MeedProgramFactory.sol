@@ -82,6 +82,10 @@ contract MeedProgramFactory is Context, Errors {
      * @param name  Name of the new MeedProgram (user input).
      * @param symbol  Symbol of the new MeedProgram (user input).
      * @param uri  URI of the new MeedProgram (user input).
+     * @param tierTracker  Determine how the tier structure is calculated:
+     *  - true = based on buyVolume;
+     *  - false = based on amountVolume;
+     * @param amounts  Amounts of either buyVolume or amountVolume needed to climb each tier.
      * @param productType  Type of products sold (user input).
      * @param location  Store location, in case of regional stores (user input).
      * @return newMeed Instance of the newly created contract.

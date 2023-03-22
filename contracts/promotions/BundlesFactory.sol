@@ -51,13 +51,9 @@ contract BundlesFactory is Context, Errors {
         uint256 data,
         PromoLib.PromotionsType _type
     ) external returns (address newPromotion) {
-        if (_type == PromoLib.PromotionsType.Bundles || _type == PromoLib.PromotionsType.Stamps) {
-            newPromotion = address(
-                new Bundles(name, symbol, uri, expirationDate, meedProgram, data, _msgSender(), CONTROL_ADDRESS)
-            );
-        } else {
-            revert BundlesFactory_TypeNotSupported();
-        }
+        newPromotion = address(
+            new Bundles(name, symbol, uri, expirationDate, meedProgram, data, _msgSender(), CONTROL_ADDRESS)
+        );
 
         IMeedProgram program = IMeedProgram(meedProgram);
         program.addPromotion(newPromotion, _type);

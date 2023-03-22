@@ -3,7 +3,6 @@ pragma solidity 0.8.18;
 
 // import "hardhat/console.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import {ERC1155Burnable} from "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 
 import {IRedeemable} from "../interfaces/IRedeemable.sol";
 import {TimeLimited} from "../utils/TimeLimited.sol";
@@ -46,7 +45,7 @@ import {MeedProgram} from "../meedProgram/MeedProgram.sol";
  * 810bdd65  =>  _onlyOngoing()
  */
 
-contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, SubscriberChecks {
+contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
     /*///////////////////////////////////////////////////////////////////////////////
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
@@ -232,7 +231,7 @@ contract Redeemable is ERC1155, IRedeemable, ERC1155Burnable, TimeLimited, Subsc
         redeemableNFTs[_id].circulatingSupply = 0;
     }
 
-    function burn(address account, uint256 id, uint256 value) public override {
+    function burn(address account, uint256 id, uint256 value) public {
         require(
             account == _msgSender() ||
                 isApprovedForAll(account, _msgSender()) ||
