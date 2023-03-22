@@ -19,6 +19,7 @@ import {
   subscriptions_name,
   subscriptions_symbol,
   subscriptions_uris,
+  promoType,
 } from "./constant";
 import { utils } from "ethers";
 import { bytes16ToString } from "./helpers/utils";
@@ -127,7 +128,7 @@ describe("Promotions Factories Contract", function () {
     expect(await meedProgramFactory.getMeedIDPerName(meedProgram_name)).to.equal(0);
   });
 
-  it("shouldn't be possible to create 2 program with the same name", async () => {
+  it("shouldn't be possible to create 2 programs with the same name", async () => {
     const { meedProgramFactory } = await loadFixture(deployFixture);
 
     // Program at array 0 (won't revert since array 0 bug)
@@ -208,7 +209,12 @@ describe("Promotions Factories Contract", function () {
 
     // 2. Create a new promo via the redeemable factory
     const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
-    const receipt = await redeemableFactory.createNewPromotion("ipfs://uri", expirationDate, meedProgramAddress, 1);
+    const receipt = await redeemableFactory.createNewPromotion(
+      "ipfs://uri",
+      expirationDate,
+      meedProgramAddress,
+      promoType.freeProducts
+    );
     await expect(receipt).to.emit(redeemableFactory, "NewPromotionCreated").withArgs(owner.address, anyValue);
 
     const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
@@ -222,7 +228,7 @@ describe("Promotions Factories Contract", function () {
                             CREATE NEW EXPIRABLE PROMO
     ///////////////////////////////////////////////////////////////////////////////*/
 
-  it("should be possible to create new redeemable promo via the factory", async () => {
+  it("should be possible to create new expirable promo via the factory", async () => {
     const { meedProgramFactory, expirableFactory, owner } = await loadFixture(deployFixture);
 
     // 1. Create a new Meed Program
@@ -246,7 +252,7 @@ describe("Promotions Factories Contract", function () {
       "ipfs://uri",
       expirationDate,
       meedProgramAddress,
-      2
+      promoType.eventTickets
     );
     await expect(receipt)
       .to.emit(expirableFactory, "NewPromotionCreated")
@@ -263,7 +269,7 @@ describe("Promotions Factories Contract", function () {
                             CREATE NEW SPECIALS PROMO
     ///////////////////////////////////////////////////////////////////////////////*/
 
-  it("should be possible to create new expirable promo via the factory", async () => {
+  it("should be possible to create new bundles promo via the factory", async () => {
     const { meedProgramFactory, bundlesFactory, owner } = await loadFixture(deployFixture);
 
     // 1. Create a new Meed Program
@@ -291,7 +297,7 @@ describe("Promotions Factories Contract", function () {
         expirationDate,
         meedProgramAddress,
         10_000,
-        2
+        promoType.freeProducts
       )
     ).to.be.revertedWithCustomError(bundlesFactory, "BundlesFactory_TypeNotSupported");
 
@@ -302,7 +308,7 @@ describe("Promotions Factories Contract", function () {
       expirationDate,
       meedProgramAddress,
       10_000,
-      4
+      promoType.bundles
     );
     await expect(receipt)
       .to.emit(bundlesFactory, "NewPromotionCreated")

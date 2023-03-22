@@ -47,6 +47,9 @@ contract RedeemableFactory is Context, Errors {
         address meedProgram,
         PromoLib.PromotionsType _type
     ) external returns (address newPromotion) {
+        if (_type != PromoLib.PromotionsType.DiscountVouchers && _type != PromoLib.PromotionsType.FreeProducts)
+            revert RedeemableFactory_TypeNotSupported();
+
         newPromotion = address(new Redeemable(uri, _msgSender(), data, meedProgram, CONTROL_ADDRESS));
 
         IMeedProgram program = IMeedProgram(meedProgram);

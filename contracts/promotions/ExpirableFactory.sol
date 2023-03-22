@@ -50,6 +50,9 @@ contract ExpirableFactory is Context, Errors {
         address meedProgram,
         PromoLib.PromotionsType _type
     ) external returns (address newPromotion) {
+        if (_type != PromoLib.PromotionsType.EventTickets && _type != PromoLib.PromotionsType.VIPpass)
+            revert ExpirableFactory_TypeNotSupported();
+
         newPromotion = address(new Expirable(name, symbol, uri, _msgSender(), data, meedProgram, CONTROL_ADDRESS));
 
         IMeedProgram program = IMeedProgram(meedProgram);

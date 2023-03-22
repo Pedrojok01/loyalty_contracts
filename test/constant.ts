@@ -8,6 +8,15 @@ export const plan = {
   enterprise: 2,
 };
 
+export const promoType = {
+  discountVouchers: 0,
+  freeProducts: 1,
+  collectibles: 2,
+  eventTickets: 3,
+  vipPass: 4,
+  bundles: 5,
+};
+
 export const pricePerPlan = {
   basic: utils.parseEther("0.05"),
   pro: utils.parseEther("0.1"),

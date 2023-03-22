@@ -22,6 +22,12 @@ contract Errors {
     error MeedProgramFactory_AlreadyExists();
     error MeedProgramFactory_NameAlreadyTaken();
 
+    // RedeemableFactory
+    error RedeemableFactory_TypeNotSupported();
+
+    // ExpirableFactory
+    error ExpirableFactory_TypeNotSupported();
+
     // BundlesFactory
     error BundlesFactory_TypeNotSupported();
 

@@ -15,6 +15,7 @@ import {
   subscriptions_symbol,
   subscriptions_uris,
   plan,
+  promoType,
 } from "./constant";
 import { utils } from "ethers";
 
@@ -56,7 +57,14 @@ describe("Expirable Promotion Contract", function () {
 
     // 2. Create a new promo via the redeemable factory
     const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
-    await expirableFactory.createNewPromotion("Expirable", "EXP", "ipfs://uri", expirationDate, meedProgramAddress, 2);
+    await expirableFactory.createNewPromotion(
+      "Expirable",
+      "EXP",
+      "ipfs://uri",
+      expirationDate,
+      meedProgramAddress,
+      promoType.eventTickets
+    );
 
     const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
 
