@@ -45,7 +45,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         uint64 diamond;
     }
 
-    TierStructure public tierStructure;
+    TierStructure private tierStructure;
 
     /**
      * @dev Store all data per member, fit in 1 storage slot
@@ -58,7 +58,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         address owner; // 20 bytes
     }
 
-    mapping(address => Membership) public membership;
+    mapping(address => Membership) private membership;
 
     modifier onlyFactory() {
         _onlyFactory();
@@ -135,6 +135,14 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         if (!_exists(tokenId)) revert MeedProgram_TokenDoesNotExist();
         return _baseURIextended;
+    }
+
+    function getTierStructure() external view returns (TierStructure memory) {
+        return tierStructure;
+    }
+
+    function getMembership(address member) external view returns (Membership memory) {
+        return membership[member];
     }
 
     /**

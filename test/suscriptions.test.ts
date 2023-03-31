@@ -44,12 +44,12 @@ describe("Susbcriptions Contract", function () {
     ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__IncorrectPrice");
 
     // revert if wrong price for a year
-    const toPayForAYear = await subscriptions.calculateSubscriptionPrice(0, false);
+    const toPayForAYear = await subscriptions.calculateSubscriptionPrice(plan.basic, false);
     await expect(
       subscriptions.connect(user1).subscribe(plan.enterprise, true, { from: user1.address, value: toPayForAYear })
     ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__IncorrectPrice");
 
-    const toPayForAMonth = await subscriptions.calculateSubscriptionPrice(0, false);
+    const toPayForAMonth = await subscriptions.calculateSubscriptionPrice(plan.basic, false);
     await subscriptions.connect(user1).subscribe(plan.basic, false, { value: toPayForAMonth });
 
     // revert since already subscribed
@@ -61,9 +61,9 @@ describe("Susbcriptions Contract", function () {
   it("should be possible to susbscibe for a year with the correct amount", async () => {
     const { subscriptions, user1, user2, user3 } = await loadFixture(deployFixture);
 
-    const basicForAYear = await subscriptions.calculateSubscriptionPrice(0, true);
-    const proForAYear = await subscriptions.calculateSubscriptionPrice(1, true);
-    const enterpriseForAYear = await subscriptions.calculateSubscriptionPrice(2, true);
+    const basicForAYear = await subscriptions.calculateSubscriptionPrice(plan.basic, true);
+    const proForAYear = await subscriptions.calculateSubscriptionPrice(plan.pro, true);
+    const enterpriseForAYear = await subscriptions.calculateSubscriptionPrice(plan.enterprise, true);
 
     const receipt = await subscriptions.connect(user1).subscribe(plan.basic, true, { value: basicForAYear });
     await expect(receipt).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
@@ -87,7 +87,7 @@ describe("Susbcriptions Contract", function () {
 
     expect(compareTimestamp(Number(expirationOneMonth), month)).to.equal(true);
 
-    const toPayForAYear = await subscriptions.calculateSubscriptionPrice(1, true);
+    const toPayForAYear = await subscriptions.calculateSubscriptionPrice(plan.pro, true);
     await subscriptions.connect(user2).subscribe(plan.pro, true, { value: toPayForAYear });
     const expirationOneYear = await subscriptions.expiresAt(2); // tokenId = 2
     const year = Math.floor(Date.now() / 1000 + duration.year);

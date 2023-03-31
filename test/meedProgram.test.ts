@@ -55,7 +55,7 @@ describe("MeedProgram Contract", function () {
     expect(await meedProgram.totalSupply()).to.equal(1); // first for owner
     expect(await meedProgram.tokenURI(0)).to.equal(meedProgram_uri);
 
-    const tiers = await meedProgram.tierStructure();
+    const tiers = await meedProgram.getTierStructure();
     expect(tiers.silver).to.equal(meedProgram_amounts[0]);
     expect(tiers.gold).to.equal(meedProgram_amounts[1]);
     expect(tiers.platinum).to.equal(meedProgram_amounts[2]);
@@ -136,7 +136,7 @@ describe("MeedProgram Contract", function () {
     // Update the member after purchase (without tier increase)
     await meedProgram.connect(owner).updateMember(user1.address, 1, 50);
 
-    const userBefore = await meedProgram.membership(user1.address);
+    const userBefore = await meedProgram.getMembership(user1.address);
     expect(userBefore.level).to.equal(1);
     expect(userBefore.buyVolume).to.equal(1);
     expect(userBefore.amountVolume).to.equal(50);
@@ -145,7 +145,7 @@ describe("MeedProgram Contract", function () {
     const receipt = await meedProgram.connect(owner).updateMember(user1.address, 1, 221);
     await expect(receipt).to.emit(meedProgram, "LevelUpdated").withArgs(user1.address, 2);
 
-    const userAfter = await meedProgram.membership(user1.address);
+    const userAfter = await meedProgram.getMembership(user1.address);
     expect(userAfter.level).to.equal(2);
     expect(userAfter.buyVolume).to.equal(2);
     expect(userAfter.amountVolume).to.equal(50 + 221);
@@ -165,7 +165,7 @@ describe("MeedProgram Contract", function () {
 
     const newLevel = await meedProgram.getMemberLevel(user1.address);
 
-    const userAfter = await meedProgram.membership(user1.address);
+    const userAfter = await meedProgram.getMembership(user1.address);
     expect(userAfter.level).to.equal(1);
     expect(userAfter.buyVolume).to.equal(1);
     expect(userAfter.amountVolume).to.equal(98);
