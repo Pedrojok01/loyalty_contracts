@@ -15,7 +15,7 @@
     "prettier": "prettier --write \"**/*.sol\"",
     "compile": "hardhat compile --show-stack-traces",
     "test": "hardhat test --show-stack-traces",
-    "deploy": "hardhat run --network polygonMumbai scripts/deploy_Subscriptions.ts",
+    "deploy": "hardhat run --network polygonMumbai scripts/deploy_MeedFactory.ts",
     "flatten": "hardhat flatten-all --show-stack-traces",
     "size": "hardhat size-contracts",
     "doc": "hardhat docgen",
@@ -39,6 +39,7 @@
     "chai": "^4.2.0",
     "dotenv": "^16.0.3",
     "ethers": "5.7.2",
+    "fs": "^0.0.1-security",
     "hardhat": "^2.13.0",
     "hardhat-contract-sizer": "^2.8.0",
     "hardhat-gas-reporter": "^1.0.8",
@@ -50,5 +51,6 @@
     "ts-node": "10.9.1",
     "typechain": "^8.1.0",
     "typescript": "5.0.2"
-  }
+  },
+  "dependencies": {}
 }

@@ -13,7 +13,9 @@ async function main() {
   console.log("\n");
 
   // Get Staking Contract ABI
-  const abiFile = JSON.parse(fs.readFileSync("./artifacts/contracts/BundlesFactory.sol/BundlesFactory.json", "utf8"));
+  const abiFile = JSON.parse(
+    fs.readFileSync("./artifacts/contracts/promotions/BundlesFactory.sol/BundlesFactory.json", "utf8")
+  );
   const abi = JSON.stringify(abiFile.abi);
 
   console.log("BundlesFactory ABI:");
@@ -27,10 +29,10 @@ async function main() {
 
   /** VERIFICATION:
    *****************/
-  await hre.run("verify:verify", {
-    address: bundlesFactory.address,
-    constructorArguments: [subscriptionAddress],
-  });
+  // await hre.run("verify:verify", {
+  //   address: bundlesFactory.address,
+  //   constructorArguments: [subscriptionAddress],
+  // });
 }
 
 main().catch((error) => {

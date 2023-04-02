@@ -1,9 +1,14 @@
 import hre, { ethers } from "hardhat";
 import fs from "fs";
+import { expirableFactoryAddress, redeemableFactoryAddress } from "./constants";
 
 async function main() {
   const MeedProgramFactory = await ethers.getContractFactory("MeedProgramFactory");
-  const meedProgramFactory = await MeedProgramFactory.deploy();
+  const meedProgramFactory = await MeedProgramFactory.deploy([
+    redeemableFactoryAddress,
+    expirableFactoryAddress,
+    redeemableFactoryAddress,
+  ]);
   await meedProgramFactory.deployed();
 
   console.log("\n");
@@ -12,7 +17,7 @@ async function main() {
 
   // Get Staking Contract ABI
   const abiFile = JSON.parse(
-    fs.readFileSync("./artifacts/contracts/MeedProgramFactory.sol/MeedProgramFactory.json", "utf8")
+    fs.readFileSync("./artifacts/contracts/meedProgram/MeedProgramFactory.sol/MeedProgramFactory.json", "utf8")
   );
   const abi = JSON.stringify(abiFile.abi);
 
@@ -27,10 +32,10 @@ async function main() {
 
   /** VERIFICATION:
    *****************/
-  await hre.run("verify:verify", {
-    address: meedProgramFactory.address,
-    constructorArguments: [],
-  });
+  // await hre.run("verify:verify", {
+  //   address: meedProgramFactory.address,
+  //   constructorArguments: [],
+  // });
 }
 
 main().catch((error) => {

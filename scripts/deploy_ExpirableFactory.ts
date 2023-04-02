@@ -14,7 +14,7 @@ async function main() {
 
   // Get Staking Contract ABI
   const abiFile = JSON.parse(
-    fs.readFileSync("./artifacts/contracts/ExpirableFactory.sol/ExpirableFactory.json", "utf8")
+    fs.readFileSync("./artifacts/contracts/promotions/ExpirableFactory.sol/ExpirableFactory.json", "utf8")
   );
   const abi = JSON.stringify(abiFile.abi);
 
@@ -29,10 +29,10 @@ async function main() {
 
   /** VERIFICATION:
    *****************/
-  await hre.run("verify:verify", {
-    address: expirableFactory.address,
-    constructorArguments: [subscriptionAddress],
-  });
+  // await hre.run("verify:verify", {
+  //   address: expirableFactory.address,
+  //   constructorArguments: [subscriptionAddress],
+  // });
 }
 
 main().catch((error) => {
