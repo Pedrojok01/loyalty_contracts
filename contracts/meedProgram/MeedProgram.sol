@@ -58,7 +58,8 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         address owner; // 20 bytes
     }
 
-    mapping(address => Membership) private membership;
+    mapping(address => Membership) private membershipPerAddress;
+    mapping(uint40 => Membership) private membershipPerTokenID;
 
     modifier onlyFactory() {
         _onlyFactory();
@@ -105,7 +106,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
      * @dev An external method for the owner to mint Soulbound NFTs. Can only mint 1 per address.
      */
     function mint(address to) public onlyOwnerOrAdmin {
-        if (membership[to].level != 0) {
+        if (membershipPerAddress[to].level != 0) {
             revert MeedProgram_AlreadyMember();
         }
 
@@ -119,7 +120,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
             tokenId: tokenId,
             owner: to
         });
-        membership[to] = newMembership;
+        membershipPerAddress[to] = newMembership;
 
         _safeMint(to, tokenId);
     }
@@ -141,22 +142,26 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         return tierStructure;
     }
 
-    function getMembership(address member) external view returns (Membership memory) {
-        return membership[member];
+    function getMembershipPerAddress(address member) external view returns (Membership memory) {
+        return membershipPerAddress[member];
+    }
+
+    function getMembershipPerTokenID(uint40 tokenId) external view returns (Membership memory) {
+        return membershipPerTokenID[tokenId];
     }
 
     /**
      * @dev Allows to get the level of a member
      */
     function isMember(address member) external view returns (bool) {
-        return membership[member].owner == member;
+        return membershipPerAddress[member].owner == member;
     }
 
     /**
      * @dev Allows to get the level of a member
      */
     function getMemberLevel(address member) external view returns (uint8) {
-        return membership[member].level;
+        return membershipPerAddress[member].level;
     }
 
     function getAllPromotions() external view returns (PromoLib.Promotion[] memory allPromotions) {
@@ -290,14 +295,14 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     }
 
     function _updateMember(address member, uint16 buyVolume, uint32 amountVolume) private {
-        if (membership[member].level == 0) {
+        if (membershipPerAddress[member].level == 0) {
             mint(member);
         }
 
-        Membership memory memberData = membership[member];
+        Membership memory memberData = membershipPerAddress[member];
         memberData.buyVolume += buyVolume;
         memberData.amountVolume += amountVolume;
-        membership[member] = memberData;
+        membershipPerAddress[member] = memberData;
 
         if (memberData.level != 5) {
             _updateMemberLevel(member, memberData);
@@ -325,7 +330,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     }
 
     function _updateMemberLevelInternal(address _member, uint8 _newLevel) private {
-        membership[_member].level = _newLevel;
+        membershipPerAddress[_member].level = _newLevel;
         emit LevelUpdated(_member, _newLevel);
     }
 

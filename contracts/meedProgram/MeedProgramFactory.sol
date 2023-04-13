@@ -55,6 +55,11 @@ contract MeedProgramFactory is Context, Errors {
     mapping(string => uint256) private meedIDPerName;
 
     /**
+     * @notice Map a MeedProgram ID per address;
+     */
+    mapping(IMeedProgram => uint256) private meedIdPerAddress;
+
+    /**
      * @notice Map all MeedProgram addresses per ID;
      */
     mapping(uint256 => IMeedProgram) private meedAddress;
@@ -133,6 +138,10 @@ contract MeedProgramFactory is Context, Errors {
                                     VIEW FUNCTIONS
     ///////////////////////////////////////////////////////////////////////////////*/
 
+    function getMeedIDPerAddress(IMeedProgram meedProgram) external view returns (uint256) {
+        return meedIdPerAddress[meedProgram];
+    }
+
     function getMeedIDPerOwner(address from) external view returns (uint256[] memory) {
         return meedIDPerOwner[from];
     }
@@ -164,6 +173,31 @@ contract MeedProgramFactory is Context, Errors {
     function getBrandDetails(uint256 meedId) external view returns (Brand memory) {
         return brands[meedId];
     }
+
+    // /**
+    //  * @dev Returns all programs where a user (wallet address) is a member.
+    //  * @param user The wallet address of the user.
+    //  * @return programAddresses An array of MeedProgram contract addresses.
+    //  */
+    // function getProgramsForMember(address user) external view returns (IMeedProgram[] memory programAddresses) {
+    //     uint256 totalPrograms = this.getTotalMeedPrograms();
+    //     IMeedProgram[] memory tempPrograms = new IMeedProgram[](totalPrograms);
+    //     uint256 count = 0;
+
+    //     for (uint256 i = 0; i < totalPrograms; i++) {
+    //         IMeedProgram program = this.getMeedProgramPerIndex(i);
+    //         if (program.isMember(user)) {
+    //             tempPrograms[count] = program;
+    //             count++;
+    //         }
+    //     }
+
+    //     programAddresses = new IMeedProgram[](count);
+    //     for (uint256 i = 0; i < count; i++) {
+    //         programAddresses[i] = tempPrograms[i];
+    //     }
+    //     return programAddresses;
+    // }
 
     /*///////////////////////////////////////////////////////////////////////////////
                                     PRIVATE FUNCTIONS
