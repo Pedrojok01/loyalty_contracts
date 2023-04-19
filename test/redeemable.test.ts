@@ -54,8 +54,9 @@ describe("Redeemable Promotion Contract", function () {
     const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
 
     // 2. Create a new promo via the redeemable factory
+    const startDate = Math.floor(Date.now() / 1000).toString();
     const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
-    await redeemableFactory.createNewPromotion("ipfs://uri", expirationDate, meedProgramAddress, 1);
+    await redeemableFactory.createNewPromotion("ipfs://uri", startDate, expirationDate, meedProgramAddress, 1);
 
     const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
 
@@ -91,10 +92,11 @@ describe("Redeemable Promotion Contract", function () {
     const { meedProgramFactory, redeemableFactory, redeemable, owner } = await loadFixture(deployFixture);
 
     const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
+    const startDate = Math.floor(Date.now() / 1000).toString();
     const expirationDate = (Math.floor(Date.now() / 1000) - duration.month).toString();
 
     await expect(
-      redeemableFactory.createNewPromotion("ipfs://uri", expirationDate, meedProgramAddress, 1)
+      redeemableFactory.createNewPromotion("ipfs://uri", startDate, expirationDate, meedProgramAddress, 1)
     ).to.be.revertedWith("Redeemable: invalid date");
   });
 

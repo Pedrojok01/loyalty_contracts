@@ -32,7 +32,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
-    bool public immutable TIER_TRACKER; // true = buyVolume, false = amountVolume
+    bool public immutable TIER_TRACKER; // true = buyVolume (purchase Times), false = amountVolume
     string private _baseURIextended;
     Counters.Counter private _tokenIdCounter;
     PromoLib.Data private promoLib;
@@ -224,6 +224,10 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
             mstore(promotionsPerType, count)
         }
         return promotionsPerType;
+    }
+
+    function getPromotionType(PromoLib.Promotion calldata promo) external pure returns (PromoLib.PromotionsType _type) {
+        return promo.promotionsType;
     }
 
     /**

@@ -47,13 +47,16 @@ contract ExpirableFactory is Context, Errors {
         string memory symbol,
         string memory uri,
         uint256 data,
+        uint256 data2,
         address meedProgram,
         PromoLib.PromotionsType _type
     ) external returns (address newPromotion) {
         if (_type != PromoLib.PromotionsType.EventTickets && _type != PromoLib.PromotionsType.VIPpass)
             revert ExpirableFactory_TypeNotSupported();
 
-        newPromotion = address(new Expirable(name, symbol, uri, _msgSender(), data, meedProgram, CONTROL_ADDRESS));
+        newPromotion = address(
+            new Expirable(name, symbol, uri, _msgSender(), data, data2, meedProgram, CONTROL_ADDRESS)
+        );
 
         IMeedProgram program = IMeedProgram(meedProgram);
         program.addPromotion(newPromotion, _type);

@@ -46,6 +46,7 @@ contract BundlesFactory is Context, Errors {
         string memory name,
         string memory symbol,
         string memory uri,
+        uint256 data2, //start Date
         uint256 expirationDate,
         address meedProgram,
         uint256 data,
@@ -54,7 +55,7 @@ contract BundlesFactory is Context, Errors {
         if (_type != PromoLib.PromotionsType.Bundles) revert BundlesFactory_TypeNotSupported();
 
         newPromotion = address(
-            new Bundles(name, symbol, uri, expirationDate, meedProgram, data, _msgSender(), CONTROL_ADDRESS)
+            new Bundles(name, symbol, uri, data2, expirationDate, meedProgram, data, _msgSender(), CONTROL_ADDRESS)
         );
 
         IMeedProgram program = IMeedProgram(meedProgram);

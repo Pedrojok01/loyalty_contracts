@@ -209,13 +209,23 @@ describe("MeedProgram Contract", function () {
     expect(initialPromos.length).to.equal(0);
 
     // Create a new promo via the factory
+    const startDate = Math.floor(Date.now() / 1000).toString();
     const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
-    const receipt = await redeemableFactory.createNewPromotion("ipfs://uri", expirationDate, meedProgram.address, 0);
+    const receipt = await redeemableFactory.createNewPromotion(
+      "ipfs://uri",
+      startDate,
+      expirationDate,
+      meedProgram.address,
+      1
+    );
     await expect(receipt).to.emit(redeemableFactory, "NewPromotionCreated").withArgs(owner.address, anyValue);
 
     // Check the new state  (1 promo)
     const newPromos = await meedProgram.getAllPromotions();
     expect(newPromos.length).to.equal(1);
+
+    const promoType = await meedProgram.getPromotionType(newPromos[0]);
+    expect(promoType).to.equal(1); // DiscountVouchers
   });
 
   it("should be possible to get all promotion per type & status & paging", async () => {
@@ -223,8 +233,9 @@ describe("MeedProgram Contract", function () {
 
     // Create a few promos via the factory
     const createFewPromos = async () => {
+      const startDate = Math.floor(Date.now() / 1000).toString();
       const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
-      await redeemableFactory.createNewPromotion("ipfs://uri", expirationDate, meedProgram.address, 0);
+      await redeemableFactory.createNewPromotion("ipfs://uri", startDate, expirationDate, meedProgram.address, 0);
     };
 
     for (let i = 0; i < 6; i++) {
@@ -261,8 +272,15 @@ describe("MeedProgram Contract", function () {
     const { meedProgram, owner, user1, redeemableFactory } = await loadFixture(deployFixture);
 
     // Create a new promo via the factory
+    const startDate = Math.floor(Date.now() / 1000).toString();
     const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
-    const receipt = await redeemableFactory.createNewPromotion("ipfs://uri", expirationDate, meedProgram.address, 0);
+    const receipt = await redeemableFactory.createNewPromotion(
+      "ipfs://uri",
+      startDate,
+      expirationDate,
+      meedProgram.address,
+      0
+    );
     await expect(receipt).to.emit(redeemableFactory, "NewPromotionCreated").withArgs(owner.address, anyValue);
 
     // Check the new state  (1 promo)

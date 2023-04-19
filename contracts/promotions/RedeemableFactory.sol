@@ -44,13 +44,14 @@ contract RedeemableFactory is Context, Errors {
     function createNewPromotion(
         string memory uri,
         uint256 data,
+        uint256 data2,
         address meedProgram,
         PromoLib.PromotionsType _type
     ) external returns (address newPromotion) {
         if (_type != PromoLib.PromotionsType.DiscountVouchers && _type != PromoLib.PromotionsType.FreeProducts)
             revert RedeemableFactory_TypeNotSupported();
 
-        newPromotion = address(new Redeemable(uri, _msgSender(), data, meedProgram, CONTROL_ADDRESS));
+        newPromotion = address(new Redeemable(uri, _msgSender(), data, data2, meedProgram, CONTROL_ADDRESS));
 
         IMeedProgram program = IMeedProgram(meedProgram);
         program.addPromotion(newPromotion, _type);

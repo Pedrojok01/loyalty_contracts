@@ -72,11 +72,12 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
     constructor(
         string memory _uri,
         address _owner,
+        uint256 _startDate,
         uint256 _expirationDate,
         address _meedProgram,
         address _contractAddress
-    ) ERC1155(_uri) TimeLimited(_expirationDate, address(this)) SubscriberChecks(_contractAddress) {
-        require(_expirationDate > block.timestamp, "Redeemable: invalid date");
+    ) ERC1155(_uri) TimeLimited(_startDate, _expirationDate, address(this)) SubscriberChecks(_contractAddress) {
+        require(_expirationDate == 0 || _expirationDate > block.timestamp, "Redeemable: invalid date");
         _setURI(_uri);
         meedProgram = MeedProgram(_meedProgram);
         transferOwnership(_owner);

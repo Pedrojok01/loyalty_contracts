@@ -23,7 +23,7 @@ contract Collectibles is ERC1155, TimeLimited, SubscriberChecks {
     using Counters for Counters.Counter;
 
     MeedProgram private immutable meedProgram;
-    uint256 constant MAX_IDS = 64;
+    uint256 private constant MAX_IDS = 64;
     Counters.Counter private _redeemCounter;
 
     mapping(uint256 => string) private _uris;
@@ -31,12 +31,13 @@ contract Collectibles is ERC1155, TimeLimited, SubscriberChecks {
     constructor(
         string[] memory uris,
         address _owner,
+        uint256 _startDate,
         uint256 _expirationDate,
         address _meedProgram,
         address _contractAddress
-    ) ERC1155("") TimeLimited(_expirationDate, address(this)) SubscriberChecks(_contractAddress) {
+    ) ERC1155("") TimeLimited(_startDate, _expirationDate, address(this)) SubscriberChecks(_contractAddress) {
         require(uris.length <= MAX_IDS, "CollectibleNFT: Too many URIs.");
-        require(_expirationDate > block.timestamp, "Redeemable: invalid date");
+        require(_expirationDate == 0 || _expirationDate > block.timestamp, "Redeemable: invalid date");
         for (uint256 i = 0; i < uris.length; i++) {
             _uris[i] = uris[i];
             _mint(msg.sender, i, 1, "");

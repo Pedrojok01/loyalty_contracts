@@ -11,10 +11,12 @@ import {Activation} from "../utils/Activation.sol";
  */
 
 contract TimeLimited is Activation {
-    uint256 private expirationDate; // 0 = no expiration
+    uint128 private startDate;
+    uint128 private expirationDate; // 0 = no expiration
 
-    constructor(uint256 _expirationDate, address _contractRole) Activation(_contractRole) {
-        expirationDate = _expirationDate;
+    constructor(uint256 _startDate, uint256 _expirationDate, address _contractRole) Activation(_contractRole) {
+        startDate = uint128(_startDate);
+        expirationDate = uint128(_expirationDate);
     }
 
     modifier onlyOngoing() virtual {
@@ -32,7 +34,7 @@ contract TimeLimited is Activation {
 
     function updateExpirationDate(uint256 newExpirationDate) external onlyOwnerOrAdmin onlyActive {
         if (newExpirationDate < block.timestamp) revert Expirable__InvalidDate();
-        expirationDate = newExpirationDate;
+        expirationDate = uint128(newExpirationDate);
         emit ExpirationDateUpdated(_msgSender(), newExpirationDate);
     }
 
