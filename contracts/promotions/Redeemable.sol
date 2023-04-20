@@ -61,7 +61,7 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
     struct RedeemableNFT {
         RedeemableType redeemableType;
         uint8 id;
-        uint120 value;
+        uint112 value;
         uint120 circulatingSupply;
         bool exist;
         // bytes32 productIdOrCurrency;
@@ -178,14 +178,14 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
      */
     function addNewRedeemableNFT(
         RedeemableType redeemType,
-        uint120 value,
+        uint112 value,
         bytes32 data
     ) external onlyOwnerOrAdmin onlyOngoing onlyActive {
         _addNewRedeemableNFT(redeemType, value);
         emit NewTypeAdded(redeemType, value, data);
     }
 
-    event NewTypeAdded(RedeemableType indexed redeemType, uint120 value, bytes32 productIdOrCurrency);
+    event NewTypeAdded(RedeemableType indexed redeemType, uint112 value, bytes32 productIdOrCurrency);
 
     function setURI(string memory newuri) external onlyOwnerOrAdmin onlyOngoing onlyActive {
         _setURI(newuri);
@@ -219,7 +219,7 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
         return redeemableNFTs[_id].circulatingSupply > 0;
     }
 
-    function _addNewRedeemableNFT(RedeemableType redeemType, uint120 _value) private {
+    function _addNewRedeemableNFT(RedeemableType redeemType, uint112 _value) private {
         if (!_isValidType(redeemType)) revert Redeemable__WrongType();
         if (_value == 0) revert Redeemable__WrongValue();
 
