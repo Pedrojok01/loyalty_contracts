@@ -64,6 +64,7 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
         uint112 value;
         uint120 circulatingSupply;
         bool exist;
+        // uint8: lvlRequirement
         // bytes32 productIdOrCurrency;
     }
 
