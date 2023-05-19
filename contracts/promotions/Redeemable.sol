@@ -82,7 +82,7 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
         _setURI(_uri);
         meedProgram = MeedProgram(_meedProgram);
         transferOwnership(_owner);
-        transferAdminship(_owner);
+        transferAdminship(meedProgram.admin());
     }
 
     modifier onlyOngoing() override {
@@ -106,6 +106,7 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
         uint256 lvlMin
     ) public onlyOwnerOrAdmin onlyOngoing onlyActive onlySubscribers {
         if (!_isValidId(id)) revert Redeemable__WrongId();
+        if (!_isValidLevel(lvlMin)) revert Redeemable__WrongLevel();
         uint8 currentLevel = meedProgram.getMemberLevel(to);
         if (currentLevel == 0) revert Redeemable__NonExistantUser();
         if (currentLevel < uint8(lvlMin)) revert Redeemable__InsufficientLevel();
@@ -118,7 +119,7 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
      * @dev Mint a new NFT to a batch of specified addresses;
      * @param id Allow to choose the kind of NFT to be minted;
      * @param to Array of addresses to mint to; must be members of the loyalty program;
-     * @param lvlMin Level required to mint the NFT (set to 0 for no level requirement);
+     * @param lvlMin Level required to mint the NFT (set to 1 for no level requirement);
      */
     function batchMint(
         uint256 id,
@@ -179,11 +180,11 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
      */
     function addNewRedeemableNFT(
         RedeemableType redeemType,
-        uint112 value,
+        uint256 value,
         bytes32 data
     ) external onlyOwnerOrAdmin onlyOngoing onlyActive {
-        _addNewRedeemableNFT(redeemType, value);
-        emit NewTypeAdded(redeemType, value, data);
+        _addNewRedeemableNFT(redeemType, uint112(value));
+        emit NewTypeAdded(redeemType, uint112(value), data);
     }
 
     event NewTypeAdded(RedeemableType indexed redeemType, uint112 value, bytes32 productIdOrCurrency);
@@ -205,6 +206,13 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
         } else return false;
     }
 
+    function _isValidLevel(uint256 _level) private pure returns (bool) {
+        if (_level > 0 && _level <= 5) {
+            return true;
+        }
+        return false;
+    }
+
     function _isValidType(RedeemableType _redeemType) private pure returns (bool) {
         if (
             _redeemType == RedeemableType.ProductId ||
@@ -222,7 +230,7 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
 
     function _addNewRedeemableNFT(RedeemableType redeemType, uint112 _value) private {
         if (!_isValidType(redeemType)) revert Redeemable__WrongType();
-        if (_value == 0) revert Redeemable__WrongValue();
+        if (_value == 0 && redeemType != RedeemableType.ProductId) revert Redeemable__WrongValue();
 
         redeemableNFTs.push();
         uint256 _id = redeemableNFTs.length - 1;

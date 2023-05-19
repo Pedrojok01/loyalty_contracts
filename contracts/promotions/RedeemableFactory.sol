@@ -21,7 +21,7 @@ import {Redeemable} from "../promotions/Redeemable.sol";
 contract RedeemableFactory is Context, Errors {
     using PromoLib for PromoLib.Promotion;
 
-    address private immutable CONTROL_ADDRESS;
+    address private immutable CONTROL_ADDRESS; // Subscriptions contract address
 
     constructor(address _controlAddress) {
         CONTROL_ADDRESS = _controlAddress;
@@ -34,7 +34,8 @@ contract RedeemableFactory is Context, Errors {
     /**
      * @dev Call this function to create a new MeedProgram contract.
      * @param uri  URI of the new MeedProgram (user input).
-     * @param data Data of the new MeedProgram (user input) ( = expirationDate)
+     * @param data Data of the new MeedProgram (user input) ( = start date)
+     * @param data2 Data2 of the new MeedProgram (user input) ( = expiration date)
      * @param meedProgram  MeedProgram address (user input).
      * @param _type  Type of the promotions to be created (user input).
      * - 0 = DiscountVouchers

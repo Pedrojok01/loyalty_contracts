@@ -15,6 +15,7 @@ contract TimeLimited is Activation {
     uint128 private expirationDate; // 0 = no expiration
 
     constructor(uint256 _startDate, uint256 _expirationDate, address _contractRole) Activation(_contractRole) {
+        require(expirationDate == 0 || _startDate < _expirationDate, "TimeLimited: invalid dates");
         startDate = uint128(_startDate);
         expirationDate = uint128(_expirationDate);
     }
@@ -29,7 +30,8 @@ contract TimeLimited is Activation {
     }
 
     function isExpired() external view returns (bool) {
-        return block.timestamp >= expirationDate;
+        if (expirationDate == 0) return false;
+        else return block.timestamp >= expirationDate;
     }
 
     function updateExpirationDate(uint256 newExpirationDate) external onlyOwnerOrAdmin onlyActive {

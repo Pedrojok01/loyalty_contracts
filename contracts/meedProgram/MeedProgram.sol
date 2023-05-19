@@ -96,6 +96,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         transferOwnership(_owner);
         _initializeTierStructure(amounts[0], amounts[1], amounts[2], amounts[3]);
         mint(_owner);
+        transferAdminship(_owner);
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -103,26 +104,11 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     ///////////////////////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev An external method for the owner to mint Soulbound NFTs. Can only mint 1 per address.
+     * @dev External method for the owner  / admin to mint NFTs (enroll new member). Can only mint 1 per address.
+     * @param to Address of the new member to be added.
      */
     function mint(address to) public onlyOwnerOrAdmin {
-        if (membershipPerAddress[to].level != 0) {
-            revert MeedProgram_AlreadyMember();
-        }
-
-        uint40 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
-
-        Membership memory newMembership = Membership({
-            level: 1,
-            buyVolume: 0,
-            amountVolume: 0,
-            tokenId: tokenId,
-            owner: to
-        });
-        membershipPerAddress[to] = newMembership;
-
-        _safeMint(to, tokenId);
+        _addMember(to);
     }
 
     function updateMember(address member, uint16 buyVolume, uint32 amountVolume) external onlyAuthorized {
@@ -151,7 +137,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     }
 
     /**
-     * @dev Allows to get the level of a member
+     * @dev Allows to check if an address is a member
      */
     function isMember(address member) external view returns (bool) {
         return membershipPerAddress[member].owner == member;
@@ -298,6 +284,26 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         tierStructure = TierStructure({silver: _amount1, gold: _amount2, platinum: _amount3, diamond: _amount4});
     }
 
+    function _addMember(address to) private {
+        if (membershipPerAddress[to].level != 0) {
+            revert MeedProgram_AlreadyMember();
+        }
+
+        uint40 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+
+        Membership memory newMembership = Membership({
+            level: 1,
+            buyVolume: 0,
+            amountVolume: 0,
+            tokenId: tokenId,
+            owner: to
+        });
+        membershipPerAddress[to] = newMembership;
+
+        _safeMint(to, tokenId);
+    }
+
     function _updateMember(address member, uint16 buyVolume, uint32 amountVolume) private {
         if (membershipPerAddress[member].level == 0) {
             mint(member);
@@ -354,9 +360,20 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     }
 
     function _onlyFactory() private view {
-        if (_msgSender() != factories[0] && _msgSender() != factories[1] && _msgSender() != factories[2]) {
-            revert MeedProgram_NotAuthorized();
+        bool isFactory = false;
+        uint256 factoriesLength = factories.length;
+
+        for (uint256 i = 0; i < factoriesLength; ) {
+            if (_msgSender() == factories[i]) {
+                isFactory = true;
+                break;
+            }
+            unchecked {
+                i++;
+            }
         }
+
+        require(isFactory, "MeedProgram: Not Authorized");
     }
 
     function _onlyAuthorized() private view {

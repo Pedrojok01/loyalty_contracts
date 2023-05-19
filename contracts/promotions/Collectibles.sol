@@ -43,7 +43,7 @@ contract Collectibles is ERC1155, TimeLimited, SubscriberChecks {
             _mint(msg.sender, i, 1, "");
             meedProgram = MeedProgram(_meedProgram);
             transferOwnership(_owner);
-            transferAdminship(_owner);
+            transferAdminship(meedProgram.admin());
         }
     }
 

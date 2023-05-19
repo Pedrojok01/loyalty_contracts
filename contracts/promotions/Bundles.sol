@@ -67,7 +67,7 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, 
         _baseURIextended = _uri;
         meedProgram = MeedProgram(_meedProgram);
         transferOwnership(_owner);
-        transferAdminship(_owner);
+        transferAdminship(meedProgram.admin());
     }
 
     modifier onlyOngoing() override {

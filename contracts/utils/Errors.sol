@@ -48,6 +48,7 @@ contract Errors {
     error Redeemable__TokenNotOwned();
     error Redeemable__WrongType();
     error Redeemable__WrongId();
+    error Redeemable__WrongLevel();
     error Redeemable__EventExpired();
     error Redeemable__ArraysDontMatch();
     error Redeemable__WrongValue();

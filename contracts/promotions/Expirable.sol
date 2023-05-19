@@ -68,7 +68,7 @@ contract Expirable is ERC721, IExpirable, TimeLimited, SubscriberChecks {
         _baseURIextended = _uri;
         meedProgram = MeedProgram(_meedProgram);
         transferOwnership(_owner);
-        transferAdminship(_owner);
+        transferAdminship(meedProgram.admin());
     }
 
     modifier onlyOngoing() override {
