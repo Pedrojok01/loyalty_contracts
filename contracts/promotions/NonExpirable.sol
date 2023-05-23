@@ -12,9 +12,9 @@ import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 import {MeedProgram} from "../meedProgram/MeedProgram.sol";
 
 /**
- * @title Expirable
+ * @titleNonExpirable
  * @author Pedrojok01
- * @notice Part of the Meed Rewards platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
  * @dev ERC721 time limited NFT | Auto-burn when used:
  *  - Can either be airdrop to a specified membership level, or
  *  - Minted upon condition.
@@ -32,7 +32,7 @@ import {MeedProgram} from "../meedProgram/MeedProgram.sol";
  * 810bdd65  =>  _onlyOngoing()*
  */
 
-contract Expirable is ERC721, IExpirable, TimeLimited, SubscriberChecks {
+contract NonExpirable is ERC721, IExpirable, TimeLimited, SubscriberChecks {
     using Counters for Counters.Counter;
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -87,8 +87,8 @@ contract Expirable is ERC721, IExpirable, TimeLimited, SubscriberChecks {
      */
     function safeMint(address to, uint256 lvlMin) public onlyOwnerOrAdmin onlyOngoing onlyActive onlyProOrEnterprise {
         uint8 currentLevel = meedProgram.getMemberLevel(to);
-        if (currentLevel == 0) revert Expirable__NonExistantUser();
-        if (currentLevel < uint8(lvlMin)) revert Expirable__InsufficientLevel();
+        if (currentLevel == 0) revert NonExpirable__NonExistantUser();
+        if (currentLevel < uint8(lvlMin)) revert NonExpirable__InsufficientLevel();
 
         uint88 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
@@ -124,8 +124,8 @@ contract Expirable is ERC721, IExpirable, TimeLimited, SubscriberChecks {
      * @param ticketId TicketId of the ticket to consume;
      */
     function consumeTiket(address from, uint256 ticketId) external onlyOngoing onlyActive {
-        if (tickets[uint88(ticketId)].used) revert Expirable__TicketAlreadyUsed(ticketId);
-        if (tickets[uint88(ticketId)].owner != from) revert Expirable__TicketNotOwned();
+        if (tickets[uint88(ticketId)].used) revert NonExpirable__TicketAlreadyUsed(ticketId);
+        if (tickets[uint88(ticketId)].owner != from) revert NonExpirable__TicketNotOwned();
 
         tickets[uint88(ticketId)].used = true;
         _burn(ticketId);
@@ -169,7 +169,7 @@ contract Expirable is ERC721, IExpirable, TimeLimited, SubscriberChecks {
                 this.deactivate();
                 meedProgram.switchStatus(address(this), false);
             }
-            revert Expirable__EventExpired();
+            revert NonExpirable__EventExpired();
         }
     }
 }

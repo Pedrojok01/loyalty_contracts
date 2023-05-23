@@ -196,7 +196,7 @@ describe("Redeemable Promotion Contract", function () {
     await time.increase(duration.month * 24);
     await expect(redeemable.connect(owner).mint(0, user1.address, 1)).to.be.revertedWithCustomError(
       redeemable,
-      "Expirable__EventExpired"
+      "NonExpirable__EventExpired"
     );
   });
 

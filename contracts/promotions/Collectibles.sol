@@ -12,7 +12,7 @@ import {Counters} from "../utils/Counters.sol";
 /**
  * @title Collectibles
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Rewards platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
  * @dev Collectibles are NFTs can be collected to redeem a reward.;
  *  - The whole collection must be collected for the reward to be unlocked;
  *  - The reward is decided by the brands, can be another NFT like super discount or free product;
@@ -87,7 +87,7 @@ contract Collectibles is ERC1155, TimeLimited, SubscriberChecks {
                 this.deactivate();
                 meedProgram.switchStatus(address(this), false);
             }
-            revert Expirable__EventExpired();
+            revert Collectibles__EventExpired();
         }
     }
 }

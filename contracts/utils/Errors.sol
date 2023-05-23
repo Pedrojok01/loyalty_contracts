@@ -4,7 +4,7 @@ pragma solidity 0.8.18;
 /**
  * @title Errors
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Rewards platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
  * @dev Stores all the errors used in the contracts:
  * - saves gas;
  * - makes the code more readable;
@@ -25,8 +25,8 @@ contract Errors {
     // RedeemableFactory
     error RedeemableFactory_TypeNotSupported();
 
-    // ExpirableFactory
-    error ExpirableFactory_TypeNotSupported();
+    //NonExpirableFactory
+    error NonExpirableFactory_TypeNotSupported();
 
     // BundlesFactory
     error BundlesFactory_TypeNotSupported();
@@ -57,17 +57,18 @@ contract Errors {
 
     // Collectibles
     error Collectibles__InvalidTokenId();
+    error Collectibles__EventExpired();
 
-    // Expirable
-    error Expirable__InvalidMintType();
-    error Expirable__InvalidDate();
-    error Expirable__NonExistantUser();
-    error Expirable__InsufficientLevel();
-    error Expirable__EventExpired();
-    error Expirable__EventNotExpired();
-    error Expirable__TicketNotOwned();
-    error Expirable__NotOwnerOrApproved();
-    error Expirable__TicketAlreadyUsed(uint256 ticketId);
+    //NonExpirable
+    error NonExpirable__InvalidMintType();
+    error NonExpirable__InvalidDate();
+    error NonExpirable__NonExistantUser();
+    error NonExpirable__InsufficientLevel();
+    error NonExpirable__EventExpired();
+    error NonExpirable__EventNotExpired();
+    error NonExpirable__TicketNotOwned();
+    error NonExpirable__NotOwnerOrApproved();
+    error NonExpirable__TicketAlreadyUsed(uint256 ticketId);
 
     // Subscriptions
     error Subscriptions__TokenNotOwned();

@@ -13,7 +13,7 @@ import {IMeedProgram} from "../interfaces/IMeedProgram.sol";
 /**
  * @title MeedProgram
  * @author Pedrojok01
- * @notice Part of the Meed Rewards platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
  * @dev ERC721 NFT with the following features:
  *  - Deployer can mint to recipients.
  */
@@ -36,7 +36,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     string private _baseURIextended;
     Counters.Counter private _tokenIdCounter;
     PromoLib.Data private promoLib;
-    address[3] private factories;
+    address[] private factories;
 
     struct TierStructure {
         uint64 silver;
@@ -87,7 +87,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         bool _tierTracker,
         address _owner,
         uint64[4] memory amounts,
-        address[3] memory _factories
+        address[] memory _factories
     ) ERC721(_name, _symbol) {
         TIER_TRACKER = _tierTracker;
         _baseURIextended = _uri;

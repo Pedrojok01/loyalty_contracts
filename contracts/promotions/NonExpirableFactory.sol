@@ -7,19 +7,19 @@ import {PromoLib} from "../library/PromoLib.sol";
 import {IMeedProgram} from "../interfaces/IMeedProgram.sol";
 import {Errors} from "../utils/Errors.sol";
 
-import {Expirable} from "../promotions/Expirable.sol";
+import {NonExpirable} from "../promotions/NonExpirable.sol";
 
 /**
- * @title ExpirableFactory
+ * @title NonExpirableFactory
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Rewards platform from SuperUltra
- * @dev Contracts factory to deploy an expirable type of promotion;
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @dev Contracts factory to deploy anNonExpirable type of promotion;
  *  - Deployer can launch its own Membership program.
  *  - Deployer will receive NFT id 0, proving its ownership.
  *  - Stores all brand details into the Brand struct (allows filters)
  */
 
-contract ExpirableFactory is Context, Errors {
+contract NonExpirableFactory is Context, Errors {
     using PromoLib for PromoLib.Promotion;
 
     address private immutable CONTROL_ADDRESS;
@@ -52,10 +52,10 @@ contract ExpirableFactory is Context, Errors {
         PromoLib.PromotionsType _type
     ) external returns (address newPromotion) {
         if (_type != PromoLib.PromotionsType.EventTickets && _type != PromoLib.PromotionsType.VIPpass)
-            revert ExpirableFactory_TypeNotSupported();
+            revert NonExpirableFactory_TypeNotSupported();
 
         newPromotion = address(
-            new Expirable(name, symbol, uri, _msgSender(), data, data2, meedProgram, CONTROL_ADDRESS)
+            new NonExpirable(name, symbol, uri, _msgSender(), data, data2, meedProgram, CONTROL_ADDRESS)
         );
 
         IMeedProgram program = IMeedProgram(meedProgram);

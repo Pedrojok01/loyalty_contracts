@@ -2,6 +2,7 @@
 pragma solidity 0.8.18;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {IMeedProgram} from "../interfaces/IMeedProgram.sol";
 import {MeedProgram} from "./MeedProgram.sol";
@@ -10,7 +11,7 @@ import {Errors} from "../utils/Errors.sol";
 /**
  * @title MeedProgramFactory
  * @author Pedrojok01
- * @notice Part of the Meed Rewards platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
  * @dev Contracts factory to deploy the MeedProgram ERC721;
  *  - Deployer can launch its own Membership program.
  *  - Deployer will receive NFT id 0, proving its ownership.
@@ -26,12 +27,12 @@ import {Errors} from "../utils/Errors.sol";
  * 5bf700a7  =>  _createNewMeedProgram(uint256,string,string,string,bool,uint64[4],bytes16,bytes16)
  */
 
-contract MeedProgramFactory is Context, Errors {
+contract MeedProgramFactory is Context, Errors, Ownable {
     /*///////////////////////////////////////////////////////////////////////////////
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
-    address[3] public factories;
+    address[] public factories;
 
     /**
      * @dev Main brand details to allow:
@@ -74,7 +75,7 @@ contract MeedProgramFactory is Context, Errors {
      */
     IMeedProgram[] private meedProgramList;
 
-    constructor(address[3] memory _factories) {
+    constructor(address[] memory _factories) {
         factories = _factories;
     }
 
@@ -174,30 +175,29 @@ contract MeedProgramFactory is Context, Errors {
         return brands[meedId];
     }
 
-    // /**
-    //  * @dev Returns all programs where a user (wallet address) is a member.
-    //  * @param user The wallet address of the user.
-    //  * @return programAddresses An array of MeedProgram contract addresses.
-    //  */
-    // function getProgramsForMember(address user) external view returns (IMeedProgram[] memory programAddresses) {
-    //     uint256 totalPrograms = this.getTotalMeedPrograms();
-    //     IMeedProgram[] memory tempPrograms = new IMeedProgram[](totalPrograms);
-    //     uint256 count = 0;
+    /*///////////////////////////////////////////////////////////////////////////////
+                                   RESTRICTED FACTORY FUNCTIONS
+    ///////////////////////////////////////////////////////////////////////////////*/
 
-    //     for (uint256 i = 0; i < totalPrograms; i++) {
-    //         IMeedProgram program = this.getMeedProgramPerIndex(i);
-    //         if (program.isMember(user)) {
-    //             tempPrograms[count] = program;
-    //             count++;
-    //         }
-    //     }
+    // Setter function to add a factory
+    function addFactory(address factory) external onlyOwner {
+        factories.push(factory);
+    }
 
-    //     programAddresses = new IMeedProgram[](count);
-    //     for (uint256 i = 0; i < count; i++) {
-    //         programAddresses[i] = tempPrograms[i];
-    //     }
-    //     return programAddresses;
-    // }
+    // Updater function to modify a factory at a specific index
+    function updateFactory(uint256 index, address factory) external onlyOwner {
+        require(index < factories.length, "Invalid index");
+        factories[index] = factory;
+    }
+
+    // Deleter function to remove a factory at a specific index
+    function removeFactory(uint256 index) external onlyOwner {
+        require(index < factories.length, "Invalid index");
+        // Move the last element to the position of the element to be removed
+        factories[index] = factories[factories.length - 1];
+        // Remove the last element
+        factories.pop();
+    }
 
     /*///////////////////////////////////////////////////////////////////////////////
                                     PRIVATE FUNCTIONS
@@ -213,19 +213,20 @@ contract MeedProgramFactory is Context, Errors {
         bytes16 _productType,
         bytes16 _location
     ) private returns (IMeedProgram newMeedProgram) {
-        address owner = _msgSender();
+        address _owner = _msgSender();
 
-        newMeedProgram = IMeedProgram(new MeedProgram(_name, _symbol, _uri, _tierTracker, owner, amounts, factories));
+        newMeedProgram = IMeedProgram(new MeedProgram(_name, _symbol, _uri, _tierTracker, _owner, amounts, factories));
 
-        meedIDPerOwner[owner].push(_meedId);
+        meedIDPerOwner[_owner].push(_meedId);
         meedIDPerName[_name] = _meedId;
         meedAddress[_meedId] = newMeedProgram;
+        meedIdPerAddress[newMeedProgram] = _meedId;
         meedProgramList.push(newMeedProgram);
 
-        Brand memory newBrand = Brand({productType: _productType, location: _location, owner: owner});
+        Brand memory newBrand = Brand({productType: _productType, location: _location, owner: _owner});
         brands[_meedId] = newBrand;
 
-        emit NewMeedProgramCreated(owner, newMeedProgram, _meedId, _name);
+        emit NewMeedProgramCreated(_owner, newMeedProgram, _meedId, _name);
 
         return newMeedProgram;
     }

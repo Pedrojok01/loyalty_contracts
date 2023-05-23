@@ -3,7 +3,7 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Expirable, ExpirableFactory, MeedProgram, MeedProgramFactory, Subscriptions } from "../typechain-types";
+import { NonExpirable, NonExpirableFactory, MeedProgram, MeedProgramFactory, Subscriptions } from "../typechain-types";
 import {
   pricePerPlan,
   meedProgram_name,
@@ -31,15 +31,15 @@ describe("Expirable Promotion Contract", function () {
     );
     await subscriptions.deployed();
 
-    const ExpirableFactory = await ethers.getContractFactory("ExpirableFactory");
-    const expirableFactory: ExpirableFactory = await ExpirableFactory.deploy(subscriptions.address);
-    await expirableFactory.deployed();
+    const NonExpirableFactory = await ethers.getContractFactory("NonExpirableFactory");
+    const nonExpirableFactory: NonExpirableFactory = await NonExpirableFactory.deploy(subscriptions.address);
+    await nonExpirableFactory.deployed();
 
     const MeedProgramFactory = await ethers.getContractFactory("MeedProgramFactory");
     const meedProgramFactory: MeedProgramFactory = await MeedProgramFactory.deploy([
-      expirableFactory.address,
-      expirableFactory.address,
-      expirableFactory.address,
+      nonExpirableFactory.address,
+      nonExpirableFactory.address,
+      nonExpirableFactory.address,
     ]);
     await meedProgramFactory.deployed();
 
@@ -58,8 +58,8 @@ describe("Expirable Promotion Contract", function () {
     // 2. Create a new promo via the redeemable factory
     const startDate = Math.floor(Date.now() / 1000).toString();
     const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
-    await expirableFactory.createNewPromotion(
-      "Expirable",
+    await nonExpirableFactory.createNewPromotion(
+      "NonExpirable",
       "EXP",
       "ipfs://uri",
       startDate,
@@ -74,14 +74,14 @@ describe("Expirable Promotion Contract", function () {
     const allPromos = await meedProgram.getAllPromotions();
     expect(allPromos.length).to.equal(1);
 
-    const expirable = await ethers.getContractAt("Expirable", allPromos[0].promotionAddress);
+    const nonExpirable = await ethers.getContractAt("NonExpirable", allPromos[0].promotionAddress);
 
     return {
       subscriptions,
       meedProgramFactory,
-      expirableFactory,
+      nonExpirableFactory,
       meedProgram,
-      expirable,
+      nonExpirable,
       owner,
       user1,
       user2,
@@ -91,14 +91,14 @@ describe("Expirable Promotion Contract", function () {
   }
 
   it("should initialise all factories contract correctly", async () => {
-    const { meedProgramFactory, expirableFactory, expirable, owner } = await loadFixture(deployFixture);
+    const { meedProgramFactory, nonExpirableFactory, nonExpirable, owner } = await loadFixture(deployFixture);
 
-    expect(await meedProgramFactory.factories(1)).to.equal(expirableFactory.address);
-    expect(await expirable.name()).to.equal("Expirable");
-    expect(await expirable.symbol()).to.equal("EXP");
-    expect(await expirable.owner()).to.equal(owner.address);
-    expect(await expirable.admin()).to.equal(owner.address);
-    expect(await expirable.isActive()).to.be.true;
+    expect(await meedProgramFactory.factories(1)).to.equal(nonExpirableFactory.address);
+    expect(await nonExpirable.name()).to.equal("NonExpirable");
+    expect(await nonExpirable.symbol()).to.equal("EXP");
+    expect(await nonExpirable.owner()).to.equal(owner.address);
+    expect(await nonExpirable.admin()).to.equal(owner.address);
+    expect(await nonExpirable.isActive()).to.be.true;
   });
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -106,14 +106,14 @@ describe("Expirable Promotion Contract", function () {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   it("should mint a new NFT", async () => {
-    const { subscriptions, meedProgram, expirable, owner, user1, user2 } = await loadFixture(deployFixture);
+    const { subscriptions, meedProgram, nonExpirable, owner, user1, user2 } = await loadFixture(deployFixture);
 
     const initialTokenId = 0;
     const lvlMin = 0;
 
     // Should revert if not susbcribed
-    await expect(expirable.connect(owner).safeMint(user1.address, lvlMin)).to.be.revertedWithCustomError(
-      expirable,
+    await expect(nonExpirable.connect(owner).safeMint(user1.address, lvlMin)).to.be.revertedWithCustomError(
+      nonExpirable,
       "SubscriberChecks__PleaseSubscribeToProOrEnterpriseFirst"
     );
 
@@ -122,21 +122,21 @@ describe("Expirable Promotion Contract", function () {
 
     // Should revert if user doesn't exist yet
     // (The user should have been added automatically to the Meed program anyway after a purchase)
-    await expect(expirable.connect(owner).safeMint(user1.address, lvlMin)).to.be.revertedWithCustomError(
-      expirable,
-      "Expirable__NonExistantUser"
+    await expect(nonExpirable.connect(owner).safeMint(user1.address, lvlMin)).to.be.revertedWithCustomError(
+      nonExpirable,
+      "NonExpirable__NonExistantUser"
     );
 
     // Add user to the Meed program
     await meedProgram.connect(owner).mint(user1.address);
-    await expirable.connect(owner).safeMint(user1.address, lvlMin);
+    await nonExpirable.connect(owner).safeMint(user1.address, lvlMin);
 
-    const ownerOfToken = await expirable.ownerOf(initialTokenId);
+    const ownerOfToken = await nonExpirable.ownerOf(initialTokenId);
     expect(ownerOfToken).to.equal(user1.address);
   });
 
   it("should mint a batch of NFTs", async () => {
-    const { subscriptions, meedProgram, expirable, owner, user1, user2, user3 } = await loadFixture(deployFixture);
+    const { subscriptions, meedProgram, nonExpirable, owner, user1, user2, user3 } = await loadFixture(deployFixture);
 
     const to = [user1.address, user2.address, user3.address];
     const lvlMin = 1;
@@ -148,13 +148,13 @@ describe("Expirable Promotion Contract", function () {
     await meedProgram.connect(owner).mint(user3.address);
 
     // Try batch minting without plan requirement
-    await expect(expirable.connect(user1).batchMint(to, lvlMin)).to.be.revertedWithCustomError(
-      expirable,
+    await expect(nonExpirable.connect(user1).batchMint(to, lvlMin)).to.be.revertedWithCustomError(
+      nonExpirable,
       "Adminable__NotAuthorized"
     );
 
-    await expect(expirable.connect(owner).batchMint(to, lvlMin)).to.be.revertedWithCustomError(
-      expirable,
+    await expect(nonExpirable.connect(owner).batchMint(to, lvlMin)).to.be.revertedWithCustomError(
+      nonExpirable,
       "SubscriberChecks__PleaseSubscribeToEnterpriseFirst"
     );
 
@@ -162,20 +162,20 @@ describe("Expirable Promotion Contract", function () {
     const tokenId = 1;
     const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(tokenId, plan.enterprise);
     await subscriptions.connect(owner).changeSubscriptionPlan(tokenId, plan.enterprise, { value: toPayMore });
-    await expirable.connect(owner).batchMint(to, lvlMin);
+    await nonExpirable.connect(owner).batchMint(to, lvlMin);
 
-    const ownerOfToken1 = await expirable.ownerOf(0);
+    const ownerOfToken1 = await nonExpirable.ownerOf(0);
     expect(ownerOfToken1).to.equal(user1.address);
 
-    const ownerOfToken2 = await expirable.ownerOf(1);
+    const ownerOfToken2 = await nonExpirable.ownerOf(1);
     expect(ownerOfToken2).to.equal(user2.address);
 
-    const ownerOfToken3 = await expirable.ownerOf(2);
+    const ownerOfToken3 = await nonExpirable.ownerOf(2);
     expect(ownerOfToken3).to.equal(user3.address);
   });
 
   it("should consume a ticket", async () => {
-    const { subscriptions, meedProgram, expirable, owner, user1, user2 } = await loadFixture(deployFixture);
+    const { subscriptions, meedProgram, nonExpirable, owner, user1, user2 } = await loadFixture(deployFixture);
 
     const tokenId_0 = 0;
     const tokenId_1 = 1;
@@ -186,18 +186,18 @@ describe("Expirable Promotion Contract", function () {
     await meedProgram.connect(owner).mint(user1.address);
     await meedProgram.connect(owner).mint(user2.address);
 
-    await expirable.connect(owner).safeMint(user1.address, lvlMin);
-    await expirable.connect(owner).safeMint(user2.address, lvlMin);
+    await nonExpirable.connect(owner).safeMint(user1.address, lvlMin);
+    await nonExpirable.connect(owner).safeMint(user2.address, lvlMin);
 
-    const receipt = await expirable.connect(owner).consumeTiket(user1.address, tokenId_0);
-    await expect(receipt).to.emit(expirable, "TicketConsumed").withArgs(user1.address, tokenId_0);
+    const receipt = await nonExpirable.connect(owner).consumeTiket(user1.address, tokenId_0);
+    await expect(receipt).to.emit(nonExpirable, "TicketConsumed").withArgs(user1.address, tokenId_0);
 
-    const receipt2 = await expirable.connect(owner).consumeTiket(user2.address, tokenId_1);
-    await expect(receipt2).to.emit(expirable, "TicketConsumed").withArgs(user2.address, tokenId_1);
+    const receipt2 = await nonExpirable.connect(owner).consumeTiket(user2.address, tokenId_1);
+    await expect(receipt2).to.emit(nonExpirable, "TicketConsumed").withArgs(user2.address, tokenId_1);
   });
 
   it("should return tickets per address", async () => {
-    const { subscriptions, meedProgram, expirable, owner, user1 } = await loadFixture(deployFixture);
+    const { subscriptions, meedProgram, nonExpirable, owner, user1 } = await loadFixture(deployFixture);
 
     const tokenId_0 = 0;
     const lvlMin = 0;
@@ -206,24 +206,24 @@ describe("Expirable Promotion Contract", function () {
     await subscriptions.connect(owner).subscribe(plan.enterprise, true, { value: pricePerPlan.enterprise.mul(10) });
     await meedProgram.connect(owner).mint(user1.address);
 
-    await expirable.connect(owner).safeMint(user1.address, lvlMin);
+    await nonExpirable.connect(owner).safeMint(user1.address, lvlMin);
 
     // Check the URI
-    expect(await expirable.tokenURI(tokenId_0)).to.equal("ipfs://uri");
+    expect(await nonExpirable.tokenURI(tokenId_0)).to.equal("ipfs://uri");
 
     // Get tickets per address, if any
-    const tickets = await expirable.getTicketsPerAddress(user1.address);
+    const tickets = await nonExpirable.getTicketsPerAddress(user1.address);
     expect(tickets.length).to.equal(1);
     expect(tickets[0].used).to.equal(false);
     expect(tickets[0].owner).to.equal(user1.address);
 
-    const ticket = await expirable.getTicket(tokenId_0);
+    const ticket = await nonExpirable.getTicket(tokenId_0);
     expect(ticket.used).to.equal(false);
     expect(ticket.owner).to.equal(user1.address);
   });
 
   it("should deactivate the current promotion if authorized", async () => {
-    const { subscriptions, meedProgram, expirable, owner, user1, user2 } = await loadFixture(deployFixture);
+    const { subscriptions, meedProgram, nonExpirable, owner, user1, user2 } = await loadFixture(deployFixture);
 
     const tokenId_0 = 0;
     const lvlMin = 0;
@@ -233,12 +233,12 @@ describe("Expirable Promotion Contract", function () {
     await meedProgram.connect(owner).mint(user1.address);
 
     // Should revert if not susbcribed
-    await expect(expirable.connect(user1).deactivate()).to.be.revertedWithCustomError(
-      expirable,
+    await expect(nonExpirable.connect(user1).deactivate()).to.be.revertedWithCustomError(
+      nonExpirable,
       "Activation__NotAuthorized"
     );
 
-    const receipt = await expirable.connect(owner).deactivate();
-    await expect(receipt).to.emit(expirable, "Deactivated").withArgs(owner.address);
+    const receipt = await nonExpirable.connect(owner).deactivate();
+    await expect(receipt).to.emit(nonExpirable, "Deactivated").withArgs(owner.address);
   });
 });

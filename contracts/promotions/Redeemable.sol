@@ -12,7 +12,7 @@ import {MeedProgram} from "../meedProgram/MeedProgram.sol";
 /**
  * @title Redeemable
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Rewards platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
  * @dev Reedemable are NFTs that can be redeemed for a product or a discount;
  *  - The redeemanle type is defined by its id (0-5)
  *  - productIdOrCurrency indicate either the ID of the redeemable product or the currency in case of reduction voucher;
@@ -259,7 +259,7 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
                 this.deactivate();
                 meedProgram.switchStatus(address(this), false);
             }
-            revert Expirable__EventExpired();
+            revert NonExpirable__EventExpired();
         }
     }
 }

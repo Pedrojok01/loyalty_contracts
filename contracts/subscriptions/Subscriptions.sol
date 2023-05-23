@@ -11,7 +11,7 @@ import {Errors} from "../utils/Errors.sol";
 /**
  * @title Subscription
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Rewards platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
  * @dev Provides safe getter and setter for promotion status and type.
  *
  * Based on EIP: ERC5643

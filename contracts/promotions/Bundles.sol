@@ -20,7 +20,7 @@ import {MeedProgram} from "../meedProgram/MeedProgram.sol";
 /**
  * @title EventTicket
  * @author Pedrojok01
- * @notice Part of the Meed Rewards platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
  * @dev Bundles assets into an NFT:
  *  - Can either be airdrop to a specified membership level, or
  *  - Minted upon condition.
@@ -283,7 +283,7 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, 
                 this.deactivate();
                 meedProgram.switchStatus(address(this), false);
             }
-            revert Expirable__EventExpired();
+            revert Bundles__EventExpired();
         }
     }
 }

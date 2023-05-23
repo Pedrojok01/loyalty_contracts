@@ -1,12 +1,12 @@
 import hre, { ethers } from "hardhat";
 import fs from "fs";
-import { expirableFactoryAddress, redeemableFactoryAddress } from "./constants";
+import { nonExpirableFactoryAddress, redeemableFactoryAddress } from "./constants";
 
 async function main() {
   const MeedProgramFactory = await ethers.getContractFactory("MeedProgramFactory");
   const meedProgramFactory = await MeedProgramFactory.deploy([
     redeemableFactoryAddress,
-    expirableFactoryAddress,
+    nonExpirableFactoryAddress,
     redeemableFactoryAddress,
   ]);
   await meedProgramFactory.deployed();

@@ -6,7 +6,7 @@ import {Activation} from "../utils/Activation.sol";
 /**
  * @title TimeLimited
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Rewards platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
  * @dev Add a time limit mechanism to a contract, can be used with Activation;
  */
 
@@ -35,7 +35,7 @@ contract TimeLimited is Activation {
     }
 
     function updateExpirationDate(uint256 newExpirationDate) external onlyOwnerOrAdmin onlyActive {
-        if (newExpirationDate < block.timestamp) revert Expirable__InvalidDate();
+        if (newExpirationDate < block.timestamp) revert NonExpirable__InvalidDate();
         expirationDate = uint128(newExpirationDate);
         emit ExpirationDateUpdated(_msgSender(), newExpirationDate);
     }

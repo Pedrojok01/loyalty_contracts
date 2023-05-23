@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import {
   BundlesFactory,
-  ExpirableFactory,
+  NonExpirableFactory,
   MeedProgramFactory,
   RedeemableFactory,
   Subscriptions,
@@ -40,9 +40,9 @@ describe("Promotions Factories Contract", function () {
     const redeemableFactory: RedeemableFactory = await RedeemableFactory.deploy(subscriptions.address);
     await redeemableFactory.deployed();
 
-    const ExpirableFactory = await ethers.getContractFactory("ExpirableFactory");
-    const expirableFactory: ExpirableFactory = await ExpirableFactory.deploy(subscriptions.address);
-    await expirableFactory.deployed();
+    const NonExpirableFactory = await ethers.getContractFactory("NonExpirableFactory");
+    const nonExpirableFactory: NonExpirableFactory = await NonExpirableFactory.deploy(subscriptions.address);
+    await nonExpirableFactory.deployed();
 
     const BundlesFactory = await ethers.getContractFactory("BundlesFactory");
     const bundlesFactory: BundlesFactory = await BundlesFactory.deploy(subscriptions.address);
@@ -51,7 +51,7 @@ describe("Promotions Factories Contract", function () {
     const MeedProgramFactory = await ethers.getContractFactory("MeedProgramFactory");
     const meedProgramFactory: MeedProgramFactory = await MeedProgramFactory.deploy([
       redeemableFactory.address,
-      expirableFactory.address,
+      nonExpirableFactory.address,
       bundlesFactory.address,
     ]);
     await meedProgramFactory.deployed();
@@ -59,7 +59,7 @@ describe("Promotions Factories Contract", function () {
     return {
       meedProgramFactory,
       redeemableFactory,
-      expirableFactory,
+      nonExpirableFactory,
       bundlesFactory,
       owner,
       user1,
@@ -70,12 +70,12 @@ describe("Promotions Factories Contract", function () {
   }
 
   it("should initialise all factories contract correctly", async () => {
-    const { meedProgramFactory, redeemableFactory, expirableFactory, bundlesFactory } = await loadFixture(
+    const { meedProgramFactory, redeemableFactory, nonExpirableFactory, bundlesFactory } = await loadFixture(
       deployFixture
     );
 
     expect(await meedProgramFactory.factories(0)).to.equal(redeemableFactory.address);
-    expect(await meedProgramFactory.factories(1)).to.equal(expirableFactory.address);
+    expect(await meedProgramFactory.factories(1)).to.equal(nonExpirableFactory.address);
     expect(await meedProgramFactory.factories(2)).to.equal(bundlesFactory.address);
   });
 
@@ -227,11 +227,11 @@ describe("Promotions Factories Contract", function () {
   });
 
   /*///////////////////////////////////////////////////////////////////////////////
-                            CREATE NEW EXPIRABLE PROMO
+                            CREATE NEWNonExpirable PROMO
     ///////////////////////////////////////////////////////////////////////////////*/
 
-  it("should be possible to create new expirable promo via the factory", async () => {
-    const { meedProgramFactory, expirableFactory, owner } = await loadFixture(deployFixture);
+  it("should be possible to create newNonExpirable promo via the factory", async () => {
+    const { meedProgramFactory, nonExpirableFactory, owner } = await loadFixture(deployFixture);
 
     // 1. Create a new Meed Program
     await meedProgramFactory.createNewMeedProgram(
@@ -249,7 +249,7 @@ describe("Promotions Factories Contract", function () {
     // 2. Create a new promo via the redeemable factory
     const startDate = Math.floor(Date.now() / 1000).toString();
     const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
-    const receipt = await expirableFactory.createNewPromotion(
+    const receipt = await nonExpirableFactory.createNewPromotion(
       "SuperPromo",
       "SUP",
       "ipfs://uri",
@@ -259,7 +259,7 @@ describe("Promotions Factories Contract", function () {
       promoType.eventTickets
     );
     await expect(receipt)
-      .to.emit(expirableFactory, "NewPromotionCreated")
+      .to.emit(nonExpirableFactory, "NewPromotionCreated")
       .withArgs(owner.address, anyValue, "SuperPromo");
 
     const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);

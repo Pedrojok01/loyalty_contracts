@@ -12,7 +12,7 @@ import {Redeemable} from "../promotions/Redeemable.sol";
 /**
  * @title RedeemableFactory
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Rewards platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
  * @dev Contracts factory do deploy the MeedProgram Redeemable ERC721;
  *  - Brands can launch their own redeemable campaign.
  *  - Deployer will receive NFT id 0, proving its ownership.

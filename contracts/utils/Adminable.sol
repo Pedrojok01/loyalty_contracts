@@ -9,7 +9,7 @@ import {Errors} from "../utils/Errors.sol";
 /**
  * @title Adminable;
  * @author @Pedrojok01
- * @notice Part of the Meed Rewards platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
  * @dev Contract module which provides a basic access control mechanism, where
  * there is an account (an admin) that can be granted exclusive access to
  * specific functions.

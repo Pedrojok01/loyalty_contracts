@@ -4,7 +4,7 @@ pragma solidity 0.8.18;
 /**
  * @title PromoLib
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Rewards platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
  * @dev Provides safe getter and setter for promotion status and type.
  *
  * Include with `using PromoLib for PromoLib.Promotion;`
@@ -15,8 +15,8 @@ library PromoLib {
         DiscountVouchers, // Redeemable
         FreeProducts, // Redeemable
         Collectibles, // Redeemable
-        EventTickets, // Expirable
-        VIPpass, // Expirable
+        EventTickets, //NonExpirable
+        VIPpass, //NonExpirable
         Bundles // Specials
     }
 

@@ -2,9 +2,9 @@
 pragma solidity 0.8.18;
 
 /**
- * @title Interface for Expirable.sol contract;
+ * @title Interface forNonExpirable.sol contract;
  * @author @Pedrojok01
- * @notice Part of the Meed Rewards platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
  */
 
 interface IExpirable {

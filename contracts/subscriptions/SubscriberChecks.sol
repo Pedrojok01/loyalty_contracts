@@ -7,7 +7,7 @@ import {Errors} from "../utils/Errors.sol";
 /**
  * @title SubscriberChecks
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Rewards platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform from SuperUltra
  * @dev Provides modifiers to valid the plan of a subscriber.
  */
 

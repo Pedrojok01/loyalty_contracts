@@ -4,17 +4,17 @@ import fs from "fs";
 import { subscriptionAddress } from "./constants";
 
 async function main() {
-  const ExpirableFactory = await ethers.getContractFactory("ExpirableFactory");
-  const expirableFactory = await ExpirableFactory.deploy(subscriptionAddress);
-  await expirableFactory.deployed();
+  const NonExpirableFactory = await ethers.getContractFactory("NonExpirableFactory");
+  const nonExpirableFactory = await NonExpirableFactory.deploy(subscriptionAddress);
+  await nonExpirableFactory.deployed();
 
   console.log("\n");
-  console.log("ExpirableFactory deployed to: ", expirableFactory.address);
+  console.log("ExpirableFactory deployed to: ", nonExpirableFactory.address);
   console.log("\n");
 
   // Get Staking Contract ABI
   const abiFile = JSON.parse(
-    fs.readFileSync("./artifacts/contracts/promotions/ExpirableFactory.sol/ExpirableFactory.json", "utf8")
+    fs.readFileSync("./artifacts/contracts/promotions/NonExpirableFactory.sol/NonExpirableFactory.json", "utf8")
   );
   const abi = JSON.stringify(abiFile.abi);
 
@@ -25,12 +25,12 @@ async function main() {
 
   /** WAITING:
    ************/
-  await expirableFactory.deployTransaction.wait(5);
+  await nonExpirableFactory.deployTransaction.wait(5);
 
   /** VERIFICATION:
    *****************/
   // await hre.run("verify:verify", {
-  //   address: expirableFactory.address,
+  //   address: nonExpirableFactory.address,
   //   constructorArguments: [subscriptionAddress],
   // });
 }
