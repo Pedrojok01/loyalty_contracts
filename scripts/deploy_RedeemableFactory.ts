@@ -4,7 +4,15 @@ import fs from "fs";
 import { subscriptionAddress } from "./constants";
 
 async function main() {
-  const RedeemableFactory = await ethers.getContractFactory("RedeemableFactory");
+  const RedeemCodeLib = await ethers.getContractFactory("RedeemCodeLib");
+  const redeemCodeLib = await RedeemCodeLib.deploy();
+  await redeemCodeLib.deployed();
+
+  const RedeemableFactory = await ethers.getContractFactory("RedeemableFactory", {
+    libraries: {
+      RedeemCodeLib: redeemCodeLib.address,
+    },
+  });
   const redeemableFactory = await RedeemableFactory.deploy(subscriptionAddress);
   await redeemableFactory.deployed();
 
@@ -29,6 +37,10 @@ async function main() {
 
   /** VERIFICATION:
    *****************/
+  // await hre.run("verify:verify", {
+  //   address: redeemCodeLib.address,
+  //   constructorArguments: [],
+  // });
   // await hre.run("verify:verify", {
   //   address: redeemableFactory.address,
   //   constructorArguments: [subscriptionAddress],

@@ -47,14 +47,14 @@ import {RedeemCodeLib} from "../library/RedeemCodeLib.sol";
  */
 
 contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
-    using RedeemCodeLibrary for RedeemCodeLibrary.RedeemCodeStorage;
+    using RedeemCodeLib for RedeemCodeLib.RedeemCodeStorage;
 
     /*///////////////////////////////////////////////////////////////////////////////
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
     MeedProgram private immutable meedProgram;
-    RedeemCodeLibrary.RedeemCodeStorage internal redeemCodeStorage;
+    RedeemCodeLib.RedeemCodeStorage internal redeemCodeStorage;
 
     enum RedeemableType {
         ProductId, // 0
@@ -164,7 +164,7 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
         (address contractAddress, uint256 tokenId) = redeemCodeStorage.getDataFromRedeemCode(code);
         if (contractAddress != address(this)) revert Redeemable__WrongPromotionContract();
 
-       redeem(from, tokenId, 1)
+        this.redeem(from, tokenId, 1);
     }
 
     /*///////////////////////////////////////////////////////////////////////////////

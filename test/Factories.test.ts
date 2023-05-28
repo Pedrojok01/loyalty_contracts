@@ -37,7 +37,15 @@ describe("Promotions Factories Contract", function () {
     );
     await subscriptions.deployed();
 
-    const RedeemableFactory = await ethers.getContractFactory("RedeemableFactory");
+    const RedeemCodeLib = await ethers.getContractFactory("RedeemCodeLib");
+    const redeemCodeLib = await RedeemCodeLib.deploy();
+    await redeemCodeLib.deployed();
+
+    const RedeemableFactory = await ethers.getContractFactory("RedeemableFactory", {
+      libraries: {
+        RedeemCodeLib: redeemCodeLib.address,
+      },
+    });
     const redeemableFactory: RedeemableFactory = await RedeemableFactory.deploy(subscriptions.address);
     await redeemableFactory.deployed();
 
@@ -255,7 +263,7 @@ describe("Promotions Factories Contract", function () {
       "ipfs://uri",
       meedProgramAddress,
       unkownData,
-      promoType.eventTickets
+      promoType.vipPass
     );
     await expect(receipt)
       .to.emit(nonExpirableFactory, "NewPromotionCreated")
@@ -298,9 +306,9 @@ describe("Promotions Factories Contract", function () {
         "SuperPromo",
         "SUP",
         "ipfs://uri",
+        meedProgramAddress,
         startDate,
         expirationDate,
-        meedProgramAddress,
         10_000,
         promoType.freeProducts
       )
@@ -310,9 +318,9 @@ describe("Promotions Factories Contract", function () {
       "SuperPromo",
       "SUP",
       "ipfs://uri",
+      meedProgramAddress,
       startDate,
       expirationDate,
-      meedProgramAddress,
       10_000,
       promoType.packs
     );

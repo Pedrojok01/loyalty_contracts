@@ -29,7 +29,15 @@ describe("Redeemable Promotion Contract", function () {
     );
     await subscriptions.deployed();
 
-    const RedeemableFactory = await ethers.getContractFactory("RedeemableFactory");
+    const RedeemCodeLib = await ethers.getContractFactory("RedeemCodeLib");
+    const redeemCodeLib = await RedeemCodeLib.deploy();
+    await redeemCodeLib.deployed();
+
+    const RedeemableFactory = await ethers.getContractFactory("RedeemableFactory", {
+      libraries: {
+        RedeemCodeLib: redeemCodeLib.address,
+      },
+    });
     const redeemableFactory: RedeemableFactory = await RedeemableFactory.deploy(subscriptions.address);
     await redeemableFactory.deployed();
 

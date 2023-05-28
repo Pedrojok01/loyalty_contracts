@@ -63,7 +63,7 @@ describe("Expirable Promotion Contract", function () {
       "ipfs://uri",
       meedProgramAddress,
       unkownData,
-      promoType.eventTickets
+      promoType.badges
     );
 
     const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
