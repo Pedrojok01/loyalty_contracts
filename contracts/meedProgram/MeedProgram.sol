@@ -76,9 +76,9 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
      * @param _symbol Symbol of the new MeedProgram (user input).
      * @param _uri URI of the new MeedProgram (user input).
      * @param _tierTracker  Determine how the tier structure is calculated:
-     *  - true = based on buyVolume;
-     *  - false = based on amountVolume;
-     * @param amounts  Amounts of either buyVolume or amountVolume needed to climb each tier.
+     *  - true = based on purchase_times;
+     *  - false = based on total_amount;
+     * @param amounts  Amounts of either purchase_times or total_amount needed to climb each tier.
      */
     constructor(
         string memory _name,
@@ -272,8 +272,13 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
      * @dev Allows to add a promotion to the list of promotions (both array & mapping)
      * @param promotion The address of the loyalty program contract
      */
-    function addPromotion(address promotion, PromoLib.PromotionsType _type) external onlyFactory {
-        PromoLib._addPromotion(promotion, _type, promoLib);
+    function addPromotion(
+        address promotion,
+        PromoLib.PromotionsType _type,
+        uint256 _startDate,
+        uint256 _endDate
+    ) external onlyFactory {
+        PromoLib._addPromotion(promotion, _type, _startDate, _endDate, promoLib);
     }
 
     /*///////////////////////////////////////////////////////////////////////////////

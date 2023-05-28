@@ -13,8 +13,8 @@ import {Bundles} from "../promotions/Bundles.sol";
  * @title BundlesFactory
  * @author Pierre Estrabaud (@Pedrojok01)
  * @notice Part of the Meed Loyalty Platform from SuperUltra
- * @dev Contracts factory do deploy the MeedProgram Soulbound ERC721;
- *  - Deployer can launch its own Membership program.
+ * @dev Contracts factory to deploy a Bundles type promotion (ERC721);
+ *  - Allows brands to deploy a Bundles campaign (Mystery Packs).
  *  - Deployer will receive NFT id 0, proving its ownership.
  *  - Stores all brand details into the Brand struct (allows filters)
  */
@@ -33,33 +33,36 @@ contract BundlesFactory is Context, Errors {
     ///////////////////////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Call this function to create a new MeedProgram contract.
+     * @dev Call this function to create a new Bundles promotion contract.
      * @param name  Name of the new MeedProgram (user input).
      * @param symbol  Symbol of the new MeedProgram (user input).
-     * @param uri  URI of the new MeedProgram (user input).
-     * @param data Data of the new MeedProgram (user input) - Max supply (0 = unlimited).
+     * @param uri  URI of the promotions(user input).
      * @param meedProgram  MeedProgram address (user input).
+     * @param startDate Date which mark the start of the promo;
+     * @param endDate Date which mark the end of the promo;
+     * @param data Data of the new MeedProgram (user input) - Max supply (0 = unlimited).
      * @param _type  Type of products sold (user input).
+     * - 7 = Bundles
      * @return newPromotion Instance of the newly created promotion.
      */
     function createNewPromotion(
         string memory name,
         string memory symbol,
         string memory uri,
-        uint256 data2, //start Date
-        uint256 expirationDate,
         address meedProgram,
+        uint256 startDate,
+        uint256 endDate,
         uint256 data,
         PromoLib.PromotionsType _type
     ) external returns (address newPromotion) {
-        if (_type != PromoLib.PromotionsType.Bundles) revert BundlesFactory_TypeNotSupported();
+        if (_type != PromoLib.PromotionsType.Packs) revert BundlesFactory_TypeNotSupported();
 
         newPromotion = address(
-            new Bundles(name, symbol, uri, data2, expirationDate, meedProgram, data, _msgSender(), CONTROL_ADDRESS)
+            new Bundles(name, symbol, uri, startDate, endDate, meedProgram, data, _msgSender(), CONTROL_ADDRESS)
         );
 
         IMeedProgram program = IMeedProgram(meedProgram);
-        program.addPromotion(newPromotion, _type);
+        program.addPromotion(newPromotion, _type, uint128(startDate), uint128(endDate));
 
         emit NewPromotionCreated(_msgSender(), newPromotion, name);
         return newPromotion;

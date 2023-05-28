@@ -8,6 +8,7 @@ import {IRedeemable} from "../interfaces/IRedeemable.sol";
 import {TimeLimited} from "../utils/TimeLimited.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 import {MeedProgram} from "../meedProgram/MeedProgram.sol";
+import {RedeemCodeLib} from "../library/RedeemCodeLib.sol";
 
 /**
  * @title Redeemable
@@ -46,11 +47,14 @@ import {MeedProgram} from "../meedProgram/MeedProgram.sol";
  */
 
 contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
+    using RedeemCodeLibrary for RedeemCodeLibrary.RedeemCodeStorage;
+
     /*///////////////////////////////////////////////////////////////////////////////
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
     MeedProgram private immutable meedProgram;
+    RedeemCodeLibrary.RedeemCodeStorage internal redeemCodeStorage;
 
     enum RedeemableType {
         ProductId, // 0
@@ -59,26 +63,30 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
     }
 
     struct RedeemableNFT {
-        RedeemableType redeemableType;
-        uint8 id;
-        uint112 value;
-        uint120 circulatingSupply;
-        bool exist;
+        RedeemableType redeemableType; // 1 byte
+        uint8 id; // 1 byte
+        uint112 value; // 14 bytes
+        uint120 circulatingSupply; // 15 bytes
+        bool exist; // 1 byte
+        string redeemCode; // 32 bytes
         // uint8: lvlRequirement
         // bytes32 productIdOrCurrency;
     }
 
-    RedeemableNFT[] private redeemableNFTs; // Up to 5 differents redeemable NFTs (contract)
+    RedeemableNFT[] private redeemableNFTs;
+
+    // Mapping of redeem codes to NFTs
+    // mapping(string => RedeemableNFT) public redeemCodes;
 
     constructor(
         string memory _uri,
         address _owner,
         uint256 _startDate,
-        uint256 _expirationDate,
+        uint256 _endDate,
         address _meedProgram,
         address _contractAddress
-    ) ERC1155(_uri) TimeLimited(_startDate, _expirationDate, address(this)) SubscriberChecks(_contractAddress) {
-        require(_expirationDate == 0 || _expirationDate > block.timestamp, "Redeemable: invalid date");
+    ) ERC1155(_uri) TimeLimited(_startDate, _endDate, address(this)) SubscriberChecks(_contractAddress) {
+        require(_endDate == 0 || _endDate > block.timestamp, "Redeemable: invalid date");
         _setURI(_uri);
         meedProgram = MeedProgram(_meedProgram);
         transferOwnership(_owner);
@@ -112,6 +120,8 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
         if (currentLevel < uint8(lvlMin)) revert Redeemable__InsufficientLevel();
 
         redeemableNFTs[id].circulatingSupply++;
+        string memory redeemCode = redeemCodeStorage.generateRedeemCode(address(this), id);
+        redeemableNFTs[id].redeemCode = redeemCode;
         _mint(to, id, 1, "");
     }
 
@@ -148,6 +158,13 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
         meedProgram.updateMember(from, 1, amount);
 
         emit Redeemed(from, tokenId);
+    }
+
+    function redeemFromCode(address from, string memory code) external {
+        (address contractAddress, uint256 tokenId) = redeemCodeStorage.getDataFromRedeemCode(code);
+        if (contractAddress != address(this)) revert Redeemable__WrongPromotionContract();
+
+       redeem(from, tokenId, 1)
     }
 
     /*///////////////////////////////////////////////////////////////////////////////

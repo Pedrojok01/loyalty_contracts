@@ -11,16 +11,23 @@ export const plan = {
 export const promoType = {
   discountVouchers: 0,
   freeProducts: 1,
-  collectibles: 2,
-  eventTickets: 3,
-  vipPass: 4,
-  bundles: 5,
+  vipPass: 2,
+  badges: 3,
+  stamps: 4,
+  paninis: 5,
+  eventTickets: 6,
+  packs: 7,
 };
 
 export const pricePerPlan = {
   basic: utils.parseEther("0.05"),
   pro: utils.parseEther("0.1"),
   enterprise: utils.parseEther("0.5"),
+};
+
+export const TIER_TRACKER = {
+  purchase_times: true,
+  total_amount: false,
 };
 
 export const duration = {

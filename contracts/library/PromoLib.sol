@@ -14,15 +14,18 @@ library PromoLib {
     enum PromotionsType {
         DiscountVouchers, // Redeemable
         FreeProducts, // Redeemable
-        Collectibles, // Redeemable
-        EventTickets, //NonExpirable
         VIPpass, //NonExpirable
-        Bundles // Specials
+        Badges, //NonExpirable
+        Stamps, // Collectible
+        Paninis, // Collectible
+        EventTickets, // Ticketable
+        Packs // Bundle
     }
 
     struct Promotion {
+        uint40 startDate;
+        uint40 endDate;
         address promotionAddress;
-        uint32 promotionEmissionDate;
         bool active;
         PromotionsType promotionsType;
     }
@@ -42,10 +45,17 @@ library PromoLib {
      * @param _promotion  The address of the promotion
      * @param _type  The type of the promotion
      */
-    function _addPromotion(address _promotion, PromoLib.PromotionsType _type, Data storage self) internal {
+    function _addPromotion(
+        address _promotion,
+        PromoLib.PromotionsType _type,
+        uint256 _startDate,
+        uint256 _endDate,
+        Data storage self
+    ) internal {
         Promotion memory newPromotion = PromoLib.Promotion({
+            startDate: uint40(_startDate),
+            endDate: uint40(_endDate),
             promotionAddress: _promotion,
-            promotionEmissionDate: uint32(block.timestamp),
             active: true,
             promotionsType: PromoLib.PromotionsType(_type)
         });
@@ -77,10 +87,12 @@ library PromoLib {
      * @dev Returns promotionsType (uint)
      * DiscountVouchers  - 0
      * FreeProducts - 1
-     * Collectibles - 2
-     * EventTickets  - 3
-     * VIPpass - 4
-     * Bundles - 5
+     * VIPpass - 2
+     * Badges  - 3
+     * Stamps - 4
+     * Paninis - 5
+     * EventTickets - 6
+     * Packs - 7
      */
     function _getPromotionType(address _promotion, Data storage self) internal view returns (PromotionsType) {
         return self.promotion[_promotion].promotionsType;

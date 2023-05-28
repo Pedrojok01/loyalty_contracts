@@ -28,6 +28,9 @@ contract Errors {
     //NonExpirableFactory
     error NonExpirableFactory_TypeNotSupported();
 
+    // CollectiblesFactory
+    error CollectiblesFactory_TypeNotSupported();
+
     // BundlesFactory
     error BundlesFactory_TypeNotSupported();
 
@@ -48,6 +51,7 @@ contract Errors {
     error Redeemable__TokenNotOwned();
     error Redeemable__WrongType();
     error Redeemable__WrongId();
+    error Redeemable__WrongPromotionContract();
     error Redeemable__WrongLevel();
     error Redeemable__EventExpired();
     error Redeemable__ArraysDontMatch();

@@ -353,7 +353,9 @@ describe("Redeemable Promotion Contract", function () {
     const { redeemable, owner, user1, expirationDate } = await loadFixture(deployFixture);
 
     // Get & check expiration date:
-    expect(await redeemable.getExpirationDate()).to.equal(expirationDate);
+    const [start, end] = await redeemable.getValidityDate();
+    console.log("validity", start, end);
+    expect(end).to.equal(expirationDate);
 
     // Update expiration date (revert if unauthorized)):
     const newExpirationDate = (Math.floor(Date.now() / 1000) + duration.year * 2).toString();

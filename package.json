@@ -1,8 +1,8 @@
 {
   "name": "meed-rewards",
-  "description": "Core smart contracts of SuperUltra | Meed Rewards V1",
+  "description": "Core smart contracts for Meed Loyalty V1",
   "license": "BUSL-1.1",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "homepage": "https://www.superultra.io/",
   "author": "Pedrojok01",
   "keywords": [],

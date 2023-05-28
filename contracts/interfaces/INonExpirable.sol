@@ -2,12 +2,12 @@
 pragma solidity 0.8.18;
 
 /**
- * @title Interface forNonExpirable.sol contract;
+ * @title Interface for NonExpirable.sol contract;
  * @author @Pedrojok01
  * @notice Part of the Meed Loyalty Platform from SuperUltra
  */
 
-interface IExpirable {
+interface INonExpirable {
     event TicketConsumed(address indexed from, uint256 ticketId);
 
     /**

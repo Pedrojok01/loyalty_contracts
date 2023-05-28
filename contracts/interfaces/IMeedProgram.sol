@@ -44,5 +44,10 @@ interface IMeedProgram {
      */
     function setBaseURI(string calldata baseURI_) external;
 
-    function addPromotion(address contractAddress, PromoLib.PromotionsType _type) external;
+    function addPromotion(
+        address contractAddress,
+        PromoLib.PromotionsType _type,
+        uint256 _startDate,
+        uint256 _endDate
+    ) external;
 }

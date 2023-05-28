@@ -20,6 +20,7 @@ import {
   subscriptions_symbol,
   subscriptions_uris,
   promoType,
+  TIER_TRACKER,
 } from "./constant";
 import { utils } from "ethers";
 import { bytes16ToString } from "./helpers/utils";
@@ -90,7 +91,7 @@ describe("Promotions Factories Contract", function () {
       meedProgram_name,
       meedProgram_symbol,
       meedProgram_uri,
-      false,
+      TIER_TRACKER.total_amount,
       meedProgram_amounts,
       utils.formatBytes32String("food"),
       utils.formatBytes32String("HK")
@@ -104,7 +105,7 @@ describe("Promotions Factories Contract", function () {
       "new_name_II",
       meedProgram_symbol,
       meedProgram_uri,
-      true,
+      TIER_TRACKER.purchase_times,
       meedProgram_amounts,
       utils.formatBytes32String("shoes"),
       utils.formatBytes32String("BKK")
@@ -136,7 +137,7 @@ describe("Promotions Factories Contract", function () {
       meedProgram_name,
       meedProgram_symbol,
       meedProgram_uri,
-      false,
+      TIER_TRACKER.total_amount,
       meedProgram_amounts,
       utils.formatBytes32String("food"),
       utils.formatBytes32String("HK")
@@ -147,7 +148,7 @@ describe("Promotions Factories Contract", function () {
       "new_name_II",
       meedProgram_symbol,
       meedProgram_uri,
-      false,
+      TIER_TRACKER.total_amount,
       meedProgram_amounts,
       utils.formatBytes32String("food"),
       utils.formatBytes32String("HK")
@@ -159,7 +160,7 @@ describe("Promotions Factories Contract", function () {
         "new_name_II",
         meedProgram_symbol,
         meedProgram_uri,
-        false,
+        TIER_TRACKER.total_amount,
         meedProgram_amounts,
         utils.formatBytes32String("food"),
         utils.formatBytes32String("HK")
@@ -174,7 +175,7 @@ describe("Promotions Factories Contract", function () {
       meedProgram_name,
       meedProgram_symbol,
       meedProgram_uri,
-      false,
+      TIER_TRACKER.total_amount,
       meedProgram_amounts,
       utils.formatBytes32String("food"),
       utils.formatBytes32String("HK")
@@ -199,7 +200,7 @@ describe("Promotions Factories Contract", function () {
       meedProgram_name,
       meedProgram_symbol,
       meedProgram_uri,
-      false,
+      TIER_TRACKER.total_amount,
       meedProgram_amounts,
       utils.formatBytes32String("food"),
       utils.formatBytes32String("HK")
@@ -238,7 +239,7 @@ describe("Promotions Factories Contract", function () {
       meedProgram_name,
       meedProgram_symbol,
       meedProgram_uri,
-      false,
+      TIER_TRACKER.total_amount,
       meedProgram_amounts,
       utils.formatBytes32String("food"),
       utils.formatBytes32String("HK")
@@ -247,15 +248,13 @@ describe("Promotions Factories Contract", function () {
     const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
 
     // 2. Create a new promo via the redeemable factory
-    const startDate = Math.floor(Date.now() / 1000).toString();
-    const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
+    const unkownData = 0;
     const receipt = await nonExpirableFactory.createNewPromotion(
       "SuperPromo",
       "SUP",
       "ipfs://uri",
-      startDate,
-      expirationDate,
       meedProgramAddress,
+      unkownData,
       promoType.eventTickets
     );
     await expect(receipt)
@@ -281,7 +280,7 @@ describe("Promotions Factories Contract", function () {
       meedProgram_name,
       meedProgram_symbol,
       meedProgram_uri,
-      false,
+      TIER_TRACKER.total_amount,
       meedProgram_amounts,
       utils.formatBytes32String("food"),
       utils.formatBytes32String("HK")
@@ -315,7 +314,7 @@ describe("Promotions Factories Contract", function () {
       expirationDate,
       meedProgramAddress,
       10_000,
-      promoType.bundles
+      promoType.packs
     );
     await expect(receipt)
       .to.emit(bundlesFactory, "NewPromotionCreated")

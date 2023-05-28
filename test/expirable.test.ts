@@ -56,15 +56,13 @@ describe("Expirable Promotion Contract", function () {
     const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
 
     // 2. Create a new promo via the redeemable factory
-    const startDate = Math.floor(Date.now() / 1000).toString();
-    const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
+    const unkownData = 0;
     await nonExpirableFactory.createNewPromotion(
       "NonExpirable",
       "EXP",
       "ipfs://uri",
-      startDate,
-      expirationDate,
       meedProgramAddress,
+      unkownData,
       promoType.eventTickets
     );
 

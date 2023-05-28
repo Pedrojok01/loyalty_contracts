@@ -7,7 +7,7 @@ import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/
 
 import {Counters} from "../utils/Counters.sol";
 import {TimeLimited} from "../utils/TimeLimited.sol";
-import {IExpirable} from "../interfaces/IExpirable.sol";
+import {INonExpirable} from "../interfaces/INonExpirable.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 import {MeedProgram} from "../meedProgram/MeedProgram.sol";
 
@@ -32,7 +32,7 @@ import {MeedProgram} from "../meedProgram/MeedProgram.sol";
  * 810bdd65  =>  _onlyOngoing()*
  */
 
-contract NonExpirable is ERC721, IExpirable, TimeLimited, SubscriberChecks {
+contract NonExpirable is ERC721, INonExpirable, TimeLimited, SubscriberChecks {
     using Counters for Counters.Counter;
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -56,13 +56,12 @@ contract NonExpirable is ERC721, IExpirable, TimeLimited, SubscriberChecks {
         string memory _symbol,
         string memory _uri,
         address _owner,
-        uint256 _startDate,
-        uint256 _expirationDate,
+        uint256 _data,
         address _meedProgram,
         address _contractAddress
     )
         ERC721(_name, _symbol)
-        TimeLimited(_startDate, _expirationDate, address(this))
+        TimeLimited(block.timestamp, 0, address(this)) // Start now, and never expire
         SubscriberChecks(_contractAddress)
     {
         _baseURIextended = _uri;
