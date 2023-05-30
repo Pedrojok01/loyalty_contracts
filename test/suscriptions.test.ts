@@ -9,13 +9,14 @@ import { compareTimestamp, formatNumber } from "./helpers/utils";
 
 describe("Susbcriptions Contract", function () {
   async function deployFixture() {
-    const [owner, user1, user2, user3] = await ethers.getSigners();
+    const [owner, user1, user2, user3, admin] = await ethers.getSigners();
 
     const Subscriptions = await ethers.getContractFactory("Subscriptions");
     const subscriptions: Subscriptions = await Subscriptions.deploy(
       subscriptions_name,
       subscriptions_symbol,
-      subscriptions_uris
+      subscriptions_uris,
+      admin.address
     );
     await subscriptions.deployed();
 

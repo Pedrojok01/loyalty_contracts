@@ -19,7 +19,7 @@ import {
 } from "./constant";
 import { utils } from "ethers";
 
-describe("Expirable Promotion Contract", function () {
+describe("NonExpirable Promotion Contract", function () {
   async function deployFixture() {
     const [owner, user1, user2, user3, admin] = await ethers.getSigners();
 
@@ -27,21 +27,31 @@ describe("Expirable Promotion Contract", function () {
     const subscriptions: Subscriptions = await Subscriptions.deploy(
       subscriptions_name,
       subscriptions_symbol,
-      subscriptions_uris
+      subscriptions_uris,
+      admin.address
     );
     await subscriptions.deployed();
 
+    const AdminRegistry = await ethers.getContractFactory("AdminRegistry");
+    const adminRegistry = await AdminRegistry.deploy(admin.address);
+    await adminRegistry.deployed();
+
     const NonExpirableFactory = await ethers.getContractFactory("NonExpirableFactory");
-    const nonExpirableFactory: NonExpirableFactory = await NonExpirableFactory.deploy(subscriptions.address);
+    const nonExpirableFactory: NonExpirableFactory = await NonExpirableFactory.deploy(
+      subscriptions.address,
+      adminRegistry.address
+    );
     await nonExpirableFactory.deployed();
 
     const MeedProgramFactory = await ethers.getContractFactory("MeedProgramFactory");
-    const meedProgramFactory: MeedProgramFactory = await MeedProgramFactory.deploy([
+    const meedProgramFactory: MeedProgramFactory = await MeedProgramFactory.deploy(adminRegistry.address, [
       nonExpirableFactory.address,
       nonExpirableFactory.address,
       nonExpirableFactory.address,
     ]);
     await meedProgramFactory.deployed();
+
+    await adminRegistry.connect(admin).setMeedFactoryAddress(meedProgramFactory.address);
 
     await meedProgramFactory.createNewMeedProgram(
       meedProgram_name,
@@ -89,14 +99,13 @@ describe("Expirable Promotion Contract", function () {
   }
 
   it("should initialise all factories contract correctly", async () => {
-    const { meedProgramFactory, nonExpirableFactory, nonExpirable, owner } = await loadFixture(deployFixture);
+    const { meedProgramFactory, nonExpirableFactory, nonExpirable, owner, admin } = await loadFixture(deployFixture);
 
     expect(await meedProgramFactory.factories(1)).to.equal(nonExpirableFactory.address);
     expect(await nonExpirable.name()).to.equal("NonExpirable");
     expect(await nonExpirable.symbol()).to.equal("EXP");
     expect(await nonExpirable.owner()).to.equal(owner.address);
-    expect(await nonExpirable.admin()).to.equal(owner.address);
-    expect(await nonExpirable.isActive()).to.be.true;
+    expect(await nonExpirable.admin()).to.equal(admin.address);
   });
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -218,25 +227,5 @@ describe("Expirable Promotion Contract", function () {
     const ticket = await nonExpirable.getTicket(tokenId_0);
     expect(ticket.used).to.equal(false);
     expect(ticket.owner).to.equal(user1.address);
-  });
-
-  it("should deactivate the current promotion if authorized", async () => {
-    const { subscriptions, meedProgram, nonExpirable, owner, user1, user2 } = await loadFixture(deployFixture);
-
-    const tokenId_0 = 0;
-    const lvlMin = 0;
-
-    // Subscribe, hen add user to the Meed program
-    await subscriptions.connect(owner).subscribe(plan.enterprise, true, { value: pricePerPlan.enterprise.mul(10) });
-    await meedProgram.connect(owner).mint(user1.address);
-
-    // Should revert if not susbcribed
-    await expect(nonExpirable.connect(user1).deactivate()).to.be.revertedWithCustomError(
-      nonExpirable,
-      "Activation__NotAuthorized"
-    );
-
-    const receipt = await nonExpirable.connect(owner).deactivate();
-    await expect(receipt).to.emit(nonExpirable, "Deactivated").withArgs(owner.address);
   });
 });

@@ -23,9 +23,14 @@ describe("MeedProgram Contract", function () {
     const subscriptions: Subscriptions = await Subscriptions.deploy(
       subscriptions_name,
       subscriptions_symbol,
-      subscriptions_uris
+      subscriptions_uris,
+      admin.address
     );
     await subscriptions.deployed();
+
+    const AdminRegistry = await ethers.getContractFactory("AdminRegistry");
+    const adminRegistry = await AdminRegistry.deploy(admin.address);
+    await adminRegistry.deployed();
 
     const RedeemCodeLib = await ethers.getContractFactory("RedeemCodeLib");
     const redeemCodeLib = await RedeemCodeLib.deploy();
@@ -36,7 +41,10 @@ describe("MeedProgram Contract", function () {
         RedeemCodeLib: redeemCodeLib.address,
       },
     });
-    const redeemableFactory: RedeemableFactory = await RedeemableFactory.deploy(subscriptions.address);
+    const redeemableFactory: RedeemableFactory = await RedeemableFactory.deploy(
+      subscriptions.address,
+      adminRegistry.address
+    );
     await redeemableFactory.deployed();
 
     const MeedProgram = await ethers.getContractFactory("MeedProgram");
@@ -47,11 +55,12 @@ describe("MeedProgram Contract", function () {
       false,
       owner.address,
       meedProgram_amounts,
+      adminRegistry.address,
       [redeemableFactory.address, redeemableFactory.address, redeemableFactory.address]
     );
     await meedProgram.deployed();
 
-    return { meedProgram, redeemableFactory, owner, user1, user2, user3, admin };
+    return { adminRegistry, meedProgram, redeemableFactory, owner, user1, user2, user3, admin };
   }
 
   it("should initialise the contract correctly", async () => {
@@ -83,7 +92,7 @@ describe("MeedProgram Contract", function () {
     // revert if not owner or admin
     await expect(meedProgram.connect(user1).mint(user1.address)).to.be.revertedWithCustomError(
       meedProgram,
-      "Adminable__NotAuthorized"
+      "MeedProgram_NotAuthorized"
     );
 
     await meedProgram.connect(owner).mint(user1.address);
@@ -320,17 +329,25 @@ describe("MeedProgram Contract", function () {
                                         URIs
     ///////////////////////////////////////////////////////////////////////////////*/
   it("should set a new URIs and return it correctly", async () => {
-    const { meedProgram, owner, user1 } = await loadFixture(deployFixture);
+    const { adminRegistry, meedProgram, owner, user1, admin } = await loadFixture(deployFixture);
 
     expect(await meedProgram.tokenURI(0)).to.equal(meedProgram_uri);
 
     // revert if not owner or admin
     await expect(meedProgram.connect(user1).setBaseURI("ipfs://new_uri/")).to.be.revertedWithCustomError(
       meedProgram,
-      "Adminable__NotAuthorized"
+      "Adminable__UserNotRegistered"
     );
 
-    // Set new URI
+    // Revert if user not registered
+    await expect(meedProgram.connect(owner).setBaseURI("ipfs://new_uri/")).to.be.revertedWithCustomError(
+      meedProgram,
+      "Adminable__UserNotRegistered"
+    );
+
+    // Register manually then set new URI
+    await adminRegistry.connect(admin).registerOwner(owner.address);
+
     await meedProgram.connect(owner).setBaseURI("ipfs://new_uri/");
     expect(await meedProgram.tokenURI(0)).to.equal("ipfs://new_uri/");
 

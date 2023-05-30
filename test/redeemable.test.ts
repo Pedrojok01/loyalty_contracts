@@ -14,6 +14,7 @@ import {
   subscriptions_symbol,
   subscriptions_uris,
   plan,
+  voucher_type,
 } from "./constant";
 import { utils } from "ethers";
 
@@ -25,7 +26,8 @@ describe("Redeemable Promotion Contract", function () {
     const subscriptions: Subscriptions = await Subscriptions.deploy(
       subscriptions_name,
       subscriptions_symbol,
-      subscriptions_uris
+      subscriptions_uris,
+      admin.address
     );
     await subscriptions.deployed();
 
@@ -33,21 +35,30 @@ describe("Redeemable Promotion Contract", function () {
     const redeemCodeLib = await RedeemCodeLib.deploy();
     await redeemCodeLib.deployed();
 
+    const AdminRegistry = await ethers.getContractFactory("AdminRegistry");
+    const adminRegistry = await AdminRegistry.deploy(admin.address);
+    await adminRegistry.deployed();
+
     const RedeemableFactory = await ethers.getContractFactory("RedeemableFactory", {
       libraries: {
         RedeemCodeLib: redeemCodeLib.address,
       },
     });
-    const redeemableFactory: RedeemableFactory = await RedeemableFactory.deploy(subscriptions.address);
+    const redeemableFactory: RedeemableFactory = await RedeemableFactory.deploy(
+      subscriptions.address,
+      adminRegistry.address
+    );
     await redeemableFactory.deployed();
 
     const MeedProgramFactory = await ethers.getContractFactory("MeedProgramFactory");
-    const meedProgramFactory: MeedProgramFactory = await MeedProgramFactory.deploy([
+    const meedProgramFactory: MeedProgramFactory = await MeedProgramFactory.deploy(adminRegistry.address, [
       redeemableFactory.address,
       redeemableFactory.address,
       redeemableFactory.address,
     ]);
     await meedProgramFactory.deployed();
+
+    await adminRegistry.connect(admin).setMeedFactoryAddress(meedProgramFactory.address);
 
     await meedProgramFactory.createNewMeedProgram(
       meedProgram_name,
@@ -75,6 +86,7 @@ describe("Redeemable Promotion Contract", function () {
     const redeemable: Redeemable = await ethers.getContractAt("Redeemable", allPromos[0].promotionAddress);
 
     return {
+      adminRegistry,
       subscriptions,
       meedProgramFactory,
       redeemableFactory,
@@ -113,57 +125,37 @@ describe("Redeemable Promotion Contract", function () {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   it("should be possible to add new redeemable NFTs as admin", async () => {
-    const { redeemable, owner, user1, user2, admin } = await loadFixture(deployFixture);
-
-    // Should revert if not authorized
-    await expect(redeemable.connect(user1).transferAdminship(admin.address)).to.be.revertedWithCustomError(
-      redeemable,
-      "Adminable__NotAuthorized"
-    );
-
-    // Should revert if address zero
-    await expect(
-      redeemable.connect(owner).transferAdminship(ethers.constants.AddressZero)
-    ).to.be.revertedWithCustomError(redeemable, "Adminable__AddressZero");
-
-    // Transfer adminship and emit event
-    const receipt = await redeemable.connect(owner).transferAdminship(admin.address);
-    await expect(receipt).to.emit(redeemable, "AdminshipTransferred").withArgs(owner.address, admin.address);
+    const { adminRegistry, redeemable, owner, user1, user2, admin } = await loadFixture(deployFixture);
 
     await expect(
       redeemable.connect(user1).addNewRedeemableNFT(1, 10, utils.formatBytes32String("percent"))
     ).to.be.revertedWithCustomError(redeemable, "Adminable__NotAuthorized");
 
     // Add new redeemable NFT as admin
-    await redeemable.connect(owner).addNewRedeemableNFT(1, 10, utils.formatBytes32String("percent"));
-
-    // Try to add a second admin, should revert
-    await expect(redeemable.connect(owner).addAdminship(user2.address)).to.be.revertedWithCustomError(
-      redeemable,
-      "Adminable__AdminAlreadySet"
-    );
+    await redeemable.connect(admin).addNewRedeemableNFT(1, 10, utils.formatBytes32String("percent"));
 
     // Remove the adminship
-    await expect(redeemable.connect(admin).removeAdminship()).to.be.revertedWith("Ownable: caller is not the owner");
+    await expect(adminRegistry.connect(admin).switchAdminStatus()).to.be.revertedWithCustomError(
+      adminRegistry,
+      "AdminRegistry__UserNotRegistered"
+    );
 
-    const receipt2 = await redeemable.connect(owner).removeAdminship();
-    await expect(receipt2)
-      .to.emit(redeemable, "AdminshipTransferred")
-      .withArgs(admin.address, ethers.constants.AddressZero);
+    const receipt2 = await adminRegistry.connect(owner).switchAdminStatus();
+    const userOptedOut = true;
+    await expect(receipt2).to.emit(adminRegistry, "UserOptOutStatusChanged").withArgs(owner.address, userOptedOut);
 
     await expect(
       redeemable.connect(admin).addNewRedeemableNFT(1, 20, utils.formatBytes32String("percent"))
-    ).to.be.revertedWithCustomError(redeemable, "Adminable__NotAuthorized");
+    ).to.be.revertedWithCustomError(redeemable, "Adminable__UserOptedOut");
 
     // Add the adminship back
-    await expect(redeemable.connect(user1).addAdminship(admin.address)).to.be.revertedWith(
-      "Ownable: caller is not the owner"
+    await expect(adminRegistry.connect(user1).switchAdminStatus()).to.be.revertedWithCustomError(
+      adminRegistry,
+      "AdminRegistry__UserNotRegistered"
     );
 
-    const receipt3 = await redeemable.connect(owner).addAdminship(admin.address);
-    await expect(receipt3)
-      .to.emit(redeemable, "AdminshipTransferred")
-      .withArgs(ethers.constants.AddressZero, admin.address);
+    const receipt3 = await adminRegistry.connect(owner).switchAdminStatus();
+    await expect(receipt3).to.emit(adminRegistry, "UserOptOutStatusChanged").withArgs(owner.address, !userOptedOut);
   });
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -274,14 +266,13 @@ describe("Redeemable Promotion Contract", function () {
   it("should set everything properly when minting vouchers", async () => {
     const { subscriptions, meedProgram, redeemable, owner, user1, user2 } = await loadFixture(deployFixture);
 
-    const voucher_type = 1; // Free product
     const voucher_value = 10;
 
     // Subscribe owner, then add redeeeemable NFTs, then add users to the Meed program
     await subscriptions.connect(owner).subscribe(plan.basic, false, { value: pricePerPlan.basic });
     await redeemable
       .connect(owner)
-      .addNewRedeemableNFT(voucher_type, voucher_value, utils.formatBytes32String("percent"));
+      .addNewRedeemableNFT(voucher_type.fiatDiscount, voucher_value, utils.formatBytes32String("percent"));
     await meedProgram.connect(owner).mint(user1.address);
     await meedProgram.connect(owner).mint(user2.address);
 
@@ -297,7 +288,7 @@ describe("Redeemable Promotion Contract", function () {
     expect(await redeemable.isRedeemable(tokenId_0)).to.equal(true);
 
     const vouchers_before = await redeemable.getRedeemable(tokenId_0);
-    expect(vouchers_before.redeemableType).to.equal(voucher_type);
+    expect(vouchers_before.redeemableType).to.equal(voucher_type.fiatDiscount);
     expect(vouchers_before.id).to.equal(tokenId_0);
     expect(Number(vouchers_before.value)).to.equal(voucher_value);
     expect(Number(vouchers_before.circulatingSupply)).to.equal(2); // 2 vouchers emitted
@@ -308,14 +299,13 @@ describe("Redeemable Promotion Contract", function () {
   it("should be possible to redeem a voucher", async () => {
     const { subscriptions, meedProgram, redeemable, owner, user1, user2 } = await loadFixture(deployFixture);
 
-    const voucher_type = 1; // Free product
     const voucher_value = 10;
 
     // Subscribe owner, then add redeeeemable NFTs, then add users to the Meed program
     await subscriptions.connect(owner).subscribe(plan.basic, false, { value: pricePerPlan.basic });
     await redeemable
       .connect(owner)
-      .addNewRedeemableNFT(voucher_type, voucher_value, utils.formatBytes32String("percent"));
+      .addNewRedeemableNFT(voucher_type.percentDiscount, voucher_value, utils.formatBytes32String("percent"));
     await meedProgram.connect(owner).mint(user1.address);
     await meedProgram.connect(owner).mint(user2.address);
 
@@ -333,6 +323,54 @@ describe("Redeemable Promotion Contract", function () {
     await expect(receipt).to.emit(redeemable, "Redeemed").withArgs(user1.address, tokenId_0);
 
     const receipt2 = await redeemable.connect(owner).redeem(user2.address, tokenId_0, amount);
+    await expect(receipt2).to.emit(redeemable, "Redeemed").withArgs(user2.address, tokenId_0);
+
+    const vouchers_after = await redeemable.getRedeemable(tokenId_0);
+    expect(Number(vouchers_after.circulatingSupply)).to.equal(0); // 2 vouchers burned
+  });
+
+  it("should be possible to redeem a voucher as admin", async () => {
+    const { adminRegistry, subscriptions, meedProgram, redeemable, owner, user1, user2, admin } = await loadFixture(
+      deployFixture
+    );
+
+    const voucher_value = 10;
+
+    // Subscribe owner, then add redeeeemable NFTs, then add users to the Meed program
+    await subscriptions.connect(owner).subscribe(plan.basic, false, { value: pricePerPlan.basic });
+    await redeemable
+      .connect(owner)
+      .addNewRedeemableNFT(voucher_type.percentDiscount, voucher_value, utils.formatBytes32String("percent"));
+    await meedProgram.connect(owner).mint(user1.address);
+    await meedProgram.connect(owner).mint(user2.address);
+
+    // Batch mint to user 1 and 2 from the admin account
+    const to = [user1.address, user2.address];
+    const tokenId_0 = 0;
+    const tokenId_1 = 1;
+    const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(tokenId_1, plan.enterprise);
+    await subscriptions.connect(owner).changeSubscriptionPlan(tokenId_1, plan.enterprise, { value: toPayMore });
+
+    await expect(redeemable.connect(user1).batchMint(0, to, 1)).to.be.revertedWithCustomError(
+      redeemable,
+      "Adminable__NotAuthorized"
+    );
+
+    await redeemable.connect(admin).batchMint(0, to, 1);
+
+    // Redeem the voucher from the admin account:
+    const amount = 1;
+
+    await expect(redeemable.connect(user1).redeem(user1.address, tokenId_0, amount)).to.be.revertedWithCustomError(
+      redeemable,
+      "Adminable__NotAuthorized"
+    );
+
+    const receipt = await redeemable.connect(admin).redeem(user1.address, tokenId_0, amount);
+
+    await expect(receipt).to.emit(redeemable, "Redeemed").withArgs(user1.address, tokenId_0);
+
+    const receipt2 = await redeemable.connect(admin).redeem(user2.address, tokenId_0, amount);
     await expect(receipt2).to.emit(redeemable, "Redeemed").withArgs(user2.address, tokenId_0);
 
     const vouchers_after = await redeemable.getRedeemable(tokenId_0);
@@ -362,7 +400,6 @@ describe("Redeemable Promotion Contract", function () {
 
     // Get & check expiration date:
     const [start, end] = await redeemable.getValidityDate();
-    console.log("validity", start, end);
     expect(end).to.equal(expirationDate);
 
     // Update expiration date (revert if unauthorized)):

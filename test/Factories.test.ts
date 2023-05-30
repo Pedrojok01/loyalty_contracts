@@ -33,9 +33,14 @@ describe("Promotions Factories Contract", function () {
     const subscriptions: Subscriptions = await Subscriptions.deploy(
       subscriptions_name,
       subscriptions_symbol,
-      subscriptions_uris
+      subscriptions_uris,
+      admin.address
     );
     await subscriptions.deployed();
+
+    const AdminRegistry = await ethers.getContractFactory("AdminRegistry");
+    const adminRegistry = await AdminRegistry.deploy(admin.address);
+    await adminRegistry.deployed();
 
     const RedeemCodeLib = await ethers.getContractFactory("RedeemCodeLib");
     const redeemCodeLib = await RedeemCodeLib.deploy();
@@ -46,24 +51,32 @@ describe("Promotions Factories Contract", function () {
         RedeemCodeLib: redeemCodeLib.address,
       },
     });
-    const redeemableFactory: RedeemableFactory = await RedeemableFactory.deploy(subscriptions.address);
+    const redeemableFactory: RedeemableFactory = await RedeemableFactory.deploy(
+      subscriptions.address,
+      adminRegistry.address
+    );
     await redeemableFactory.deployed();
 
     const NonExpirableFactory = await ethers.getContractFactory("NonExpirableFactory");
-    const nonExpirableFactory: NonExpirableFactory = await NonExpirableFactory.deploy(subscriptions.address);
+    const nonExpirableFactory: NonExpirableFactory = await NonExpirableFactory.deploy(
+      subscriptions.address,
+      adminRegistry.address
+    );
     await nonExpirableFactory.deployed();
 
     const BundlesFactory = await ethers.getContractFactory("BundlesFactory");
-    const bundlesFactory: BundlesFactory = await BundlesFactory.deploy(subscriptions.address);
+    const bundlesFactory: BundlesFactory = await BundlesFactory.deploy(subscriptions.address, adminRegistry.address);
     await bundlesFactory.deployed();
 
     const MeedProgramFactory = await ethers.getContractFactory("MeedProgramFactory");
-    const meedProgramFactory: MeedProgramFactory = await MeedProgramFactory.deploy([
+    const meedProgramFactory: MeedProgramFactory = await MeedProgramFactory.deploy(adminRegistry.address, [
       redeemableFactory.address,
       nonExpirableFactory.address,
       bundlesFactory.address,
     ]);
     await meedProgramFactory.deployed();
+
+    await adminRegistry.connect(admin).setMeedFactoryAddress(meedProgramFactory.address);
 
     return {
       meedProgramFactory,
@@ -151,6 +164,10 @@ describe("Promotions Factories Contract", function () {
       utils.formatBytes32String("HK")
     );
 
+    const programAddress_0 = await meedProgramFactory.getMeedProgramPerIndex(0);
+    const programId_0 = await meedProgramFactory.getMeedIDPerAddress(programAddress_0);
+    expect(programId_0).to.equal(0);
+
     // Need to create at least 2 program for the name check to work:
     await meedProgramFactory.createNewMeedProgram(
       "new_name_II",
@@ -161,6 +178,11 @@ describe("Promotions Factories Contract", function () {
       utils.formatBytes32String("food"),
       utils.formatBytes32String("HK")
     );
+
+    const programAddress_1 = await meedProgramFactory.getMeedProgramPerIndex(1);
+
+    const programId_1 = await meedProgramFactory.getMeedIDPerAddress(programAddress_1);
+    expect(programId_1).to.equal(1);
 
     // revert if same name
     await expect(
