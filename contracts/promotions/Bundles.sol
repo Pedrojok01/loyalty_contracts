@@ -16,6 +16,7 @@ import {TimeLimited} from "../utils/TimeLimited.sol";
 import {IBundles} from "../interfaces/IBundles.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 import {MeedProgram} from "../meedProgram/MeedProgram.sol";
+import {PromoDataLib} from "../library/PromoDataLib.sol";
 
 /**
  * @title EventTicket
@@ -42,32 +43,50 @@ import {MeedProgram} from "../meedProgram/MeedProgram.sol";
 
 contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, SubscriberChecks {
     using SafeERC20 for IERC20;
+    // using PromoDataLib for PromoDataLib.BundlesPromoData;
 
     string private _baseURIextended;
     MeedProgram private immutable meedProgram;
     uint256 public immutable maxPackSupply;
     uint256 private nonce;
 
+    // constructor(
+    //     string memory _name,
+    //     string memory _symbol,
+    //     string memory _uri,
+    //     uint256 _startDate,
+    //     uint256 _expirationDate,
+    //     address _meedProgram,
+    //     uint256 _maxLimit,
+    //     address _owner,
+    //     address _contractAddress,
+    //     address adminRegistryAddress
+    // )
+    //     ERC721(_name, _symbol)
+    //     TimeLimited(_startDate, _expirationDate, address(this), adminRegistryAddress)
+    //     SubscriberChecks(_contractAddress)
+    // {
+    //     maxPackSupply = _maxLimit;
+    //     _baseURIextended = _uri;
+    //     meedProgram = MeedProgram(_meedProgram);
+    //     transferOwnership(_owner);
+    // }
+
     constructor(
         string memory _name,
         string memory _symbol,
         string memory _uri,
-        uint256 _startDate,
-        uint256 _expirationDate,
-        address _meedProgram,
-        uint256 _data,
-        address _owner,
-        address _contractAddress
+        PromoDataLib.BundlesPromoData memory data,
+        address adminRegistryAddress
     )
         ERC721(_name, _symbol)
-        TimeLimited(_startDate, _expirationDate, address(this))
-        SubscriberChecks(_contractAddress)
+        TimeLimited(data._startDate, data._expirationDate, address(this), adminRegistryAddress)
+        SubscriberChecks(data._contractAddress)
     {
-        maxPackSupply = _data;
+        maxPackSupply = data._maxLimit;
         _baseURIextended = _uri;
-        meedProgram = MeedProgram(_meedProgram);
-        transferOwnership(_owner);
-        transferAdminship(meedProgram.admin());
+        meedProgram = MeedProgram(data._meedProgram);
+        transferOwnership(data._owner);
     }
 
     modifier onlyOngoing() override {
@@ -124,7 +143,7 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, 
         uint256 lvlMin,
         address[] calldata _addresses,
         uint256[] memory _numbers
-    ) external payable override onlyOwnerOrAdmin onlyOngoing onlyActive onlyEnterprise returns (uint256 tokenId) {
+    ) public payable override onlyOwnerOrAdmin onlyOngoing onlyActive onlyEnterprise returns (uint256 tokenId) {
         if (to == address(0)) revert Bundles__MintToAddress0();
         uint8 currentLevel = meedProgram.getMemberLevel(to);
         if (currentLevel == 0) revert Redeemable__NonExistantUser();
@@ -192,7 +211,7 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, 
         if (maxPackSupply != 0 && nonce + _amountOfPacks > maxPackSupply) revert Bundles__MaxSupplyReached();
 
         for (uint256 i = 0; i < _amountOfPacks; ) {
-            this.safeMint(_to, _lvlMin, _addresses, _arrayOfNumbers[i]);
+            safeMint(_to, _lvlMin, _addresses, _arrayOfNumbers[i]);
             unchecked {
                 i++;
             }

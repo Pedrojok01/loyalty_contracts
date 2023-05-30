@@ -28,6 +28,16 @@ library RedeemCodeLib {
         Counters.Counter codeIndex;
     }
 
+    function getDataFromRedeemCode(
+        RedeemCodeStorage storage self,
+        string memory code
+    ) public view returns (address, uint256) {
+        Voucher storage voucher = self.redeemCodes[code];
+        require(voucher.contractAddress != address(0), "Invalid redeem code");
+
+        return (voucher.contractAddress, voucher.tokenID);
+    }
+
     function generateRedeemCode(
         RedeemCodeStorage storage self,
         address _contractAddress,
@@ -65,15 +75,5 @@ library RedeemCodeLib {
         }
 
         return string(codeBytes);
-    }
-
-    function getDataFromRedeemCode(
-        RedeemCodeStorage storage self,
-        string memory code
-    ) public view returns (address, uint256) {
-        Voucher storage voucher = self.redeemCodes[code];
-        require(voucher.contractAddress != address(0), "Invalid redeem code");
-
-        return (voucher.contractAddress, voucher.tokenID);
     }
 }

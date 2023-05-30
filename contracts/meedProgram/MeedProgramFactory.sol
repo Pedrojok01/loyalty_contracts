@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.18;
 
+// import "hardhat/console.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+import {AdminRegistry} from "../subscriptions/AdminRegistry.sol";
 import {IMeedProgram} from "../interfaces/IMeedProgram.sol";
 import {MeedProgram} from "./MeedProgram.sol";
 import {Errors} from "../utils/Errors.sol";
@@ -32,6 +34,7 @@ contract MeedProgramFactory is Context, Errors, Ownable {
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
+    address private _adminRegistry;
     address[] public factories;
 
     /**
@@ -75,7 +78,8 @@ contract MeedProgramFactory is Context, Errors, Ownable {
      */
     IMeedProgram[] private meedProgramList;
 
-    constructor(address[] memory _factories) {
+    constructor(address adminRegistryAddress, address[] memory _factories) {
+        _adminRegistry = adminRegistryAddress;
         factories = _factories;
     }
 
@@ -215,7 +219,10 @@ contract MeedProgramFactory is Context, Errors, Ownable {
     ) private returns (IMeedProgram newMeedProgram) {
         address _owner = _msgSender();
 
-        newMeedProgram = IMeedProgram(new MeedProgram(_name, _symbol, _uri, _tierTracker, _owner, amounts, factories));
+        AdminRegistry(_adminRegistry).registerOwner(_owner);
+        newMeedProgram = IMeedProgram(
+            new MeedProgram(_name, _symbol, _uri, _tierTracker, _owner, amounts, _adminRegistry, factories)
+        );
 
         meedIDPerOwner[_owner].push(_meedId);
         meedIDPerName[_name] = _meedId;

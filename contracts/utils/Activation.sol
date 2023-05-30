@@ -30,7 +30,7 @@ contract Activation is Adminable {
         _;
     }
 
-    constructor(address _contractRole) {
+    constructor(address _contractRole, address adminRegistryAddress) Adminable(adminRegistryAddress) {
         CONTRACT_ROLE = _contractRole;
     }
 

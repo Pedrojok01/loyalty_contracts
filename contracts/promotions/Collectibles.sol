@@ -34,8 +34,13 @@ contract Collectibles is ERC1155, TimeLimited, SubscriberChecks {
         uint256 _startDate,
         uint256 _expirationDate,
         address _meedProgram,
-        address _contractAddress
-    ) ERC1155("") TimeLimited(_startDate, _expirationDate, address(this)) SubscriberChecks(_contractAddress) {
+        address _contractAddress,
+        address adminRegistryAddress
+    )
+        ERC1155("")
+        TimeLimited(_startDate, _expirationDate, address(this), adminRegistryAddress)
+        SubscriberChecks(_contractAddress)
+    {
         require(uris.length <= MAX_IDS, "CollectibleNFT: Too many URIs.");
         require(_expirationDate == 0 || _expirationDate > block.timestamp, "Redeemable: invalid date");
         for (uint256 i = 0; i < uris.length; i++) {
@@ -43,7 +48,6 @@ contract Collectibles is ERC1155, TimeLimited, SubscriberChecks {
             _mint(msg.sender, i, 1, "");
             meedProgram = MeedProgram(_meedProgram);
             transferOwnership(_owner);
-            transferAdminship(meedProgram.admin());
         }
     }
 

@@ -3,22 +3,23 @@ pragma solidity 0.8.18;
 
 // import "hardhat/console.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Counters} from "../utils/Counters.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ISubscriptions} from "../interfaces/ISubscriptions.sol";
+import {AdminRegistry} from "../subscriptions/AdminRegistry.sol";
 import {Errors} from "../utils/Errors.sol";
 
 /**
  * @title Subscription
  * @author Pierre Estrabaud (@Pedrojok01)
  * @notice Part of the Meed Loyalty Platform from SuperUltra
- * @dev Provides safe getter and setter for promotion status and type.
+ * @dev Main Payment controller in charge of handling subscriptions and features access;
  *
  * Based on EIP: ERC5643
  *
  * TODO:
- *  - Handle case where a user has multiple subscriptions
- *  - Implement a way to downgrade a subscription
+ *  - Handle case where a user has multiple subscriptions?
+ *  - Implement a way to downgrade a subscription?
  *  - Add possible discount on upgrade ?? (ex: 10% off on upgrade from Basic to Pro)
  */
 
@@ -55,6 +56,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
+    address private _adminRegistry;
     Counters.Counter private _tokenIds;
     string[3] private baseURIs;
 
@@ -83,10 +85,16 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
      * @param symbol_ The symbol of the NFT;
      * @param uris_  The base URIs of the NFTs;
      */
-    constructor(string memory name_, string memory symbol_, string[3] memory uris_) ERC721(name_, symbol_) {
+    constructor(
+        string memory name_,
+        string memory symbol_,
+        string[3] memory uris_,
+        address adminRegistryAddress
+    ) ERC721(name_, symbol_) {
         require(uris_.length == 3, "Subscriptions: Invalid URIs length");
         _initialize();
         baseURIs = uris_;
+        _adminRegistry = adminRegistryAddress;
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -174,7 +182,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
         if (temp.plan >= plan) revert Subscriptions__CannotDowngradeTier(); // Simpler for now
 
         // Calculate payment adjustment for remaining time
-        (uint256 remainingTime, uint256 cost) = this.getRemainingTimeAndPrice(tokenId, plan);
+        (uint256 remainingTime, uint256 cost) = getRemainingTimeAndPrice(tokenId, plan);
         if (msg.value != cost) revert Subscriptions__IncorrectPrice();
         temp.plan = plan;
         subscribers[subscriber] = temp;
@@ -273,7 +281,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
      * @return the remaining time left in the subscription
      * @return the cost difference of the remaining subscription time
      */
-    function getRemainingTimeAndPrice(uint256 tokenId, Plan plan) external view returns (uint256, uint256) {
+    function getRemainingTimeAndPrice(uint256 tokenId, Plan plan) public view returns (uint256, uint256) {
         address owner = ownerOf(tokenId);
 
         Subscriber memory temp = subscribers[owner];

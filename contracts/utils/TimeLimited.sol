@@ -14,7 +14,12 @@ contract TimeLimited is Activation {
     uint128 private startDate;
     uint128 private endDate; // 0 = no expiration
 
-    constructor(uint256 _startDate, uint256 _endDate, address _contractRole) Activation(_contractRole) {
+    constructor(
+        uint256 _startDate,
+        uint256 _endDate,
+        address _contractRole,
+        address adminRegistryAddress
+    ) Activation(_contractRole, adminRegistryAddress) {
         require(endDate == 0 || _startDate < _endDate, "TimeLimited: invalid dates");
         startDate = uint128(_startDate);
         endDate = uint128(_endDate);

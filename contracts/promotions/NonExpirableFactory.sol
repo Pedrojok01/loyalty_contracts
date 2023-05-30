@@ -22,10 +22,12 @@ import {NonExpirable} from "../promotions/NonExpirable.sol";
 contract NonExpirableFactory is Context, Errors {
     using PromoLib for PromoLib.Promotion;
 
-    address private immutable CONTROL_ADDRESS;
+    address private immutable CONTROL_ADDRESS; // Subscriptions contract address
+    address private _adminRegistry;
 
-    constructor(address _controlAddress) {
+    constructor(address _controlAddress, address adminRegistryAddress) {
         CONTROL_ADDRESS = _controlAddress;
+        _adminRegistry = adminRegistryAddress;
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -55,7 +57,9 @@ contract NonExpirableFactory is Context, Errors {
         if (_type != PromoLib.PromotionsType.VIPpass && _type != PromoLib.PromotionsType.Badges)
             revert NonExpirableFactory_TypeNotSupported();
 
-        newPromotion = address(new NonExpirable(name, symbol, uri, _msgSender(), data, meedProgram, CONTROL_ADDRESS));
+        newPromotion = address(
+            new NonExpirable(name, symbol, uri, _msgSender(), data, meedProgram, CONTROL_ADDRESS, _adminRegistry)
+        );
 
         IMeedProgram program = IMeedProgram(meedProgram);
         program.addPromotion(newPromotion, _type, uint128(block.timestamp), 0);

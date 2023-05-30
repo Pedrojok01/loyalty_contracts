@@ -22,9 +22,11 @@ contract CollectiblesFactory is Context, Errors {
     using PromoLib for PromoLib.Promotion;
 
     address private immutable CONTROL_ADDRESS; // Subscriptions contract address
+    address private _adminRegistry;
 
-    constructor(address _controlAddress) {
+    constructor(address _controlAddress, address adminRegistryAddress) {
         CONTROL_ADDRESS = _controlAddress;
+        _adminRegistry = adminRegistryAddress;
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -52,7 +54,9 @@ contract CollectiblesFactory is Context, Errors {
         if (_type != PromoLib.PromotionsType.Stamps && _type != PromoLib.PromotionsType.Paninis)
             revert CollectiblesFactory_TypeNotSupported();
 
-        newPromotion = address(new Collectibles(uri, _msgSender(), startDate, endDate, meedProgram, CONTROL_ADDRESS));
+        newPromotion = address(
+            new Collectibles(uri, _msgSender(), startDate, endDate, meedProgram, CONTROL_ADDRESS, _adminRegistry)
+        );
 
         IMeedProgram program = IMeedProgram(meedProgram);
         program.addPromotion(newPromotion, _type, uint128(startDate), uint128(endDate));

@@ -87,16 +87,17 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         bool _tierTracker,
         address _owner,
         uint64[4] memory amounts,
+        address adminRegistryAddress,
         address[] memory _factories
-    ) ERC721(_name, _symbol) {
+    ) ERC721(_name, _symbol) Adminable(adminRegistryAddress) {
+        transferOwnership(_owner);
         TIER_TRACKER = _tierTracker;
         _baseURIextended = _uri;
         factories = _factories;
 
-        transferOwnership(_owner);
         _initializeTierStructure(amounts[0], amounts[1], amounts[2], amounts[3]);
+
         mint(_owner);
-        transferAdminship(_owner);
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -107,7 +108,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
      * @dev External method for the owner  / admin to mint NFTs (enroll new member). Can only mint 1 per address.
      * @param to Address of the new member to be added.
      */
-    function mint(address to) public onlyOwnerOrAdmin {
+    function mint(address to) public onlyAuthorized {
         _addMember(to);
     }
 
@@ -381,6 +382,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         require(isFactory, "MeedProgram: Not Authorized");
     }
 
+    /// @dev tx.origin is needed when the owner/admin is calling a function via a factory
     function _onlyAuthorized() private view {
         if (_msgSender() != owner() && _msgSender() != admin() && tx.origin != owner() && tx.origin != admin()) {
             revert MeedProgram_NotAuthorized();

@@ -103,8 +103,15 @@ contract Errors {
     error Activation__NotAuthorized();
 
     // Adminable
-    error Adminable__NotAdmin();
-    error Adminable__AddressZero();
+    error Adminable__UserNotRegistered();
+    error Adminable__UserOptedOut();
     error Adminable__NotAuthorized();
-    error Adminable__AdminAlreadySet();
+
+    // AdminRegistry
+    error AdminRegistry__NotAdmin();
+    error AdminRegistry__AddressZero();
+    error AdminRegistry__NotAuthorized();
+    error AdminRegistry__UserOptedOut();
+    error AdminRegistry__UserNotRegistered();
+    error AdminRegistry__AdminAlreadySet();
 }

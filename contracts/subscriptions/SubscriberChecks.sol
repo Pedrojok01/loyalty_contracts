@@ -33,14 +33,14 @@ contract SubscriberChecks is Context, Errors {
         _;
     }
 
-    function _onlySubscribers(address subscriber) private {
+    function _onlySubscribers(address subscriber) internal {
         (bool success, ) = SUBSCRIPTIONS_CONTRACT.call(abi.encodeWithSignature("isSubscribers(address)", subscriber));
         if (!success) {
             revert SubscriberChecks__PleaseSubscribeFirst();
         }
     }
 
-    function _onlyProOrEnterprise(address subscriber) private {
+    function _onlyProOrEnterprise(address subscriber) internal {
         (bool success, ) = SUBSCRIPTIONS_CONTRACT.call(
             abi.encodeWithSignature("isProOrEnterprise(address)", subscriber)
         );
@@ -49,7 +49,7 @@ contract SubscriberChecks is Context, Errors {
         }
     }
 
-    function _onlyEnterprise(address subscriber) private {
+    function _onlyEnterprise(address subscriber) internal {
         (bool success, ) = SUBSCRIPTIONS_CONTRACT.call(abi.encodeWithSignature("isEnterprise(address)", subscriber));
         if (!success) {
             revert SubscriberChecks__PleaseSubscribeToEnterpriseFirst();

@@ -6,7 +6,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import {Counters} from "../utils/Counters.sol";
-import {TimeLimited} from "../utils/TimeLimited.sol";
+import {Adminable} from "../utils/Adminable.sol";
 import {INonExpirable} from "../interfaces/INonExpirable.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 import {MeedProgram} from "../meedProgram/MeedProgram.sol";
@@ -32,7 +32,7 @@ import {MeedProgram} from "../meedProgram/MeedProgram.sol";
  * 810bdd65  =>  _onlyOngoing()*
  */
 
-contract NonExpirable is ERC721, INonExpirable, TimeLimited, SubscriberChecks {
+contract NonExpirable is ERC721, INonExpirable, Adminable, SubscriberChecks {
     using Counters for Counters.Counter;
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -58,21 +58,12 @@ contract NonExpirable is ERC721, INonExpirable, TimeLimited, SubscriberChecks {
         address _owner,
         uint256 _data,
         address _meedProgram,
-        address _contractAddress
-    )
-        ERC721(_name, _symbol)
-        TimeLimited(block.timestamp, 0, address(this)) // Start now, and never expire
-        SubscriberChecks(_contractAddress)
-    {
+        address _contractAddress,
+        address adminRegistryAddress
+    ) ERC721(_name, _symbol) Adminable(adminRegistryAddress) SubscriberChecks(_contractAddress) {
         _baseURIextended = _uri;
         meedProgram = MeedProgram(_meedProgram);
         transferOwnership(_owner);
-        transferAdminship(meedProgram.admin());
-    }
-
-    modifier onlyOngoing() override {
-        _onlyOngoing();
-        _;
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -84,7 +75,7 @@ contract NonExpirable is ERC721, INonExpirable, TimeLimited, SubscriberChecks {
      * @param to Address to mint to; must be a member of the loyalty program;
      * @param lvlMin Level required to mint the NFT (set to 0 for no level requirement);
      */
-    function safeMint(address to, uint256 lvlMin) public onlyOwnerOrAdmin onlyOngoing onlyActive onlyProOrEnterprise {
+    function safeMint(address to, uint256 lvlMin) public onlyOwnerOrAdmin onlyProOrEnterprise {
         uint8 currentLevel = meedProgram.getMemberLevel(to);
         if (currentLevel == 0) revert NonExpirable__NonExistantUser();
         if (currentLevel < uint8(lvlMin)) revert NonExpirable__InsufficientLevel();
@@ -104,10 +95,7 @@ contract NonExpirable is ERC721, INonExpirable, TimeLimited, SubscriberChecks {
      * @param to Array of addresses to mint to; must be members of the loyalty program;
      * @param lvlMin Level required to mint the NFT (set to 0 for no level requirement);
      */
-    function batchMint(
-        address[] calldata to,
-        uint8 lvlMin
-    ) external onlyOwnerOrAdmin onlyOngoing onlyActive onlyEnterprise {
+    function batchMint(address[] calldata to, uint8 lvlMin) external onlyOwnerOrAdmin onlyEnterprise {
         uint256 lentgh = to.length;
         for (uint256 i = 0; i < lentgh; ) {
             safeMint(to[i], lvlMin);
@@ -122,7 +110,7 @@ contract NonExpirable is ERC721, INonExpirable, TimeLimited, SubscriberChecks {
      * @param from Current owner of the ticket;
      * @param ticketId TicketId of the ticket to consume;
      */
-    function consumeTiket(address from, uint256 ticketId) external onlyOngoing onlyActive {
+    function consumeTiket(address from, uint256 ticketId) external {
         if (tickets[uint88(ticketId)].used) revert NonExpirable__TicketAlreadyUsed(ticketId);
         if (tickets[uint88(ticketId)].owner != from) revert NonExpirable__TicketNotOwned();
 
@@ -160,15 +148,5 @@ contract NonExpirable is ERC721, INonExpirable, TimeLimited, SubscriberChecks {
      */
     function _baseURI() internal view override returns (string memory) {
         return _baseURIextended;
-    }
-
-    function _onlyOngoing() internal override {
-        if (this.isExpired()) {
-            if (this.isActive()) {
-                this.deactivate();
-                meedProgram.switchStatus(address(this), false);
-            }
-            revert NonExpirable__EventExpired();
-        }
     }
 }

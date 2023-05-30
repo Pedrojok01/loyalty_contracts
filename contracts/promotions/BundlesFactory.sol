@@ -4,6 +4,7 @@ pragma solidity 0.8.18;
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 
 import {PromoLib} from "../library/PromoLib.sol";
+import {PromoDataLib} from "../library/PromoDataLib.sol";
 import {Errors} from "../utils/Errors.sol";
 import {IMeedProgram} from "../interfaces/IMeedProgram.sol";
 
@@ -21,11 +22,14 @@ import {Bundles} from "../promotions/Bundles.sol";
 
 contract BundlesFactory is Context, Errors {
     using PromoLib for PromoLib.Promotion;
+    using PromoDataLib for PromoDataLib.BundlesPromoData;
 
-    address private immutable CONTROL_ADDRESS;
+    address private immutable CONTROL_ADDRESS; // Subscriptions contract address
+    address private _adminRegistry;
 
-    constructor(address _controlAddress) {
+    constructor(address _controlAddress, address adminRegistryAddress) {
         CONTROL_ADDRESS = _controlAddress;
+        _adminRegistry = adminRegistryAddress;
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -40,7 +44,7 @@ contract BundlesFactory is Context, Errors {
      * @param meedProgram  MeedProgram address (user input).
      * @param startDate Date which mark the start of the promo;
      * @param endDate Date which mark the end of the promo;
-     * @param data Data of the new MeedProgram (user input) - Max supply (0 = unlimited).
+     * @param maxLimit Max bundles supply (user input) - Max supply (0 = unlimited).
      * @param _type  Type of products sold (user input).
      * - 7 = Bundles
      * @return newPromotion Instance of the newly created promotion.
@@ -52,14 +56,21 @@ contract BundlesFactory is Context, Errors {
         address meedProgram,
         uint256 startDate,
         uint256 endDate,
-        uint256 data,
+        uint256 maxLimit,
         PromoLib.PromotionsType _type
     ) external returns (address newPromotion) {
         if (_type != PromoLib.PromotionsType.Packs) revert BundlesFactory_TypeNotSupported();
 
-        newPromotion = address(
-            new Bundles(name, symbol, uri, startDate, endDate, meedProgram, data, _msgSender(), CONTROL_ADDRESS)
-        );
+        PromoDataLib.BundlesPromoData memory data = PromoDataLib.BundlesPromoData({
+            _startDate: startDate,
+            _expirationDate: endDate,
+            _maxLimit: maxLimit,
+            _meedProgram: meedProgram,
+            _owner: _msgSender(),
+            _contractAddress: CONTROL_ADDRESS
+        });
+
+        newPromotion = address(new Bundles(name, symbol, uri, data, _adminRegistry));
 
         IMeedProgram program = IMeedProgram(meedProgram);
         program.addPromotion(newPromotion, _type, uint128(startDate), uint128(endDate));

@@ -84,13 +84,17 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
         uint256 _startDate,
         uint256 _endDate,
         address _meedProgram,
-        address _contractAddress
-    ) ERC1155(_uri) TimeLimited(_startDate, _endDate, address(this)) SubscriberChecks(_contractAddress) {
+        address _contractAddress,
+        address adminRegistryAddress
+    )
+        ERC1155(_uri)
+        TimeLimited(_startDate, _endDate, address(this), adminRegistryAddress)
+        SubscriberChecks(_contractAddress)
+    {
         require(_endDate == 0 || _endDate > block.timestamp, "Redeemable: invalid date");
         _setURI(_uri);
         meedProgram = MeedProgram(_meedProgram);
         transferOwnership(_owner);
-        transferAdminship(meedProgram.admin());
     }
 
     modifier onlyOngoing() override {
@@ -103,26 +107,13 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
     ///////////////////////////////////////////////////////////////////////////////*/
 
     /**
-    @dev Limited mint, only the owner can mint the level 2 and above NFTs;
+    @dev Limited mint - only the owner can mint the level 2 and above NFTs;
     @param id Allow to choose the kind of NFT to be minted;
     @param to Address which will receive the limited NFTs;
     @param lvlMin Level required to mint the NFT (set to 1 for no level requirement);
     */
-    function mint(
-        uint256 id,
-        address to,
-        uint256 lvlMin
-    ) public onlyOwnerOrAdmin onlyOngoing onlyActive onlySubscribers {
-        if (!_isValidId(id)) revert Redeemable__WrongId();
-        if (!_isValidLevel(lvlMin)) revert Redeemable__WrongLevel();
-        uint8 currentLevel = meedProgram.getMemberLevel(to);
-        if (currentLevel == 0) revert Redeemable__NonExistantUser();
-        if (currentLevel < uint8(lvlMin)) revert Redeemable__InsufficientLevel();
-
-        redeemableNFTs[id].circulatingSupply++;
-        string memory redeemCode = redeemCodeStorage.generateRedeemCode(address(this), id);
-        redeemableNFTs[id].redeemCode = redeemCode;
-        _mint(to, id, 1, "");
+    function mint(uint256 id, address to, uint256 lvlMin) public onlyOwnerOrAdmin onlyOngoing onlyActive {
+        _mintRedeemable(id, to, lvlMin);
     }
 
     /**
@@ -135,7 +126,12 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
         uint256 id,
         address[] calldata to,
         uint8 lvlMin
-    ) external onlyOwnerOrAdmin onlyOngoing onlyActive onlyProOrEnterprise {
+    ) external onlyOwnerOrAdmin onlyOngoing onlyActive {
+        if (_msgSender() == admin()) {
+            _onlyProOrEnterprise(owner());
+        } else {
+            _onlyProOrEnterprise(_msgSender());
+        }
         uint256 length = to.length;
         for (uint256 i = 0; i < length; ) {
             mint(id, to[i], lvlMin);
@@ -145,26 +141,31 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
         }
     }
 
+    /**
+     * @dev Allows to redeem a Voucher;
+     * @param from Address to burn the NFT from;
+     * @param tokenId  Id of the NFT to burn;
+     * @param amount Amount of the purchase made by the user;
+     */
     function redeem(
         address from,
         uint256 tokenId,
         uint32 amount
-    ) external override onlyOngoing onlyActive onlyOwnerOrAdmin {
-        if (!isRedeemable(tokenId)) revert Redeemable__TokenNotRedeemable(tokenId);
-        if (!(balanceOf(from, tokenId) >= 1)) revert Redeemable__TokenNotOwned();
-
-        redeemableNFTs[tokenId].circulatingSupply--;
-        burn(from, tokenId, 1);
-        meedProgram.updateMember(from, 1, amount);
-
-        emit Redeemed(from, tokenId);
+    ) public override onlyOngoing onlyActive onlyOwnerOrAdmin {
+        _redeem(from, tokenId, amount);
     }
 
-    function redeemFromCode(address from, string memory code) external {
+    /**
+     * @dev Allows to redeem a Voucher from a redeem code;
+     * @param from Address to burn the NFT from;
+     * @param code  Redeem code of the NFT to burn;
+     * @param amount Amount of the purchase made by the user;
+     */
+    function redeemFromCode(address from, string memory code, uint32 amount) external {
         (address contractAddress, uint256 tokenId) = redeemCodeStorage.getDataFromRedeemCode(code);
         if (contractAddress != address(this)) revert Redeemable__WrongPromotionContract();
 
-        this.redeem(from, tokenId, 1);
+        redeem(from, tokenId, amount);
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -216,6 +217,40 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
     /*///////////////////////////////////////////////////////////////////////////////
                                         PRIVATE
     ///////////////////////////////////////////////////////////////////////////////*/
+
+    /// @dev Common function to mint a Redeemable NFT;
+    function _mintRedeemable(uint256 id, address to, uint256 lvlMin) private {
+        if (_msgSender() == admin()) {
+            _onlySubscribers(owner());
+        } else {
+            _onlySubscribers(_msgSender());
+        }
+
+        if (!_isValidId(id)) revert Redeemable__WrongId();
+        if (!_isValidLevel(lvlMin)) revert Redeemable__WrongLevel();
+        uint8 currentLevel = meedProgram.getMemberLevel(to);
+        if (currentLevel == 0) revert Redeemable__NonExistantUser();
+        if (currentLevel < uint8(lvlMin)) revert Redeemable__InsufficientLevel();
+
+        redeemableNFTs[id].circulatingSupply++;
+        string memory redeemCode = redeemCodeStorage.generateRedeemCode(address(this), id);
+        redeemableNFTs[id].redeemCode = redeemCode;
+        _mint(to, id, 1, "");
+    }
+
+    function _redeem(address from, uint256 tokenId, uint32 amount) private {
+        if (_msgSender() != owner()) {
+            _onlySubscribers(owner());
+        }
+        if (!isRedeemable(tokenId)) revert Redeemable__TokenNotRedeemable(tokenId);
+        if (!(balanceOf(from, tokenId) >= 1)) revert Redeemable__TokenNotOwned();
+
+        redeemableNFTs[tokenId].circulatingSupply--;
+        burn(from, tokenId, 1);
+        meedProgram.updateMember(from, 1, amount);
+
+        emit Redeemed(from, tokenId);
+    }
 
     function _isValidId(uint256 _id) private view returns (bool) {
         if (_id < redeemableNFTs.length) {
