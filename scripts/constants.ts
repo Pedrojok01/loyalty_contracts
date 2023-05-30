@@ -3,6 +3,8 @@
 
 import { PromiseOrValue } from "../typechain-types/common";
 
+export const ADMIN_ADDRESS = "0xf0eeaab7153ff42849acb0e817efee09fb078c1b";
+
 // For Factories
 export const subscriptionAddress = "0xa92EA6d6b6276a72700DdB1C50b246C2eDbdFa06"; // v1 on mumbai - temp - not verified
 

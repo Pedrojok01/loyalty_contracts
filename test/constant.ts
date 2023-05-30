@@ -19,6 +19,12 @@ export const promoType = {
   packs: 7,
 };
 
+export const voucher_type = {
+  freebies: 0,
+  fiatDiscount: 1,
+  percentDiscount: 2,
+};
+
 export const pricePerPlan = {
   basic: utils.parseEther("0.05"),
   pro: utils.parseEther("0.1"),
