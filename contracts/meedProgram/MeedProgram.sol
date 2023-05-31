@@ -272,6 +272,8 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     /**
      * @dev Allows to add a promotion to the list of promotions (both array & mapping)
      * @param promotion The address of the loyalty program contract
+     *
+     * !!! CALLED FROM A PROMOTION FACTORY ONLY !!!
      */
     function addPromotion(
         address promotion,
@@ -306,6 +308,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
             owner: to
         });
         membershipPerAddress[to] = newMembership;
+        membershipPerTokenID[tokenId] = newMembership;
 
         _safeMint(to, tokenId);
     }
@@ -318,7 +321,9 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         Membership memory memberData = membershipPerAddress[member];
         memberData.buyVolume += buyVolume;
         memberData.amountVolume += amountVolume;
+
         membershipPerAddress[member] = memberData;
+        membershipPerTokenID[memberData.tokenId] = memberData;
 
         if (memberData.level != 5) {
             _updateMemberLevel(member, memberData);
@@ -341,12 +346,13 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         } else newLevel = currentLevel;
 
         if (newLevel != currentLevel) {
-            _updateMemberLevelInternal(_member, newLevel);
+            _updateMemberLevelInternal(_member, newLevel, _memberData.tokenId);
         }
     }
 
-    function _updateMemberLevelInternal(address _member, uint8 _newLevel) private {
+    function _updateMemberLevelInternal(address _member, uint8 _newLevel, uint40 _tokenId) private {
         membershipPerAddress[_member].level = _newLevel;
+        membershipPerTokenID[_tokenId].level = _newLevel;
         emit LevelUpdated(_member, _newLevel);
     }
 

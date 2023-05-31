@@ -13,6 +13,7 @@ import {
   subscriptions_name,
   subscriptions_symbol,
   subscriptions_uris,
+  promoType,
 } from "./constant";
 
 describe("MeedProgram Contract", function () {
@@ -79,6 +80,22 @@ describe("MeedProgram Contract", function () {
     expect(tiers.diamond).to.equal(meedProgram_amounts[3]);
   });
 
+  it("should correctly determine whether a provided interface is supported", async () => {
+    const { meedProgram } = await loadFixture(deployFixture);
+
+    const ERC165_ID = "0x01ffc9a7";
+    const ERC721_ID = "0x80ac58cd";
+    const ERC721Enumerable_ID = "0x780e9d63";
+    const ERC721Metadata_ID = "0x5b5e139f";
+    const nonExistentInterface_ID = "0x12345678";
+
+    expect(await meedProgram.supportsInterface(ERC165_ID)).to.be.true;
+    expect(await meedProgram.supportsInterface(ERC721_ID)).to.be.true;
+    expect(await meedProgram.supportsInterface(ERC721Enumerable_ID)).to.be.true;
+    expect(await meedProgram.supportsInterface(ERC721Metadata_ID)).to.be.true;
+    expect(await meedProgram.supportsInterface(nonExistentInterface_ID)).to.be.false;
+  });
+
   /*///////////////////////////////////////////////////////////////////////////////
                                     MINTING
     ///////////////////////////////////////////////////////////////////////////////*/
@@ -118,6 +135,21 @@ describe("MeedProgram Contract", function () {
 
     await meedProgram.connect(owner).mint(user1.address);
     expect(await meedProgram.tokenURI(1)).to.equal(meedProgram_uri);
+  });
+
+  it("should be possible to get the Membership given a specific token ID", async () => {
+    const { meedProgram, user1, user2, admin } = await loadFixture(deployFixture);
+
+    await expect(meedProgram.tokenURI(1)).to.be.revertedWithCustomError(meedProgram, "MeedProgram_TokenDoesNotExist");
+
+    await meedProgram.connect(admin).mint(user1.address);
+    await meedProgram.connect(admin).mint(user2.address);
+
+    const answer1 = await meedProgram.getMembershipPerTokenID(1);
+    expect(answer1.owner).to.equal(user1.address);
+
+    const answer2 = await meedProgram.getMembershipPerTokenID(2);
+    expect(answer2.owner).to.equal(user2.address);
   });
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -217,6 +249,21 @@ describe("MeedProgram Contract", function () {
   /*///////////////////////////////////////////////////////////////////////////////
                                     PROMOTIONS
     ///////////////////////////////////////////////////////////////////////////////*/
+
+  it("shouldn't be possible to add a promotion directly without using a factory", async () => {
+    const { meedProgram, redeemableFactory } = await loadFixture(deployFixture);
+
+    // Check initial state
+    const initialPromos = await meedProgram.getAllPromotions();
+    expect(initialPromos.length).to.equal(0);
+
+    // Try to create a new promo directly
+    const startDate = Math.floor(Date.now() / 1000).toString();
+    const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
+    await expect(
+      meedProgram.addPromotion(redeemableFactory.address, promoType.discountVouchers, startDate, expirationDate)
+    ).to.be.revertedWith("MeedProgram: Not Authorized");
+  });
 
   it("should be possible to add a promotion", async () => {
     const { meedProgram, owner, redeemableFactory } = await loadFixture(deployFixture);

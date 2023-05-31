@@ -78,9 +78,24 @@ contract MeedProgramFactory is Context, Errors, Ownable {
      */
     IMeedProgram[] private meedProgramList;
 
+    /**
+     * @notice Map all factory address per ID and vice versa;
+     */
+    mapping(uint256 => address) private factoryIdPerAddress;
+    mapping(address => uint256) private fatoryAddressPerId;
+
     constructor(address adminRegistryAddress, address[] memory _factories) {
         _adminRegistry = adminRegistryAddress;
         factories = _factories;
+
+        uint256 length = _factories.length;
+        for (uint256 i = 0; i < length; ) {
+            factoryIdPerAddress[i] = _factories[i];
+            fatoryAddressPerId[_factories[i]] = i;
+            unchecked {
+                i++;
+            }
+        }
     }
 
     /*///////////////////////////////////////////////////////////////////////////////
@@ -179,29 +194,80 @@ contract MeedProgramFactory is Context, Errors, Ownable {
         return brands[meedId];
     }
 
+    /**
+     * @dev Returns the factory address for a given ID;
+     */
+    function getFactoryAddress(uint256 id) external view returns (address) {
+        return factoryIdPerAddress[id];
+    }
+
+    /**
+     * @dev Returns the factory ID for a given address;
+     */
+    function getFactoryId(address factory) external view returns (uint256) {
+        return fatoryAddressPerId[factory];
+    }
+
     /*///////////////////////////////////////////////////////////////////////////////
                                    RESTRICTED FACTORY FUNCTIONS
     ///////////////////////////////////////////////////////////////////////////////*/
 
-    // Setter function to add a factory
+    /**
+     * @dev Setter function that allows the owner to add a new Factory;
+     */
     function addFactory(address factory) external onlyOwner {
+        uint256 id = factories.length;
         factories.push(factory);
+
+        factoryIdPerAddress[id] = factory;
+        fatoryAddressPerId[factory] = id;
+
+        emit NewFactoryAdded(factory);
     }
 
-    // Updater function to modify a factory at a specific index
+    event NewFactoryAdded(address factory);
+
+    /**
+     * @dev Updater function that allows the owner to modify a factory at a specific index;
+     */
     function updateFactory(uint256 index, address factory) external onlyOwner {
-        require(index < factories.length, "Invalid index");
+        if (index >= factories.length) revert MeedProgramFactory_InvalidIndex();
+        address oldFactory = factories[index];
         factories[index] = factory;
+
+        factoryIdPerAddress[index] = factory;
+        fatoryAddressPerId[factory] = index;
+
+        emit FactoryUpdatedAdded(oldFactory, factory);
     }
 
-    // Deleter function to remove a factory at a specific index
+    event FactoryUpdatedAdded(address oldFactory, address newFactory);
+
+    /**
+     * @dev Deleter function that allows the owner to remove a factory at a specific index;
+     */
     function removeFactory(uint256 index) external onlyOwner {
-        require(index < factories.length, "Invalid index");
+        if (index >= factories.length) revert MeedProgramFactory_InvalidIndex();
+        address oldFactory = factories[index];
+        address lastFactory = factories[factories.length - 1];
+
         // Move the last element to the position of the element to be removed
         factories[index] = factories[factories.length - 1];
         // Remove the last element
         factories.pop();
+
+        // Update the mappings
+        factoryIdPerAddress[index] = lastFactory;
+        fatoryAddressPerId[lastFactory] = index;
+
+        // Delete the lastFactory from the mappings
+        delete factoryIdPerAddress[factories.length];
+        delete fatoryAddressPerId[oldFactory];
+
+        emit FactoryDeleted(oldFactory, index);
     }
+
+    event FactoryDeleted(address factory, uint256 index);
 
     /*///////////////////////////////////////////////////////////////////////////////
                                     PRIVATE FUNCTIONS

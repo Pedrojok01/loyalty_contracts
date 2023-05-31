@@ -21,6 +21,7 @@ contract Errors {
     // MeedProgramFactory
     error MeedProgramFactory_AlreadyExists();
     error MeedProgramFactory_NameAlreadyTaken();
+    error MeedProgramFactory_InvalidIndex();
 
     // RedeemableFactory
     error RedeemableFactory_TypeNotSupported();
@@ -58,6 +59,7 @@ contract Errors {
     error Redeemable__WrongValue();
     error Redeemable__NonExistantUser();
     error Redeemable__InsufficientLevel();
+    error Redeemable__InsufficientAmount();
 
     // Collectibles
     error Collectibles__InvalidTokenId();

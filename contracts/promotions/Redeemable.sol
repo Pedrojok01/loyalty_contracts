@@ -68,15 +68,13 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
         uint112 value; // 14 bytes
         uint120 circulatingSupply; // 15 bytes
         bool exist; // 1 byte
-        string redeemCode; // 32 bytes
+        uint32 amountThreshold; // 4 bytes
         // uint8: lvlRequirement
         // bytes32 productIdOrCurrency;
+        string redeemCode; // 32 bytes
     }
 
     RedeemableNFT[] private redeemableNFTs;
-
-    // Mapping of redeem codes to NFTs
-    // mapping(string => RedeemableNFT) public redeemCodes;
 
     constructor(
         string memory _uri,
@@ -113,6 +111,23 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited, SubscriberChecks {
     @param lvlMin Level required to mint the NFT (set to 1 for no level requirement);
     */
     function mint(uint256 id, address to, uint256 lvlMin) public onlyOwnerOrAdmin onlyOngoing onlyActive {
+        _mintRedeemable(id, to, lvlMin);
+    }
+
+    /**
+    @dev Automatic mint - Admin restricted - Allows to automatically send vouchers if buying conditions are met;
+    @param id Allow to choose the kind of NFT to be minted;
+    @param to Address which will receive the limited NFTs;
+    @param lvlMin Level required to mint the NFT (set to 1 for no level requirement);
+    @param purchasedAmount Amount of the purchase made by the user;
+    */
+    function autoMint(
+        uint256 id,
+        address to,
+        uint256 lvlMin,
+        uint32 purchasedAmount
+    ) public onlyAdmin onlyOngoing onlyActive {
+        if (redeemableNFTs[id].amountThreshold < purchasedAmount) revert Redeemable__InsufficientAmount();
         _mintRedeemable(id, to, lvlMin);
     }
 

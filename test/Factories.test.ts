@@ -9,6 +9,7 @@ import {
   MeedProgramFactory,
   RedeemableFactory,
   Subscriptions,
+  CollectiblesFactory,
 } from "../typechain-types";
 import {
   meedProgram_name,
@@ -79,6 +80,8 @@ describe("Promotions Factories Contract", function () {
     await adminRegistry.connect(admin).setMeedFactoryAddress(meedProgramFactory.address);
 
     return {
+      subscriptions,
+      adminRegistry,
       meedProgramFactory,
       redeemableFactory,
       nonExpirableFactory,
@@ -258,7 +261,7 @@ describe("Promotions Factories Contract", function () {
   });
 
   /*///////////////////////////////////////////////////////////////////////////////
-                            CREATE NEWNonExpirable PROMO
+                            CREATE NEW NonExpirable PROMO
     ///////////////////////////////////////////////////////////////////////////////*/
 
   it("should be possible to create newNonExpirable promo via the factory", async () => {
@@ -355,5 +358,88 @@ describe("Promotions Factories Contract", function () {
     // Check the new state  (1 promo)
     const allPromos = await meedProgram.getAllPromotions();
     expect(allPromos.length).to.equal(1);
+  });
+
+  /*///////////////////////////////////////////////////////////////////////////////
+                      HANDLE UPDATE/REMOVAL PROMO FACTORIES
+    ///////////////////////////////////////////////////////////////////////////////*/
+
+  it("should be possible to add a new factory", async () => {
+    const { adminRegistry, subscriptions, meedProgramFactory, user1 } = await loadFixture(deployFixture);
+
+    const CollectibleFactory = await ethers.getContractFactory("CollectiblesFactory");
+    const collectibleFactory: CollectiblesFactory = await CollectibleFactory.deploy(
+      subscriptions.address,
+      adminRegistry.address
+    );
+    await collectibleFactory.deployed();
+
+    // revert if not owner
+    await expect(meedProgramFactory.connect(user1).addFactory(collectibleFactory.address)).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
+
+    const receipt = await meedProgramFactory.addFactory(collectibleFactory.address);
+    await expect(receipt).to.emit(meedProgramFactory, "NewFactoryAdded").withArgs(collectibleFactory.address);
+  });
+
+  it("should be possible to update an existing factory", async () => {
+    const { adminRegistry, subscriptions, meedProgramFactory, user1 } = await loadFixture(deployFixture);
+
+    // 1. Deploy the new factory to be added
+    const CollectiblesFactory = await ethers.getContractFactory("CollectiblesFactory");
+    const collectiblesFactory: CollectiblesFactory = await CollectiblesFactory.deploy(
+      subscriptions.address,
+      adminRegistry.address
+    );
+    await collectiblesFactory.deployed();
+
+    // 2. Add the new factory and get its factory ID
+    await meedProgramFactory.addFactory(collectiblesFactory.address);
+
+    const index = await meedProgramFactory.getFactoryId(collectiblesFactory.address);
+    expect(index).to.equal(3);
+
+    // 3. Update the factory
+    const indexToReplace = 2;
+    const oldFactoryAddress = await meedProgramFactory.getFactoryAddress(indexToReplace);
+
+    // Revert if not owner
+    await expect(
+      meedProgramFactory.connect(user1).updateFactory(indexToReplace, collectiblesFactory.address)
+    ).to.be.revertedWith("Ownable: caller is not the owner");
+
+    // Revert if wrong index
+    const wrongIndex = 4;
+    await expect(
+      meedProgramFactory.updateFactory(wrongIndex, collectiblesFactory.address)
+    ).to.be.revertedWithCustomError(meedProgramFactory, "MeedProgramFactory_InvalidIndex");
+
+    const receipt = await meedProgramFactory.updateFactory(indexToReplace, collectiblesFactory.address);
+    await expect(receipt)
+      .to.emit(meedProgramFactory, "FactoryUpdatedAdded")
+      .withArgs(oldFactoryAddress, collectiblesFactory.address);
+  });
+
+  it("should be possible to delete an existing factory", async () => {
+    const { meedProgramFactory, user1 } = await loadFixture(deployFixture);
+
+    const indexToDelete = 1;
+    const factoryAddressToDelete = await meedProgramFactory.getFactoryAddress(indexToDelete);
+
+    // Revert if not owner
+    await expect(meedProgramFactory.connect(user1).removeFactory(indexToDelete)).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
+
+    // Revert if wrong index
+    const wrongIndex = 4;
+    await expect(meedProgramFactory.removeFactory(wrongIndex)).to.be.revertedWithCustomError(
+      meedProgramFactory,
+      "MeedProgramFactory_InvalidIndex"
+    );
+
+    const receipt = await meedProgramFactory.removeFactory(indexToDelete);
+    await expect(receipt).to.emit(meedProgramFactory, "FactoryDeleted").withArgs(factoryAddressToDelete, indexToDelete);
   });
 });
