@@ -12,47 +12,51 @@ import {Errors} from "../utils/Errors.sol";
  */
 
 contract SubscriberChecks is Context, Errors {
-    address private immutable SUBSCRIPTIONS_CONTRACT;
+  address private immutable SUBSCRIPTIONS_CONTRACT;
 
-    constructor(address _subscriptionsContract) {
-        SUBSCRIPTIONS_CONTRACT = _subscriptionsContract;
-    }
+  constructor(address _subscriptionsContract) {
+    SUBSCRIPTIONS_CONTRACT = _subscriptionsContract;
+  }
 
-    modifier onlySubscribers() {
-        _onlySubscribers(_msgSender());
-        _;
-    }
+  modifier onlySubscribers() {
+    _onlySubscribers(_msgSender());
+    _;
+  }
 
-    modifier onlyProOrEnterprise() {
-        _onlyProOrEnterprise(_msgSender());
-        _;
-    }
+  modifier onlyProOrEnterprise() {
+    _onlyProOrEnterprise(_msgSender());
+    _;
+  }
 
-    modifier onlyEnterprise() {
-        _onlyEnterprise(_msgSender());
-        _;
-    }
+  modifier onlyEnterprise() {
+    _onlyEnterprise(_msgSender());
+    _;
+  }
 
-    function _onlySubscribers(address subscriber) internal {
-        (bool success, ) = SUBSCRIPTIONS_CONTRACT.call(abi.encodeWithSignature("isSubscribers(address)", subscriber));
-        if (!success) {
-            revert SubscriberChecks__PleaseSubscribeFirst();
-        }
+  function _onlySubscribers(address subscriber) internal {
+    (bool success, ) = SUBSCRIPTIONS_CONTRACT.call(
+      abi.encodeWithSignature("isSubscribers(address)", subscriber)
+    );
+    if (!success) {
+      revert SubscriberChecks__PleaseSubscribeFirst();
     }
+  }
 
-    function _onlyProOrEnterprise(address subscriber) internal {
-        (bool success, ) = SUBSCRIPTIONS_CONTRACT.call(
-            abi.encodeWithSignature("isProOrEnterprise(address)", subscriber)
-        );
-        if (!success) {
-            revert SubscriberChecks__PleaseSubscribeToProOrEnterpriseFirst();
-        }
+  function _onlyProOrEnterprise(address subscriber) internal {
+    (bool success, ) = SUBSCRIPTIONS_CONTRACT.call(
+      abi.encodeWithSignature("isProOrEnterprise(address)", subscriber)
+    );
+    if (!success) {
+      revert SubscriberChecks__PleaseSubscribeToProOrEnterpriseFirst();
     }
+  }
 
-    function _onlyEnterprise(address subscriber) internal {
-        (bool success, ) = SUBSCRIPTIONS_CONTRACT.call(abi.encodeWithSignature("isEnterprise(address)", subscriber));
-        if (!success) {
-            revert SubscriberChecks__PleaseSubscribeToEnterpriseFirst();
-        }
+  function _onlyEnterprise(address subscriber) internal {
+    (bool success, ) = SUBSCRIPTIONS_CONTRACT.call(
+      abi.encodeWithSignature("isEnterprise(address)", subscriber)
+    );
+    if (!success) {
+      revert SubscriberChecks__PleaseSubscribeToEnterpriseFirst();
     }
+  }
 }

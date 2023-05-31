@@ -42,267 +42,290 @@ import {PromoDataLib} from "../library/PromoDataLib.sol";
  */
 
 contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, SubscriberChecks {
-    using SafeERC20 for IERC20;
-    // using PromoDataLib for PromoDataLib.BundlesPromoData;
+  using SafeERC20 for IERC20;
+  // using PromoDataLib for PromoDataLib.BundlesPromoData;
 
-    string private _baseURIextended;
-    MeedProgram private immutable meedProgram;
-    uint256 public immutable maxPackSupply;
-    uint256 private nonce;
+  string private _baseURIextended;
+  MeedProgram private immutable meedProgram;
+  uint256 public immutable maxPackSupply;
+  uint256 private nonce;
 
-    // constructor(
-    //     string memory _name,
-    //     string memory _symbol,
-    //     string memory _uri,
-    //     uint256 _startDate,
-    //     uint256 _expirationDate,
-    //     address _meedProgram,
-    //     uint256 _maxLimit,
-    //     address _owner,
-    //     address _contractAddress,
-    //     address adminRegistryAddress
-    // )
-    //     ERC721(_name, _symbol)
-    //     TimeLimited(_startDate, _expirationDate, address(this), adminRegistryAddress)
-    //     SubscriberChecks(_contractAddress)
-    // {
-    //     maxPackSupply = _maxLimit;
-    //     _baseURIextended = _uri;
-    //     meedProgram = MeedProgram(_meedProgram);
-    //     transferOwnership(_owner);
-    // }
+  // constructor(
+  //     string memory _name,
+  //     string memory _symbol,
+  //     string memory _uri,
+  //     uint256 _startDate,
+  //     uint256 _expirationDate,
+  //     address _meedProgram,
+  //     uint256 _maxLimit,
+  //     address _owner,
+  //     address _contractAddress,
+  //     address adminRegistryAddress
+  // )
+  //     ERC721(_name, _symbol)
+  //     TimeLimited(_startDate, _expirationDate, address(this), adminRegistryAddress)
+  //     SubscriberChecks(_contractAddress)
+  // {
+  //     maxPackSupply = _maxLimit;
+  //     _baseURIextended = _uri;
+  //     meedProgram = MeedProgram(_meedProgram);
+  //     transferOwnership(_owner);
+  // }
 
-    constructor(
-        string memory _name,
-        string memory _symbol,
-        string memory _uri,
-        PromoDataLib.BundlesPromoData memory data,
-        address adminRegistryAddress
-    )
-        ERC721(_name, _symbol)
-        TimeLimited(data._startDate, data._expirationDate, address(this), adminRegistryAddress)
-        SubscriberChecks(data._contractAddress)
-    {
-        maxPackSupply = data._maxLimit;
-        _baseURIextended = _uri;
-        meedProgram = MeedProgram(data._meedProgram);
-        transferOwnership(data._owner);
-    }
+  constructor(
+    string memory _name,
+    string memory _symbol,
+    string memory _uri,
+    PromoDataLib.BundlesPromoData memory data,
+    address adminRegistryAddress
+  )
+    ERC721(_name, _symbol)
+    TimeLimited(data._startDate, data._expirationDate, address(this), adminRegistryAddress)
+    SubscriberChecks(data._contractAddress)
+  {
+    maxPackSupply = data._maxLimit;
+    _baseURIextended = _uri;
+    meedProgram = MeedProgram(data._meedProgram);
+    transferOwnership(data._owner);
+  }
 
-    modifier onlyOngoing() override {
-        _onlyOngoing();
-        _;
-    }
+  modifier onlyOngoing() override {
+    _onlyOngoing();
+    _;
+  }
 
-    /*///////////////////////////////////////////////////////////////////////////////
+  /*///////////////////////////////////////////////////////////////////////////////
                                 MINT / BATCH_MINT / BURN
     ///////////////////////////////////////////////////////////////////////////////*/
 
-    /**
-     * @dev Returns a hash of all assets sent to the escrow contract. This hash is used as token_id and is the "key"
-     *  to claim the assets back.
-     * @param _salt Index-like parameter incremented by one with each new created NFT to prevent collision.
-     * @param _addresses Array containing all the contract addresses of every assets sent to the escrow contract.
-     * @param _numbers Array containing numbers, amounts and IDs for every assets sent to the escrow contract.
-     *
-     * @notice layout of _addresses:
-     *   erc20 addresses | erc721 addresses | erc1155 addresses
-     * @notice layout of _numbers:
-     *  eth | erc20.length | erc721.length | erc1155.length | erc20 amounts | erc721 ids | erc1155 ids | erc1155 amounts
-     */
-    function hash(
-        uint256 _salt,
-        address[] calldata _addresses,
-        uint256[] memory _numbers
-    ) public pure override returns (uint256 tokenId) {
-        bytes32 signature = keccak256(abi.encodePacked(_salt));
-        for (uint256 i = 0; i < _addresses.length; ) {
-            signature = keccak256(abi.encodePacked(signature, _addresses[i]));
-            unchecked {
-                i++;
-            }
-        }
-        for (uint256 j = 0; j < _numbers.length; ) {
-            signature = keccak256(abi.encodePacked(signature, _numbers[j]));
-            unchecked {
-                j++;
-            }
-        }
-        assembly {
-            tokenId := signature
-        }
+  /**
+   * @dev Returns a hash of all assets sent to the escrow contract. This hash is used as token_id and is the "key"
+   *  to claim the assets back.
+   * @param _salt Index-like parameter incremented by one with each new created NFT to prevent collision.
+   * @param _addresses Array containing all the contract addresses of every assets sent to the escrow contract.
+   * @param _numbers Array containing numbers, amounts and IDs for every assets sent to the escrow contract.
+   *
+   * @notice layout of _addresses:
+   *   erc20 addresses | erc721 addresses | erc1155 addresses
+   * @notice layout of _numbers:
+   *  eth | erc20.length | erc721.length | erc1155.length | erc20 amounts | erc721 ids | erc1155 ids | erc1155 amounts
+   */
+  function hash(
+    uint256 _salt,
+    address[] calldata _addresses,
+    uint256[] memory _numbers
+  ) public pure override returns (uint256 tokenId) {
+    bytes32 signature = keccak256(abi.encodePacked(_salt));
+    for (uint256 i = 0; i < _addresses.length; ) {
+      signature = keccak256(abi.encodePacked(signature, _addresses[i]));
+      unchecked {
+        i++;
+      }
+    }
+    for (uint256 j = 0; j < _numbers.length; ) {
+      signature = keccak256(abi.encodePacked(signature, _numbers[j]));
+      unchecked {
+        j++;
+      }
+    }
+    assembly {
+      tokenId := signature
+    }
+  }
+
+  /**
+   * @dev Transfer all assets to the escrow contract and emit an ERC721 NFT with a hash as token_id.
+   * @param _addresses Array containing all the contract addresses of every assets sent to the escrow contract.
+   * @param _numbers Array containing numbers, amounts and IDs for every assets sent to the escrow contract.
+   */
+  function safeMint(
+    address to,
+    uint256 lvlMin,
+    address[] calldata _addresses,
+    uint256[] memory _numbers
+  )
+    public
+    payable
+    override
+    onlyOwnerOrAdmin
+    onlyOngoing
+    onlyActive
+    onlyEnterprise
+    returns (uint256 tokenId)
+  {
+    if (to == address(0)) revert Bundles__MintToAddress0();
+    uint8 currentLevel = meedProgram.getMemberLevel(to);
+    if (currentLevel == 0) revert Redeemable__NonExistantUser();
+    if (currentLevel < uint8(lvlMin)) revert Redeemable__InsufficientLevel();
+    if (_addresses.length != _numbers[1] + _numbers[2] + _numbers[3])
+      revert Bundles__ArraysDontMatch();
+    if (_addresses.length != _numbers.length - 4 - _numbers[3]) revert Bundles__NumbersDontMatch();
+    if (maxPackSupply != 0 && nonce >= maxPackSupply) revert Bundles__MaxSupplyReached();
+
+    uint256 pointerA; //points to first erc20 address, if any
+    uint256 pointerB = 4; //points to first erc20 amount, if any
+    for (uint256 i = 0; i < _numbers[1]; ) {
+      if (_numbers[pointerB] <= 0) revert Bundles__CantSendZeroAmount();
+
+      IERC20 token = IERC20(_addresses[pointerA++]);
+      uint256 orgBalance = token.balanceOf(address(this));
+      token.safeTransferFrom(_msgSender(), address(this), _numbers[pointerB]);
+      _numbers[pointerB++] = token.balanceOf(address(this)) - orgBalance;
+      unchecked {
+        i++;
+      }
+    }
+    for (uint256 j = 0; j < _numbers[2]; ) {
+      IERC721(_addresses[pointerA++]).safeTransferFrom(
+        _msgSender(),
+        address(this),
+        _numbers[pointerB++]
+      );
+      unchecked {
+        j++;
+      }
+    }
+    for (uint256 k = 0; k < _numbers[3]; ) {
+      IERC1155(_addresses[pointerA++]).safeTransferFrom(
+        _msgSender(),
+        address(this),
+        _numbers[pointerB],
+        _numbers[_numbers[3] + pointerB++],
+        ""
+      );
+      unchecked {
+        k++;
+      }
+    }
+    tokenId = hash(nonce, _addresses, _numbers);
+    super._mint(to, tokenId);
+    emit BundleAsset(to, tokenId, nonce, _addresses, _numbers);
+    nonce++;
+  }
+
+  event BundleAsset(
+    address _to,
+    uint256 tokenId,
+    uint256 nonce,
+    address[] _addresses,
+    uint256[] _numbers
+  );
+
+  /**
+   * @dev Burn a previously emitted NFT to claim all the associated assets from the escrow contract.
+   * @param _addresses Array containing all the contract addresses of every assets sent to the escrow contract.
+   *  Emitted in the BundleAsset event (see interface).
+   * @param _arrayOfNumbers Array of arrays containing numbers, amounts and IDs for every batch of assets sent
+   *  to the escrow contract.
+   * @param _amountOfPacks === the number of packs that will be minted in this batch.
+   */
+  function batchMint(
+    address _to,
+    uint256 _lvlMin,
+    address[] calldata _addresses,
+    uint256[][] calldata _arrayOfNumbers,
+    uint256 _amountOfPacks
+  ) external payable onlyOwnerOrAdmin onlyOngoing {
+    if (_to == address(0)) revert Bundles__MintToAddress0();
+    if (msg.value != _arrayOfNumbers[0][0] * _amountOfPacks) revert Bundles__ValuesDontMatch();
+    if (maxPackSupply != 0 && nonce + _amountOfPacks > maxPackSupply)
+      revert Bundles__MaxSupplyReached();
+
+    for (uint256 i = 0; i < _amountOfPacks; ) {
+      safeMint(_to, _lvlMin, _addresses, _arrayOfNumbers[i]);
+      unchecked {
+        i++;
+      }
     }
 
-    /**
-     * @dev Transfer all assets to the escrow contract and emit an ERC721 NFT with a hash as token_id.
-     * @param _addresses Array containing all the contract addresses of every assets sent to the escrow contract.
-     * @param _numbers Array containing numbers, amounts and IDs for every assets sent to the escrow contract.
-     */
-    function safeMint(
-        address to,
-        uint256 lvlMin,
-        address[] calldata _addresses,
-        uint256[] memory _numbers
-    ) public payable override onlyOwnerOrAdmin onlyOngoing onlyActive onlyEnterprise returns (uint256 tokenId) {
-        if (to == address(0)) revert Bundles__MintToAddress0();
-        uint8 currentLevel = meedProgram.getMemberLevel(to);
-        if (currentLevel == 0) revert Redeemable__NonExistantUser();
-        if (currentLevel < uint8(lvlMin)) revert Redeemable__InsufficientLevel();
-        if (_addresses.length != _numbers[1] + _numbers[2] + _numbers[3]) revert Bundles__ArraysDontMatch();
-        if (_addresses.length != _numbers.length - 4 - _numbers[3]) revert Bundles__NumbersDontMatch();
-        if (maxPackSupply != 0 && nonce >= maxPackSupply) revert Bundles__MaxSupplyReached();
+    emit BatchBundleAsset(_to, _amountOfPacks);
+  }
 
-        uint256 pointerA; //points to first erc20 address, if any
-        uint256 pointerB = 4; //points to first erc20 amount, if any
-        for (uint256 i = 0; i < _numbers[1]; ) {
-            if (_numbers[pointerB] <= 0) revert Bundles__CantSendZeroAmount();
+  event BatchBundleAsset(address indexed firstHolder, uint256 amountOfPacks);
 
-            IERC20 token = IERC20(_addresses[pointerA++]);
-            uint256 orgBalance = token.balanceOf(address(this));
-            token.safeTransferFrom(_msgSender(), address(this), _numbers[pointerB]);
-            _numbers[pointerB++] = token.balanceOf(address(this)) - orgBalance;
-            unchecked {
-                i++;
-            }
-        }
-        for (uint256 j = 0; j < _numbers[2]; ) {
-            IERC721(_addresses[pointerA++]).safeTransferFrom(_msgSender(), address(this), _numbers[pointerB++]);
-            unchecked {
-                j++;
-            }
-        }
-        for (uint256 k = 0; k < _numbers[3]; ) {
-            IERC1155(_addresses[pointerA++]).safeTransferFrom(
-                _msgSender(),
-                address(this),
-                _numbers[pointerB],
-                _numbers[_numbers[3] + pointerB++],
-                ""
-            );
-            unchecked {
-                k++;
-            }
-        }
-        tokenId = hash(nonce, _addresses, _numbers);
-        super._mint(to, tokenId);
-        emit BundleAsset(to, tokenId, nonce, _addresses, _numbers);
-        nonce++;
+  /**
+   * @dev Burn a previously emitted NFT to claim all the associated assets from the escrow contract.
+   * @param _tokenId === hash of all associated assets.
+   * @param _salt === nonce. Emitted in the BundleAsset event (see interface).
+   * @param _addresses Array containing all the contract addresses of every assets sent to the escrow contract.
+   *  Emitted in the BundleAsset event (see interface).
+   * @param _numbers Array containing numbers, amounts and IDs for every assets sent to the escrow contract.
+   *  Emitted in the BundleAsset event (see interface).
+   */
+  function burn(
+    address _to,
+    uint256 _tokenId,
+    uint256 _salt,
+    address[] calldata _addresses,
+    uint256[] calldata _numbers
+  ) external override onlyOngoing onlyActive {
+    if (_msgSender() != ownerOf(_tokenId)) revert Bundles__TokenNotOwned();
+    if (_tokenId != hash(_salt, _addresses, _numbers)) revert Bundles__TokenIdDoesntMatch();
+
+    super._burn(_tokenId);
+
+    uint256 pointerA; //points to first erc20 address, if there is any
+    uint256 pointerB = 4; //points to first erc20 amount, if there is any
+    for (uint256 i = 0; i < _numbers[1]; ) {
+      IERC20(_addresses[pointerA++]).safeTransfer(_to, _numbers[pointerB++]);
+      unchecked {
+        i++;
+      }
+    }
+    for (uint256 j = 0; j < _numbers[2]; ) {
+      IERC721(_addresses[pointerA++]).safeTransferFrom(address(this), _to, _numbers[pointerB++]);
+      unchecked {
+        j++;
+      }
+    }
+    for (uint256 k = 0; k < _numbers[3]; ) {
+      IERC1155(_addresses[pointerA++]).safeTransferFrom(
+        address(this),
+        _to,
+        _numbers[pointerB],
+        _numbers[_numbers[3] + pointerB++],
+        ""
+      );
+      unchecked {
+        k++;
+      }
     }
 
-    event BundleAsset(address _to, uint256 tokenId, uint256 nonce, address[] _addresses, uint256[] _numbers);
+    payable(_to).transfer(_numbers[0]);
 
-    /**
-     * @dev Burn a previously emitted NFT to claim all the associated assets from the escrow contract.
-     * @param _addresses Array containing all the contract addresses of every assets sent to the escrow contract.
-     *  Emitted in the BundleAsset event (see interface).
-     * @param _arrayOfNumbers Array of arrays containing numbers, amounts and IDs for every batch of assets sent
-     *  to the escrow contract.
-     * @param _amountOfPacks === the number of packs that will be minted in this batch.
-     */
-    function batchMint(
-        address _to,
-        uint256 _lvlMin,
-        address[] calldata _addresses,
-        uint256[][] calldata _arrayOfNumbers,
-        uint256 _amountOfPacks
-    ) external payable onlyOwnerOrAdmin onlyOngoing {
-        if (_to == address(0)) revert Bundles__MintToAddress0();
-        if (msg.value != _arrayOfNumbers[0][0] * _amountOfPacks) revert Bundles__ValuesDontMatch();
-        if (maxPackSupply != 0 && nonce + _amountOfPacks > maxPackSupply) revert Bundles__MaxSupplyReached();
+    emit BundleAssetClaimed(_tokenId, _to, _addresses, _numbers);
+  }
 
-        for (uint256 i = 0; i < _amountOfPacks; ) {
-            safeMint(_to, _lvlMin, _addresses, _arrayOfNumbers[i]);
-            unchecked {
-                i++;
-            }
-        }
+  event BundleAssetClaimed(uint256 tokenId, address _to, address[] _addresses, uint256[] _numbers);
 
-        emit BatchBundleAsset(_to, _amountOfPacks);
-    }
-
-    event BatchBundleAsset(address indexed firstHolder, uint256 amountOfPacks);
-
-    /**
-     * @dev Burn a previously emitted NFT to claim all the associated assets from the escrow contract.
-     * @param _tokenId === hash of all associated assets.
-     * @param _salt === nonce. Emitted in the BundleAsset event (see interface).
-     * @param _addresses Array containing all the contract addresses of every assets sent to the escrow contract.
-     *  Emitted in the BundleAsset event (see interface).
-     * @param _numbers Array containing numbers, amounts and IDs for every assets sent to the escrow contract.
-     *  Emitted in the BundleAsset event (see interface).
-     */
-    function burn(
-        address _to,
-        uint256 _tokenId,
-        uint256 _salt,
-        address[] calldata _addresses,
-        uint256[] calldata _numbers
-    ) external override onlyOngoing onlyActive {
-        if (_msgSender() != ownerOf(_tokenId)) revert Bundles__TokenNotOwned();
-        if (_tokenId != hash(_salt, _addresses, _numbers)) revert Bundles__TokenIdDoesntMatch();
-
-        super._burn(_tokenId);
-
-        uint256 pointerA; //points to first erc20 address, if there is any
-        uint256 pointerB = 4; //points to first erc20 amount, if there is any
-        for (uint256 i = 0; i < _numbers[1]; ) {
-            IERC20(_addresses[pointerA++]).safeTransfer(_to, _numbers[pointerB++]);
-            unchecked {
-                i++;
-            }
-        }
-        for (uint256 j = 0; j < _numbers[2]; ) {
-            IERC721(_addresses[pointerA++]).safeTransferFrom(address(this), _to, _numbers[pointerB++]);
-            unchecked {
-                j++;
-            }
-        }
-        for (uint256 k = 0; k < _numbers[3]; ) {
-            IERC1155(_addresses[pointerA++]).safeTransferFrom(
-                address(this),
-                _to,
-                _numbers[pointerB],
-                _numbers[_numbers[3] + pointerB++],
-                ""
-            );
-            unchecked {
-                k++;
-            }
-        }
-
-        payable(_to).transfer(_numbers[0]);
-
-        emit BundleAssetClaimed(_tokenId, _to, _addresses, _numbers);
-    }
-
-    event BundleAssetClaimed(uint256 tokenId, address _to, address[] _addresses, uint256[] _numbers);
-
-    /*///////////////////////////////////////////////////////////////////////////////
+  /*///////////////////////////////////////////////////////////////////////////////
                                         VIEW
     ///////////////////////////////////////////////////////////////////////////////*/
 
-    function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        if (!_exists(tokenId)) {
-            revert Bundles__TokenURIQueryForNonexistentToken();
-        }
-        return _baseURIextended;
+  function tokenURI(uint256 tokenId) public view override returns (string memory) {
+    if (!_exists(tokenId)) {
+      revert Bundles__TokenURIQueryForNonexistentToken();
     }
+    return _baseURIextended;
+  }
 
-    function supportsInterface(bytes4 interfaceId) public view override(ERC721, ERC1155Receiver) returns (bool) {
-        return ERC721.supportsInterface(interfaceId) || ERC1155Receiver.supportsInterface(interfaceId);
-    }
+  function supportsInterface(
+    bytes4 interfaceId
+  ) public view override(ERC721, ERC1155Receiver) returns (bool) {
+    return ERC721.supportsInterface(interfaceId) || ERC1155Receiver.supportsInterface(interfaceId);
+  }
 
-    /*///////////////////////////////////////////////////////////////////////////////
+  /*///////////////////////////////////////////////////////////////////////////////
                                     INTERNAL / PRIVATE
     ///////////////////////////////////////////////////////////////////////////////*/
 
-    function _onlyOngoing() internal override {
-        if (this.isExpired()) {
-            if (this.isActive()) {
-                this.deactivate();
-                meedProgram.switchStatus(address(this), false);
-            }
-            revert Bundles__EventExpired();
-        }
+  function _onlyOngoing() internal override {
+    if (this.isExpired()) {
+      if (this.isActive()) {
+        this.deactivate();
+        meedProgram.switchStatus(address(this), false);
+      }
+      revert Bundles__EventExpired();
     }
+  }
 }

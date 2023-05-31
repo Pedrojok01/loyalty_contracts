@@ -19,51 +19,59 @@ import {Collectibles} from "../promotions/Collectibles.sol";
  */
 
 contract CollectiblesFactory is Context, Errors {
-    using PromoLib for PromoLib.Promotion;
+  using PromoLib for PromoLib.Promotion;
 
-    address private immutable CONTROL_ADDRESS; // Subscriptions contract address
-    address private _adminRegistry;
+  address private immutable CONTROL_ADDRESS; // Subscriptions contract address
+  address private _adminRegistry;
 
-    constructor(address _controlAddress, address adminRegistryAddress) {
-        CONTROL_ADDRESS = _controlAddress;
-        _adminRegistry = adminRegistryAddress;
-    }
+  constructor(address _controlAddress, address adminRegistryAddress) {
+    CONTROL_ADDRESS = _controlAddress;
+    _adminRegistry = adminRegistryAddress;
+  }
 
-    /*///////////////////////////////////////////////////////////////////////////////
+  /*///////////////////////////////////////////////////////////////////////////////
                                         FACTORY
     ///////////////////////////////////////////////////////////////////////////////*/
 
-    /**
-     * @dev Call this function to create a new Collectibles promotion contract.
-     * @param uri  URI of the promotions(user input).
-     * @param startDate Date which mark the start of the promo;
-     * @param endDate Date which mark the end of the promo;
-     * @param meedProgram  MeedProgram address (user input).
-     * @param _type  Type of the promotions to be created (user input).
-     * - 4 = Stamps
-     * - 5 = Paninis
-     * @return newPromotion Instance of the newly created promotion.
-     */
-    function createNewPromotion(
-        string[] memory uri,
-        uint256 startDate,
-        uint256 endDate,
-        address meedProgram,
-        PromoLib.PromotionsType _type
-    ) external returns (address newPromotion) {
-        if (_type != PromoLib.PromotionsType.Stamps && _type != PromoLib.PromotionsType.Paninis)
-            revert CollectiblesFactory_TypeNotSupported();
+  /**
+   * @dev Call this function to create a new Collectibles promotion contract.
+   * @param uri  URI of the promotions(user input).
+   * @param startDate Date which mark the start of the promo;
+   * @param endDate Date which mark the end of the promo;
+   * @param meedProgram  MeedProgram address (user input).
+   * @param _type  Type of the promotions to be created (user input).
+   * - 4 = Stamps
+   * - 5 = Paninis
+   * @return newPromotion Instance of the newly created promotion.
+   */
+  function createNewPromotion(
+    string[] memory uri,
+    uint256 startDate,
+    uint256 endDate,
+    address meedProgram,
+    PromoLib.PromotionsType _type
+  ) external returns (address newPromotion) {
+    if (_type != PromoLib.PromotionsType.Stamps && _type != PromoLib.PromotionsType.Paninis)
+      revert CollectiblesFactory_TypeNotSupported();
 
-        newPromotion = address(
-            new Collectibles(uri, _msgSender(), startDate, endDate, meedProgram, CONTROL_ADDRESS, _adminRegistry)
-        );
+    newPromotion = address(
+      new Collectibles(
+        uri,
+        _msgSender(),
+        startDate,
+        endDate,
+        meedProgram,
+        CONTROL_ADDRESS,
+        _adminRegistry
+      )
+    );
 
-        IMeedProgram program = IMeedProgram(meedProgram);
-        program.addPromotion(newPromotion, _type, uint128(startDate), uint128(endDate));
+    IMeedProgram program = IMeedProgram(meedProgram);
+    program.addPromotion(newPromotion, _type, uint128(startDate), uint128(endDate));
 
-        emit NewPromotionCreated(_msgSender(), newPromotion);
-        return newPromotion;
-    }
+    emit NewPromotionCreated(_msgSender(), newPromotion);
+    return newPromotion;
+  }
 
-    event NewPromotionCreated(address indexed owner, address indexed newPromotion);
+  event NewPromotionCreated(address indexed owner, address indexed newPromotion);
 }

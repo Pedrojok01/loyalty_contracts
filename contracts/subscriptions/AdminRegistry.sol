@@ -28,123 +28,123 @@ import {Errors} from "../utils/Errors.sol";
  */
 
 contract AdminRegistry is Context, Errors {
-    address private _admin;
-    address private _meedProgramFactory = address(0);
+  address private _admin;
+  address private _meedProgramFactory = address(0);
 
-    struct UserStatus {
-        bool exists;
-        bool optedOut;
+  struct UserStatus {
+    bool exists;
+    bool optedOut;
+  }
+
+  mapping(address => UserStatus) private _userStatuses;
+
+  event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
+  event MeedFactoryAddressSet(address indexed oldFactory, address indexed newFactory);
+  event UserOptOutStatusChanged(address indexed user, bool optedOut);
+
+  constructor(address newAdmin) {
+    require(newAdmin != address(0), "AdminRegistry: address zero");
+    _admin = newAdmin;
+  }
+
+  modifier onlyAdmin() {
+    _checkAdmin();
+    _;
+  }
+
+  modifier onlyAdminOrFactory() {
+    _checkAdminOrFactory();
+    _;
+  }
+
+  modifier onlyRegisteredUser() {
+    if (!_userStatuses[_msgSender()].exists) revert AdminRegistry__UserNotRegistered();
+    _;
+  }
+
+  function registerOwner(address newMeedOwner) external onlyAdminOrFactory {
+    _userStatuses[newMeedOwner] = UserStatus({exists: true, optedOut: false});
+  }
+
+  /**
+   * @dev The OptOut status is deactivated by default, so the admin can manage each program.
+   * If the OptOut status is activated, it will leaves all contracts and promotions without admin.
+   * It will not be possible to call `onlyAdmin` functions anymore.
+   * Only the owner will be able to reactivate the admin.
+   *
+   * NOTE: Renouncing adminship will leave the contract without an admin,
+   * thereby removing all functionalities that the admin can handle for the owner.
+   * The loyalty program will have to be managed entirely and exclusively by the owner.
+   *
+   * !!! MAKE SURE TO KNOW WHAT YOU ARE DOING !!!
+   */
+  function switchAdminStatus() public onlyRegisteredUser {
+    UserStatus storage status = _userStatuses[_msgSender()];
+    status.optedOut = !status.optedOut;
+    emit UserOptOutStatusChanged(_msgSender(), status.optedOut);
+  }
+
+  /**
+   * @dev Transfers adminship of the contract to a new account (`newAdmin`).
+   * Internal function without access restriction.
+   */
+  function transferAdmin(address newAdmin) external onlyAdmin {
+    if (newAdmin == address(0)) {
+      revert AdminRegistry__AddressZero();
     }
+    address oldAdmin = _admin;
+    _admin = newAdmin;
+    emit AdminTransferred(oldAdmin, newAdmin);
+  }
 
-    mapping(address => UserStatus) private _userStatuses;
+  /**
+   * @dev Returns the address of the current admin.
+   */
+  function admin() public view virtual returns (address) {
+    return _admin;
+  }
 
-    event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
-    event MeedFactoryAddressSet(address indexed oldFactory, address indexed newFactory);
-    event UserOptOutStatusChanged(address indexed user, bool optedOut);
+  /**
+   * @dev Returns true is a user exists (is owner of a MeedProgram).
+   */
+  function isExistingUser(address account) public view returns (bool) {
+    return _userStatuses[account].exists;
+  }
 
-    constructor(address newAdmin) {
-        require(newAdmin != address(0), "AdminRegistry: address zero");
-        _admin = newAdmin;
+  /**
+   * @dev Returns true if the user has opted out of adminship.
+   */
+  function isUserOptedOut(address account) public view returns (bool) {
+    return _userStatuses[account].optedOut;
+  }
+
+  /**
+   * @dev Allows to set the MeedProgramFactory address used in the modifer.
+   */
+  function setMeedFactoryAddress(address newFactory) external onlyAdmin {
+    if (newFactory == address(0)) {
+      revert AdminRegistry__AddressZero();
     }
+    address oldFactory = _meedProgramFactory;
+    _meedProgramFactory = newFactory;
+    emit AdminTransferred(oldFactory, newFactory);
+  }
 
-    modifier onlyAdmin() {
-        _checkAdmin();
-        _;
+  /**
+   * @dev Throws if the sender is not the admin.
+   */
+  function _checkAdmin() private view {
+    if (admin() != _msgSender()) {
+      revert AdminRegistry__NotAuthorized();
     }
+  }
 
-    modifier onlyAdminOrFactory() {
-        _checkAdminOrFactory();
-        _;
+  /**
+   * @dev Throws if the sender is not the admin or the MeedProgram factory.
+   */
+  function _checkAdminOrFactory() private view {
+    if (admin() != _msgSender() && _meedProgramFactory != _msgSender()) {
+      revert AdminRegistry__NotAuthorized();
     }
-
-    modifier onlyRegisteredUser() {
-        if (!_userStatuses[_msgSender()].exists) revert AdminRegistry__UserNotRegistered();
-        _;
-    }
-
-    function registerOwner(address newMeedOwner) external onlyAdminOrFactory {
-        _userStatuses[newMeedOwner] = UserStatus({exists: true, optedOut: false});
-    }
-
-    /**
-     * @dev The OptOut status is deactivated by default, so the admin can manage each program.
-     * If the OptOut status is activated, it will leaves all contracts and promotions without admin.
-     * It will not be possible to call `onlyAdmin` functions anymore.
-     * Only the owner will be able to reactivate the admin.
-     *
-     * NOTE: Renouncing adminship will leave the contract without an admin,
-     * thereby removing all functionalities that the admin can handle for the owner.
-     * The loyalty program will have to be managed entirely and exclusively by the owner.
-     *
-     * !!! MAKE SURE TO KNOW WHAT YOU ARE DOING !!!
-     */
-    function switchAdminStatus() public onlyRegisteredUser {
-        UserStatus storage status = _userStatuses[_msgSender()];
-        status.optedOut = !status.optedOut;
-        emit UserOptOutStatusChanged(_msgSender(), status.optedOut);
-    }
-
-    /**
-     * @dev Transfers adminship of the contract to a new account (`newAdmin`).
-     * Internal function without access restriction.
-     */
-    function transferAdmin(address newAdmin) external onlyAdmin {
-        if (newAdmin == address(0)) {
-            revert AdminRegistry__AddressZero();
-        }
-        address oldAdmin = _admin;
-        _admin = newAdmin;
-        emit AdminTransferred(oldAdmin, newAdmin);
-    }
-
-    /**
-     * @dev Returns the address of the current admin.
-     */
-    function admin() public view virtual returns (address) {
-        return _admin;
-    }
-
-    /**
-     * @dev Returns true is a user exists (is owner of a MeedProgram).
-     */
-    function isExistingUser(address account) public view returns (bool) {
-        return _userStatuses[account].exists;
-    }
-
-    /**
-     * @dev Returns true if the user has opted out of adminship.
-     */
-    function isUserOptedOut(address account) public view returns (bool) {
-        return _userStatuses[account].optedOut;
-    }
-
-    /**
-     * @dev Allows to set the MeedProgramFactory address used in the modifer.
-     */
-    function setMeedFactoryAddress(address newFactory) external onlyAdmin {
-        if (newFactory == address(0)) {
-            revert AdminRegistry__AddressZero();
-        }
-        address oldFactory = _meedProgramFactory;
-        _meedProgramFactory = newFactory;
-        emit AdminTransferred(oldFactory, newFactory);
-    }
-
-    /**
-     * @dev Throws if the sender is not the admin.
-     */
-    function _checkAdmin() private view {
-        if (admin() != _msgSender()) {
-            revert AdminRegistry__NotAuthorized();
-        }
-    }
-
-    /**
-     * @dev Throws if the sender is not the admin or the MeedProgram factory.
-     */
-    function _checkAdminOrFactory() private view {
-        if (admin() != _msgSender() && _meedProgramFactory != _msgSender()) {
-            revert AdminRegistry__NotAuthorized();
-        }
-    }
+  }
 }

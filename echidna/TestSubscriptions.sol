@@ -3,19 +3,22 @@ pragma solidity 0.8.18;
 import {Subscriptions} from "../contracts/subscriptions/Subscriptions.sol";
 
 contract TestSubscriptions is Subscriptions {
-    address echidna_caller = msg.sender;
+  address echidna_caller = msg.sender;
 
-    constructor() public Subscriptions("TEST", "TST", ["1", "2", "3"]) {}
+  constructor() public Subscriptions("TEST", "TST", ["1", "2", "3"]) {}
 
-    // function echidna_*() public returns (bool) {
+  // function echidna_*() public returns (bool) {
 
-    function echidna_constructor() public returns (bool) {
-        return baseURIs.length == 3;
-    }
+  function echidna_constructor() public returns (bool) {
+    return baseURIs.length == 3;
+  }
 
-    function echidna_getRemainingTimeAndPrice(address _user, uint256 _subscriptionId) public returns (bool) {
-        return getSubscription(_user, _subscriptionId);
-    }
+  function echidna_getRemainingTimeAndPrice(
+    address _user,
+    uint256 _subscriptionId
+  ) public returns (bool) {
+    return getSubscription(_user, _subscriptionId);
+  }
 }
 
 /*  Assertion example:

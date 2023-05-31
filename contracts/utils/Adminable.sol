@@ -18,53 +18,53 @@ import {Errors} from "./Errors.sol";
  */
 
 contract Adminable is Ownable, Errors {
-    AdminRegistry private _adminRegistry;
+  AdminRegistry private _adminRegistry;
 
-    constructor(address adminRegistry_) {
-        require(adminRegistry_ != address(0), "Adminable: address zero");
-        _adminRegistry = AdminRegistry(adminRegistry_);
-    }
+  constructor(address adminRegistry_) {
+    require(adminRegistry_ != address(0), "Adminable: address zero");
+    _adminRegistry = AdminRegistry(adminRegistry_);
+  }
 
-    modifier onlyOwnerOrAdmin() {
-        _checkOwnerOrAdmin();
-        _;
-    }
+  modifier onlyOwnerOrAdmin() {
+    _checkOwnerOrAdmin();
+    _;
+  }
 
-    modifier onlyAdmin() {
-        _checkAdmin();
-        _;
-    }
+  modifier onlyAdmin() {
+    _checkAdmin();
+    _;
+  }
 
-    /**
-     * @dev Returns the address of the current admin.
-     */
-    function admin() public view returns (address) {
-        return _adminRegistry.admin();
-    }
+  /**
+   * @dev Returns the address of the current admin.
+   */
+  function admin() public view returns (address) {
+    return _adminRegistry.admin();
+  }
 
-    /**
-     * @dev Throws if the sender is not the owner or admin.
-     */
-    function _checkOwnerOrAdmin() private view {
-        bool exists = _adminRegistry.isExistingUser(owner());
-        if (!exists) {
-            revert Adminable__UserNotRegistered();
-        }
-        bool optedOut = _adminRegistry.isUserOptedOut(owner());
-        if (optedOut) {
-            revert Adminable__UserOptedOut();
-        }
-        if (owner() != _msgSender() && _adminRegistry.admin() != _msgSender()) {
-            revert Adminable__NotAuthorized();
-        }
+  /**
+   * @dev Throws if the sender is not the owner or admin.
+   */
+  function _checkOwnerOrAdmin() private view {
+    bool exists = _adminRegistry.isExistingUser(owner());
+    if (!exists) {
+      revert Adminable__UserNotRegistered();
     }
+    bool optedOut = _adminRegistry.isUserOptedOut(owner());
+    if (optedOut) {
+      revert Adminable__UserOptedOut();
+    }
+    if (owner() != _msgSender() && _adminRegistry.admin() != _msgSender()) {
+      revert Adminable__NotAuthorized();
+    }
+  }
 
-    /**
-     * @dev Throws if the sender is not the admin.
-     */
-    function _checkAdmin() private view {
-        if (_adminRegistry.admin() != _msgSender()) {
-            revert Adminable__NotAuthorized();
-        }
+  /**
+   * @dev Throws if the sender is not the admin.
+   */
+  function _checkAdmin() private view {
+    if (_adminRegistry.admin() != _msgSender()) {
+      revert Adminable__NotAuthorized();
     }
+  }
 }
