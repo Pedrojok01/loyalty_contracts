@@ -1,5 +1,5 @@
 <div align="center">
-<img src="./Meed_Logo_black.png"  width="100px" />
+<img src="./meed_logo_black.png"  width="100px" />
 
 <h1><strong>Meed Loyalty - Smart Contracts</strong></h1>
 

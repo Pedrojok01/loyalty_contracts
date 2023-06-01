@@ -34,8 +34,7 @@ describe("Promotions Factories Contract", function () {
     const subscriptions: Subscriptions = await Subscriptions.deploy(
       subscriptions_name,
       subscriptions_symbol,
-      subscriptions_uris,
-      admin.address
+      subscriptions_uris
     );
     await subscriptions.deployed();
 
@@ -66,15 +65,18 @@ describe("Promotions Factories Contract", function () {
     await nonExpirableFactory.deployed();
 
     const BundlesFactory = await ethers.getContractFactory("BundlesFactory");
-    const bundlesFactory: BundlesFactory = await BundlesFactory.deploy(subscriptions.address, adminRegistry.address);
+    const bundlesFactory: BundlesFactory = await BundlesFactory.deploy(
+      subscriptions.address,
+      adminRegistry.address
+    );
     await bundlesFactory.deployed();
 
     const MeedProgramFactory = await ethers.getContractFactory("MeedProgramFactory");
-    const meedProgramFactory: MeedProgramFactory = await MeedProgramFactory.deploy(adminRegistry.address, [
-      redeemableFactory.address,
-      nonExpirableFactory.address,
-      bundlesFactory.address,
-    ]);
+    const meedProgramFactory: MeedProgramFactory = await MeedProgramFactory.deploy(
+      subscriptions.address,
+      adminRegistry.address,
+      [redeemableFactory.address, nonExpirableFactory.address, bundlesFactory.address]
+    );
     await meedProgramFactory.deployed();
 
     await adminRegistry.connect(admin).setMeedFactoryAddress(meedProgramFactory.address);
@@ -95,9 +97,8 @@ describe("Promotions Factories Contract", function () {
   }
 
   it("should initialise all factories contract correctly", async () => {
-    const { meedProgramFactory, redeemableFactory, nonExpirableFactory, bundlesFactory } = await loadFixture(
-      deployFixture
-    );
+    const { meedProgramFactory, redeemableFactory, nonExpirableFactory, bundlesFactory } =
+      await loadFixture(deployFixture);
 
     expect(await meedProgramFactory.factories(0)).to.equal(redeemableFactory.address);
     expect(await meedProgramFactory.factories(1)).to.equal(nonExpirableFactory.address);
@@ -251,7 +252,9 @@ describe("Promotions Factories Contract", function () {
       meedProgramAddress,
       promoType.freeProducts
     );
-    await expect(receipt).to.emit(redeemableFactory, "NewPromotionCreated").withArgs(owner.address, anyValue);
+    await expect(receipt)
+      .to.emit(redeemableFactory, "NewPromotionCreated")
+      .withArgs(owner.address, anyValue);
 
     const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
 
@@ -365,7 +368,9 @@ describe("Promotions Factories Contract", function () {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   it("should be possible to add a new factory", async () => {
-    const { adminRegistry, subscriptions, meedProgramFactory, user1 } = await loadFixture(deployFixture);
+    const { adminRegistry, subscriptions, meedProgramFactory, user1 } = await loadFixture(
+      deployFixture
+    );
 
     const CollectibleFactory = await ethers.getContractFactory("CollectiblesFactory");
     const collectibleFactory: CollectiblesFactory = await CollectibleFactory.deploy(
@@ -375,16 +380,20 @@ describe("Promotions Factories Contract", function () {
     await collectibleFactory.deployed();
 
     // revert if not owner
-    await expect(meedProgramFactory.connect(user1).addFactory(collectibleFactory.address)).to.be.revertedWith(
-      "Ownable: caller is not the owner"
-    );
+    await expect(
+      meedProgramFactory.connect(user1).addFactory(collectibleFactory.address)
+    ).to.be.revertedWith("Ownable: caller is not the owner");
 
     const receipt = await meedProgramFactory.addFactory(collectibleFactory.address);
-    await expect(receipt).to.emit(meedProgramFactory, "NewFactoryAdded").withArgs(collectibleFactory.address);
+    await expect(receipt)
+      .to.emit(meedProgramFactory, "NewFactoryAdded")
+      .withArgs(collectibleFactory.address);
   });
 
   it("should be possible to update an existing factory", async () => {
-    const { adminRegistry, subscriptions, meedProgramFactory, user1 } = await loadFixture(deployFixture);
+    const { adminRegistry, subscriptions, meedProgramFactory, user1 } = await loadFixture(
+      deployFixture
+    );
 
     // 1. Deploy the new factory to be added
     const CollectiblesFactory = await ethers.getContractFactory("CollectiblesFactory");
@@ -415,7 +424,10 @@ describe("Promotions Factories Contract", function () {
       meedProgramFactory.updateFactory(wrongIndex, collectiblesFactory.address)
     ).to.be.revertedWithCustomError(meedProgramFactory, "MeedProgramFactory_InvalidIndex");
 
-    const receipt = await meedProgramFactory.updateFactory(indexToReplace, collectiblesFactory.address);
+    const receipt = await meedProgramFactory.updateFactory(
+      indexToReplace,
+      collectiblesFactory.address
+    );
     await expect(receipt)
       .to.emit(meedProgramFactory, "FactoryUpdatedAdded")
       .withArgs(oldFactoryAddress, collectiblesFactory.address);
@@ -440,6 +452,8 @@ describe("Promotions Factories Contract", function () {
     );
 
     const receipt = await meedProgramFactory.removeFactory(indexToDelete);
-    await expect(receipt).to.emit(meedProgramFactory, "FactoryDeleted").withArgs(factoryAddressToDelete, indexToDelete);
+    await expect(receipt)
+      .to.emit(meedProgramFactory, "FactoryDeleted")
+      .withArgs(factoryAddressToDelete, indexToDelete);
   });
 });

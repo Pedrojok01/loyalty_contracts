@@ -56,7 +56,6 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
-  address private _adminRegistry;
   Counters.Counter private _tokenIds;
   string[3] private baseURIs;
 
@@ -88,13 +87,11 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
   constructor(
     string memory name_,
     string memory symbol_,
-    string[3] memory uris_,
-    address adminRegistryAddress
+    string[3] memory uris_
   ) ERC721(name_, symbol_) {
     require(uris_.length == 3, "Subscriptions: Invalid URIs length");
     _initialize();
     baseURIs = uris_;
-    _adminRegistry = adminRegistryAddress;
   }
 
   /*///////////////////////////////////////////////////////////////////////////////

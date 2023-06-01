@@ -3,7 +3,13 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { NonExpirable, NonExpirableFactory, MeedProgram, MeedProgramFactory, Subscriptions } from "../typechain-types";
+import {
+  NonExpirable,
+  NonExpirableFactory,
+  MeedProgram,
+  MeedProgramFactory,
+  Subscriptions,
+} from "../typechain-types";
 import {
   pricePerPlan,
   meedProgram_name,
@@ -27,8 +33,7 @@ describe("NonExpirable Promotion Contract", function () {
     const subscriptions: Subscriptions = await Subscriptions.deploy(
       subscriptions_name,
       subscriptions_symbol,
-      subscriptions_uris,
-      admin.address
+      subscriptions_uris
     );
     await subscriptions.deployed();
 
@@ -44,11 +49,11 @@ describe("NonExpirable Promotion Contract", function () {
     await nonExpirableFactory.deployed();
 
     const MeedProgramFactory = await ethers.getContractFactory("MeedProgramFactory");
-    const meedProgramFactory: MeedProgramFactory = await MeedProgramFactory.deploy(adminRegistry.address, [
-      nonExpirableFactory.address,
-      nonExpirableFactory.address,
-      nonExpirableFactory.address,
-    ]);
+    const meedProgramFactory: MeedProgramFactory = await MeedProgramFactory.deploy(
+      subscriptions.address,
+      adminRegistry.address,
+      [nonExpirableFactory.address, nonExpirableFactory.address, nonExpirableFactory.address]
+    );
     await meedProgramFactory.deployed();
 
     await adminRegistry.connect(admin).setMeedFactoryAddress(meedProgramFactory.address);
@@ -99,7 +104,8 @@ describe("NonExpirable Promotion Contract", function () {
   }
 
   it("should initialise all factories contract correctly", async () => {
-    const { meedProgramFactory, nonExpirableFactory, nonExpirable, owner, admin } = await loadFixture(deployFixture);
+    const { meedProgramFactory, nonExpirableFactory, nonExpirable, owner, admin } =
+      await loadFixture(deployFixture);
 
     expect(await meedProgramFactory.factories(1)).to.equal(nonExpirableFactory.address);
     expect(await nonExpirable.name()).to.equal("NonExpirable");
@@ -113,13 +119,17 @@ describe("NonExpirable Promotion Contract", function () {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   it("should mint a new NFT", async () => {
-    const { subscriptions, meedProgram, nonExpirable, owner, user1, user2 } = await loadFixture(deployFixture);
+    const { subscriptions, meedProgram, nonExpirable, owner, user1, user2 } = await loadFixture(
+      deployFixture
+    );
 
     const initialTokenId = 0;
     const lvlMin = 0;
 
     // Should revert if not susbcribed
-    await expect(nonExpirable.connect(owner).safeMint(user1.address, lvlMin)).to.be.revertedWithCustomError(
+    await expect(
+      nonExpirable.connect(owner).safeMint(user1.address, lvlMin)
+    ).to.be.revertedWithCustomError(
       nonExpirable,
       "SubscriberChecks__PleaseSubscribeToProOrEnterpriseFirst"
     );
@@ -129,10 +139,9 @@ describe("NonExpirable Promotion Contract", function () {
 
     // Should revert if user doesn't exist yet
     // (The user should have been added automatically to the Meed program anyway after a purchase)
-    await expect(nonExpirable.connect(owner).safeMint(user1.address, lvlMin)).to.be.revertedWithCustomError(
-      nonExpirable,
-      "NonExpirable__NonExistantUser"
-    );
+    await expect(
+      nonExpirable.connect(owner).safeMint(user1.address, lvlMin)
+    ).to.be.revertedWithCustomError(nonExpirable, "NonExpirable__NonExistantUser");
 
     // Add user to the Meed program
     await meedProgram.connect(owner).mint(user1.address);
@@ -143,7 +152,8 @@ describe("NonExpirable Promotion Contract", function () {
   });
 
   it("should mint a batch of NFTs", async () => {
-    const { subscriptions, meedProgram, nonExpirable, owner, user1, user2, user3 } = await loadFixture(deployFixture);
+    const { subscriptions, meedProgram, nonExpirable, owner, user1, user2, user3 } =
+      await loadFixture(deployFixture);
 
     const to = [user1.address, user2.address, user3.address];
     const lvlMin = 1;
@@ -168,7 +178,9 @@ describe("NonExpirable Promotion Contract", function () {
     // Upgrade plan, then try again
     const tokenId = 1;
     const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(tokenId, plan.enterprise);
-    await subscriptions.connect(owner).changeSubscriptionPlan(tokenId, plan.enterprise, { value: toPayMore });
+    await subscriptions
+      .connect(owner)
+      .changeSubscriptionPlan(tokenId, plan.enterprise, { value: toPayMore });
     await nonExpirable.connect(owner).batchMint(to, lvlMin);
 
     const ownerOfToken1 = await nonExpirable.ownerOf(0);
@@ -182,14 +194,18 @@ describe("NonExpirable Promotion Contract", function () {
   });
 
   it("should consume a ticket", async () => {
-    const { subscriptions, meedProgram, nonExpirable, owner, user1, user2 } = await loadFixture(deployFixture);
+    const { subscriptions, meedProgram, nonExpirable, owner, user1, user2 } = await loadFixture(
+      deployFixture
+    );
 
     const tokenId_0 = 0;
     const tokenId_1 = 1;
     const lvlMin = 0;
 
     // Subscribe, hen add users to the Meed program
-    await subscriptions.connect(owner).subscribe(plan.enterprise, true, { value: pricePerPlan.enterprise.mul(10) });
+    await subscriptions
+      .connect(owner)
+      .subscribe(plan.enterprise, true, { value: pricePerPlan.enterprise.mul(10) });
     await meedProgram.connect(owner).mint(user1.address);
     await meedProgram.connect(owner).mint(user2.address);
 
@@ -197,20 +213,28 @@ describe("NonExpirable Promotion Contract", function () {
     await nonExpirable.connect(owner).safeMint(user2.address, lvlMin);
 
     const receipt = await nonExpirable.connect(owner).consumeTiket(user1.address, tokenId_0);
-    await expect(receipt).to.emit(nonExpirable, "TicketConsumed").withArgs(user1.address, tokenId_0);
+    await expect(receipt)
+      .to.emit(nonExpirable, "TicketConsumed")
+      .withArgs(user1.address, tokenId_0);
 
     const receipt2 = await nonExpirable.connect(owner).consumeTiket(user2.address, tokenId_1);
-    await expect(receipt2).to.emit(nonExpirable, "TicketConsumed").withArgs(user2.address, tokenId_1);
+    await expect(receipt2)
+      .to.emit(nonExpirable, "TicketConsumed")
+      .withArgs(user2.address, tokenId_1);
   });
 
   it("should return tickets per address", async () => {
-    const { subscriptions, meedProgram, nonExpirable, owner, user1 } = await loadFixture(deployFixture);
+    const { subscriptions, meedProgram, nonExpirable, owner, user1 } = await loadFixture(
+      deployFixture
+    );
 
     const tokenId_0 = 0;
     const lvlMin = 0;
 
     // Subscribe, hen add user to the Meed program
-    await subscriptions.connect(owner).subscribe(plan.enterprise, true, { value: pricePerPlan.enterprise.mul(10) });
+    await subscriptions
+      .connect(owner)
+      .subscribe(plan.enterprise, true, { value: pricePerPlan.enterprise.mul(10) });
     await meedProgram.connect(owner).mint(user1.address);
 
     await nonExpirable.connect(owner).safeMint(user1.address, lvlMin);

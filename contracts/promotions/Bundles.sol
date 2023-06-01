@@ -41,7 +41,7 @@ import {PromoDataLib} from "../library/PromoDataLib.sol";
  * 810bdd65  =>  _onlyOngoing()
  */
 
-contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, SubscriberChecks {
+contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
   using SafeERC20 for IERC20;
   // using PromoDataLib for PromoDataLib.BundlesPromoData;
 
@@ -80,8 +80,7 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, 
     address adminRegistryAddress
   )
     ERC721(_name, _symbol)
-    TimeLimited(data._startDate, data._expirationDate, address(this), adminRegistryAddress)
-    SubscriberChecks(data._contractAddress)
+    TimeLimited(data._startDate, data._expirationDate, data._contractAddress, adminRegistryAddress)
   {
     maxPackSupply = data._maxLimit;
     _baseURIextended = _uri;
@@ -320,9 +319,9 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited, 
     ///////////////////////////////////////////////////////////////////////////////*/
 
   function _onlyOngoing() internal override {
-    if (this.isExpired()) {
-      if (this.isActive()) {
-        this.deactivate();
+    if (isExpired()) {
+      if (isActive()) {
+        _deactivate();
         meedProgram.switchStatus(address(this), false);
       }
       revert Bundles__EventExpired();

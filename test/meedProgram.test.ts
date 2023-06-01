@@ -14,6 +14,8 @@ import {
   subscriptions_symbol,
   subscriptions_uris,
   promoType,
+  plan,
+  pricePerPlan,
 } from "./constant";
 
 describe("MeedProgram Contract", function () {
@@ -24,8 +26,7 @@ describe("MeedProgram Contract", function () {
     const subscriptions: Subscriptions = await Subscriptions.deploy(
       subscriptions_name,
       subscriptions_symbol,
-      subscriptions_uris,
-      admin.address
+      subscriptions_uris
     );
     await subscriptions.deployed();
 
@@ -48,6 +49,9 @@ describe("MeedProgram Contract", function () {
     );
     await redeemableFactory.deployed();
 
+    // Manually register the owner in the AdminRegistry (since we are not using the factory)
+    await adminRegistry.connect(admin).registerOwner(owner.address);
+
     const MeedProgram = await ethers.getContractFactory("MeedProgram");
     const meedProgram: MeedProgram = await MeedProgram.deploy(
       meedProgram_name,
@@ -57,11 +61,22 @@ describe("MeedProgram Contract", function () {
       owner.address,
       meedProgram_amounts,
       adminRegistry.address,
+      subscriptions.address,
       [redeemableFactory.address, redeemableFactory.address, redeemableFactory.address]
     );
     await meedProgram.deployed();
 
-    return { adminRegistry, meedProgram, redeemableFactory, owner, user1, user2, user3, admin };
+    return {
+      subscriptions,
+      adminRegistry,
+      meedProgram,
+      redeemableFactory,
+      owner,
+      user1,
+      user2,
+      user3,
+      admin,
+    };
   }
 
   it("should initialise the contract correctly", async () => {
@@ -109,7 +124,7 @@ describe("MeedProgram Contract", function () {
     // revert if not owner or admin
     await expect(meedProgram.connect(user1).mint(user1.address)).to.be.revertedWithCustomError(
       meedProgram,
-      "MeedProgram_NotAuthorized"
+      "Adminable__NotAuthorized"
     );
 
     await meedProgram.connect(owner).mint(user1.address);
@@ -131,16 +146,24 @@ describe("MeedProgram Contract", function () {
   it("should revert when trying to get URI of non-existant NFT", async () => {
     const { meedProgram, owner, user1 } = await loadFixture(deployFixture);
 
-    await expect(meedProgram.tokenURI(1)).to.be.revertedWithCustomError(meedProgram, "MeedProgram_TokenDoesNotExist");
+    await expect(meedProgram.tokenURI(1)).to.be.revertedWithCustomError(
+      meedProgram,
+      "MeedProgram_TokenDoesNotExist"
+    );
 
     await meedProgram.connect(owner).mint(user1.address);
     expect(await meedProgram.tokenURI(1)).to.equal(meedProgram_uri);
   });
 
   it("should be possible to get the Membership given a specific token ID", async () => {
-    const { meedProgram, user1, user2, admin } = await loadFixture(deployFixture);
+    const { subscriptions, meedProgram, user1, user2, admin } = await loadFixture(deployFixture);
 
-    await expect(meedProgram.tokenURI(1)).to.be.revertedWithCustomError(meedProgram, "MeedProgram_TokenDoesNotExist");
+    await expect(meedProgram.tokenURI(1)).to.be.revertedWithCustomError(
+      meedProgram,
+      "MeedProgram_TokenDoesNotExist"
+    );
+
+    await subscriptions.subscribe(plan.basic, false, { value: pricePerPlan.basic });
 
     await meedProgram.connect(admin).mint(user1.address);
     await meedProgram.connect(admin).mint(user2.address);
@@ -177,13 +200,17 @@ describe("MeedProgram Contract", function () {
     expect(levelAfter).to.equal(1);
 
     // revert if not owner or admin
-    await expect(meedProgram.connect(user1).updateMember(user1.address, 1, 50)).to.be.revertedWithCustomError(
-      meedProgram,
-      "MeedProgram_NotAuthorized"
-    );
+    await expect(
+      meedProgram.connect(user1).updateMember(user1.address, 50)
+    ).to.be.revertedWithCustomError(meedProgram, "Adminable__NotAuthorized");
+
+    // revert if amount is 0
+    await expect(
+      meedProgram.connect(owner).updateMember(user1.address, 0)
+    ).to.be.revertedWithCustomError(meedProgram, "MeedProgram_AmountVolumeIsZero");
 
     // Update the member after purchase (without tier increase)
-    await meedProgram.connect(owner).updateMember(user1.address, 1, 50);
+    await meedProgram.connect(owner).updateMember(user1.address, 50);
 
     const userBefore = await meedProgram.getMembershipPerAddress(user1.address);
     expect(userBefore.level).to.equal(1);
@@ -191,7 +218,7 @@ describe("MeedProgram Contract", function () {
     expect(userBefore.amountVolume).to.equal(50);
 
     // Update the member again and make sure his tier increased
-    const receipt = await meedProgram.connect(owner).updateMember(user1.address, 1, 221);
+    const receipt = await meedProgram.connect(owner).updateMember(user1.address, 221);
     await expect(receipt).to.emit(meedProgram, "LevelUpdated").withArgs(user1.address, 2);
 
     const userAfter = await meedProgram.getMembershipPerAddress(user1.address);
@@ -210,7 +237,7 @@ describe("MeedProgram Contract", function () {
     expect(initialLevel).to.equal(0);
     expect(await meedProgram.totalSupply()).to.equal(1);
 
-    await meedProgram.connect(owner).updateMember(user1.address, 1, 98);
+    await meedProgram.connect(owner).updateMember(user1.address, 98);
 
     const newLevel = await meedProgram.getMemberLevel(user1.address);
 
@@ -231,17 +258,17 @@ describe("MeedProgram Contract", function () {
     expect(initialLevel).to.equal(0);
 
     // Update to level III
-    await meedProgram.connect(owner).updateMember(user1.address, 1, 530);
+    await meedProgram.connect(owner).updateMember(user1.address, 530);
     const midLevel = await meedProgram.getMemberLevel(user1.address);
     expect(midLevel).to.equal(3);
 
     // Update to max level
-    await meedProgram.connect(owner).updateMember(user1.address, 1, 10_849);
+    await meedProgram.connect(owner).updateMember(user1.address, 10_849);
     const maxLevel = await meedProgram.getMemberLevel(user1.address);
     expect(maxLevel).to.equal(5);
 
     // Shouldn't update the level anymore
-    await meedProgram.connect(owner).updateMember(user1.address, 1, 100_000);
+    await meedProgram.connect(owner).updateMember(user1.address, 100_000);
     const checkLevel = await meedProgram.getMemberLevel(user1.address);
     expect(checkLevel).to.equal(5);
   });
@@ -261,7 +288,12 @@ describe("MeedProgram Contract", function () {
     const startDate = Math.floor(Date.now() / 1000).toString();
     const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
     await expect(
-      meedProgram.addPromotion(redeemableFactory.address, promoType.discountVouchers, startDate, expirationDate)
+      meedProgram.addPromotion(
+        redeemableFactory.address,
+        promoType.discountVouchers,
+        startDate,
+        expirationDate
+      )
     ).to.be.revertedWith("MeedProgram: Not Authorized");
   });
 
@@ -282,7 +314,9 @@ describe("MeedProgram Contract", function () {
       meedProgram.address,
       1
     );
-    await expect(receipt).to.emit(redeemableFactory, "NewPromotionCreated").withArgs(owner.address, anyValue);
+    await expect(receipt)
+      .to.emit(redeemableFactory, "NewPromotionCreated")
+      .withArgs(owner.address, anyValue);
 
     // Check the new state  (1 promo)
     const newPromos = await meedProgram.getAllPromotions();
@@ -299,7 +333,13 @@ describe("MeedProgram Contract", function () {
     const createFewPromos = async () => {
       const startDate = Math.floor(Date.now() / 1000).toString();
       const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
-      await redeemableFactory.createNewPromotion("ipfs://uri", startDate, expirationDate, meedProgram.address, 0);
+      await redeemableFactory.createNewPromotion(
+        "ipfs://uri",
+        startDate,
+        expirationDate,
+        meedProgram.address,
+        0
+      );
     };
 
     for (let i = 0; i < 6; i++) {
@@ -345,7 +385,9 @@ describe("MeedProgram Contract", function () {
       meedProgram.address,
       0
     );
-    await expect(receipt).to.emit(redeemableFactory, "NewPromotionCreated").withArgs(owner.address, anyValue);
+    await expect(receipt)
+      .to.emit(redeemableFactory, "NewPromotionCreated")
+      .withArgs(owner.address, anyValue);
 
     // Check the new state  (1 promo)
     const newPromos = await meedProgram.getAllPromotions();
@@ -358,7 +400,7 @@ describe("MeedProgram Contract", function () {
     // revert if not owner or admin
     await expect(
       meedProgram.connect(user1).switchStatus(newPromos[0].promotionAddress, false)
-    ).to.be.revertedWithCustomError(meedProgram, "MeedProgram_NotAuthorized");
+    ).to.be.revertedWithCustomError(meedProgram, "Adminable__NotAuthorized");
 
     // Deactivate the promo
     await meedProgram.connect(owner).switchStatus(newPromos[0].promotionAddress, false);
@@ -381,23 +423,16 @@ describe("MeedProgram Contract", function () {
     expect(await meedProgram.tokenURI(0)).to.equal(meedProgram_uri);
 
     // revert if not owner or admin
-    await expect(meedProgram.connect(user1).setBaseURI("ipfs://new_uri/")).to.be.revertedWithCustomError(
-      meedProgram,
-      "Adminable__UserNotRegistered"
-    );
-
-    // Revert if user not registered
-    await expect(meedProgram.connect(owner).setBaseURI("ipfs://new_uri/")).to.be.revertedWithCustomError(
-      meedProgram,
-      "Adminable__UserNotRegistered"
-    );
-
-    // Register manually then set new URI
-    await adminRegistry.connect(admin).registerOwner(owner.address);
+    await expect(
+      meedProgram.connect(user1).setBaseURI("ipfs://new_uri/")
+    ).to.be.revertedWithCustomError(meedProgram, "Adminable__NotAuthorized");
 
     await meedProgram.connect(owner).setBaseURI("ipfs://new_uri/");
     expect(await meedProgram.tokenURI(0)).to.equal("ipfs://new_uri/");
 
-    await expect(meedProgram.tokenURI(4)).to.be.revertedWithCustomError(meedProgram, "MeedProgram_TokenDoesNotExist");
+    await expect(meedProgram.tokenURI(4)).to.be.revertedWithCustomError(
+      meedProgram,
+      "MeedProgram_TokenDoesNotExist"
+    );
   });
 });

@@ -6,6 +6,7 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AdminRegistry} from "../subscriptions/AdminRegistry.sol";
 import {Errors} from "./Errors.sol";
+import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 
 /**
  * @title Adminable;
@@ -17,21 +18,19 @@ import {Errors} from "./Errors.sol";
  * Work alongside the AdminRegistry contract to manage the admin status.
  */
 
-contract Adminable is Ownable, Errors {
+contract Adminable is Ownable, SubscriberChecks {
   AdminRegistry private _adminRegistry;
 
-  constructor(address adminRegistry_) {
+  constructor(
+    address adminRegistry_,
+    address subscriptionsAddress_
+  ) SubscriberChecks(subscriptionsAddress_) {
     require(adminRegistry_ != address(0), "Adminable: address zero");
     _adminRegistry = AdminRegistry(adminRegistry_);
   }
 
   modifier onlyOwnerOrAdmin() {
     _checkOwnerOrAdmin();
-    _;
-  }
-
-  modifier onlyAdmin() {
-    _checkAdmin();
     _;
   }
 
@@ -45,26 +44,33 @@ contract Adminable is Ownable, Errors {
   /**
    * @dev Throws if the sender is not the owner or admin.
    */
-  function _checkOwnerOrAdmin() private view {
+  function _checkOwnerOrAdmin() private {
+    // Ensure the sender is either owner or admin
+    if (!_isSenderOwner() && !_isSenderAdmin()) {
+      revert Adminable__NotAuthorized();
+    }
+    // Ensure the owner is registered and not opted out
     bool exists = _adminRegistry.isExistingUser(owner());
     if (!exists) {
       revert Adminable__UserNotRegistered();
     }
-    bool optedOut = _adminRegistry.isUserOptedOut(owner());
-    if (optedOut) {
-      revert Adminable__UserOptedOut();
-    }
-    if (owner() != _msgSender() && _adminRegistry.admin() != _msgSender()) {
-      revert Adminable__NotAuthorized();
+
+    if (_isSenderAdmin()) {
+      // Ensure the owner not opted out
+      bool optedOut = _adminRegistry.isUserOptedOut(owner());
+      if (optedOut) {
+        revert Adminable__UserOptedOut();
+      }
+      // Ensure the owner is a subscriber
+      _onlySubscribers(owner());
     }
   }
 
-  /**
-   * @dev Throws if the sender is not the admin.
-   */
-  function _checkAdmin() private view {
-    if (_adminRegistry.admin() != _msgSender()) {
-      revert Adminable__NotAuthorized();
-    }
+  function _isSenderOwner() private view returns (bool) {
+    return _msgSender() == owner() || tx.origin == owner();
+  }
+
+  function _isSenderAdmin() private view returns (bool) {
+    return _msgSender() == _adminRegistry.admin() || tx.origin == _adminRegistry.admin();
   }
 }

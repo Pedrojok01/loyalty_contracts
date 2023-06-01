@@ -16,7 +16,7 @@ contract Errors {
   error MeedProgram_AlreadyMember();
   error MeedProgram_InvalidPromotionType();
   error MeedProgram_TokenDoesNotExist();
-  error MeedProgram_NotAuthorized();
+  error MeedProgram_AmountVolumeIsZero();
 
   // MeedProgramFactory
   error MeedProgramFactory_AlreadyExists();
@@ -60,6 +60,8 @@ contract Errors {
   error Redeemable__NonExistantUser();
   error Redeemable__InsufficientLevel();
   error Redeemable__InsufficientAmount();
+  error Redeemable__NotCalledFromMeedProgram();
+  error Redeemable__AutoMintDeactivated();
 
   // Collectibles
   error Collectibles__InvalidTokenId();
@@ -102,7 +104,6 @@ contract Errors {
   // Activation
   error Activation__PromotionCurrentlyInactive();
   error Activation__PromotionCurrentlyActive();
-  error Activation__NotAuthorized();
 
   // Adminable
   error Adminable__UserNotRegistered();

@@ -32,7 +32,7 @@ import {MeedProgram} from "../meedProgram/MeedProgram.sol";
  * 810bdd65  =>  _onlyOngoing()*
  */
 
-contract NonExpirable is ERC721, INonExpirable, Adminable, SubscriberChecks {
+contract NonExpirable is ERC721, INonExpirable, Adminable {
   using Counters for Counters.Counter;
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -58,9 +58,9 @@ contract NonExpirable is ERC721, INonExpirable, Adminable, SubscriberChecks {
     address _owner,
     uint256 _data,
     address _meedProgram,
-    address _contractAddress,
+    address _subscriptionAddress,
     address adminRegistryAddress
-  ) ERC721(_name, _symbol) Adminable(adminRegistryAddress) SubscriberChecks(_contractAddress) {
+  ) ERC721(_name, _symbol) Adminable(adminRegistryAddress, _subscriptionAddress) {
     _baseURIextended = _uri;
     meedProgram = MeedProgram(_meedProgram);
     transferOwnership(_owner);

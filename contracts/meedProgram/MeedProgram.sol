@@ -66,10 +66,10 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     _;
   }
 
-  modifier onlyAuthorized() {
-    _onlyAuthorized();
-    _;
-  }
+  // modifier onlyAuthorized() {
+  //   _onlyAuthorized();
+  //   _;
+  // }
 
   /**
    * @param _name Name of the new MeedProgram (user input).
@@ -88,8 +88,9 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     address _owner,
     uint64[4] memory amounts,
     address adminRegistryAddress,
+    address subscriptionsAddress_,
     address[] memory _factories
-  ) ERC721(_name, _symbol) Adminable(adminRegistryAddress) {
+  ) ERC721(_name, _symbol) Adminable(adminRegistryAddress, subscriptionsAddress_) {
     transferOwnership(_owner);
     TIER_TRACKER = _tierTracker;
     _baseURIextended = _uri;
@@ -108,16 +109,13 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
    * @dev External method for the owner  / admin to mint NFTs (enroll new member). Can only mint 1 per address.
    * @param to Address of the new member to be added.
    */
-  function mint(address to) public onlyAuthorized {
+  function mint(address to) public onlyOwnerOrAdmin {
     _addMember(to);
   }
 
-  function updateMember(
-    address member,
-    uint16 buyVolume,
-    uint32 amountVolume
-  ) external onlyAuthorized {
-    _updateMember(member, buyVolume, amountVolume);
+  function updateMember(address member, uint32 amountVolume) external onlyOwnerOrAdmin {
+    if (amountVolume == 0) revert MeedProgram_AmountVolumeIsZero();
+    _updateMember(member, amountVolume);
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -271,7 +269,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
                                         RESTRICTED
     ///////////////////////////////////////////////////////////////////////////////*/
 
-  function switchStatus(address promotion, bool status) external onlyAuthorized {
+  function switchStatus(address promotion, bool status) external onlyOwnerOrAdmin {
     PromoLib._setPromotionStatus(promotion, status, promoLib);
   }
 
@@ -337,13 +335,14 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     _safeMint(to, tokenId);
   }
 
-  function _updateMember(address member, uint16 buyVolume, uint32 amountVolume) private {
+  function _updateMember(address member, uint32 amountVolume) private {
     if (membershipPerAddress[member].level == 0) {
       mint(member);
     }
 
     Membership memory memberData = membershipPerAddress[member];
-    memberData.buyVolume += buyVolume;
+
+    memberData.buyVolume++;
     memberData.amountVolume += amountVolume;
 
     membershipPerAddress[member] = memberData;
@@ -410,17 +409,5 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     }
 
     require(isFactory, "MeedProgram: Not Authorized");
-  }
-
-  /// @dev tx.origin is needed when the owner/admin is calling a function via a factory
-  function _onlyAuthorized() private view {
-    if (
-      _msgSender() != owner() &&
-      _msgSender() != admin() &&
-      tx.origin != owner() &&
-      tx.origin != admin()
-    ) {
-      revert MeedProgram_NotAuthorized();
-    }
   }
 }

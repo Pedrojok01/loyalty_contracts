@@ -34,6 +34,7 @@ contract MeedProgramFactory is Context, Errors, Ownable {
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
+  address private immutable CONTROL_ADDRESS; // Subscriptions contract address
   address private _adminRegistry;
   address[] public factories;
 
@@ -84,7 +85,8 @@ contract MeedProgramFactory is Context, Errors, Ownable {
   mapping(uint256 => address) private factoryIdPerAddress;
   mapping(address => uint256) private fatoryAddressPerId;
 
-  constructor(address adminRegistryAddress, address[] memory _factories) {
+  constructor(address _controlAddress, address adminRegistryAddress, address[] memory _factories) {
+    CONTROL_ADDRESS = _controlAddress;
     _adminRegistry = adminRegistryAddress;
     factories = _factories;
 
@@ -295,6 +297,7 @@ contract MeedProgramFactory is Context, Errors, Ownable {
         _owner,
         amounts,
         _adminRegistry,
+        CONTROL_ADDRESS,
         factories
       )
     );
