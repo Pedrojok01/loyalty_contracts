@@ -23,7 +23,8 @@ import {Errors} from "../utils/Errors.sol";
  * the admin.
  */
 
-/** TODO:
+// @todo
+/**
  * - Add the Subscriptions address to the AdminRegistry so it can switch the admin status ?
  */
 

@@ -17,6 +17,7 @@ contract Errors {
   error MeedProgram_InvalidPromotionType();
   error MeedProgram_TokenDoesNotExist();
   error MeedProgram_AmountVolumeIsZero();
+  error MeedProgram__AuthorizedFactoryOnly();
 
   // MeedProgramFactory
   error MeedProgramFactory_AlreadyExists();

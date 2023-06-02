@@ -49,7 +49,7 @@ contract Adminable is Ownable, SubscriberChecks {
     if (!_isSenderOwner() && !_isSenderAdmin()) {
       revert Adminable__NotAuthorized();
     }
-    // Ensure the owner is registered and not opted out
+    // Ensure the owner is registered
     bool exists = _adminRegistry.isExistingUser(owner());
     if (!exists) {
       revert Adminable__UserNotRegistered();

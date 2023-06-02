@@ -17,7 +17,7 @@ import {Errors} from "../utils/Errors.sol";
  *
  * Based on EIP: ERC5643
  *
- * TODO:
+ * @todo
  *  - Handle case where a user has multiple subscriptions?
  *  - Implement a way to downgrade a subscription?
  *  - Add possible discount on upgrade ?? (ex: 10% off on upgrade from Basic to Pro)

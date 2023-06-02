@@ -175,6 +175,26 @@ describe("MeedProgram Contract", function () {
     expect(answer2.owner).to.equal(user2.address);
   });
 
+  it("shouldn't be possible to use the admin mode without using the MeedContractFactory", async () => {
+    const { adminRegistry, subscriptions, redeemableFactory, user1, user2, user3, admin } =
+      await loadFixture(deployFixture);
+
+    const MeedProgram = await ethers.getContractFactory("MeedProgram");
+    await expect(
+      MeedProgram.connect(user1).deploy(
+        meedProgram_name,
+        meedProgram_symbol,
+        meedProgram_uri,
+        false,
+        user1.address,
+        meedProgram_amounts,
+        adminRegistry.address,
+        subscriptions.address,
+        [redeemableFactory.address, redeemableFactory.address, redeemableFactory.address]
+      )
+    ).to.be.revertedWithCustomError(MeedProgram, "Adminable__UserNotRegistered");
+  });
+
   /*///////////////////////////////////////////////////////////////////////////////
                                     MEMBER UPDATE
     ///////////////////////////////////////////////////////////////////////////////*/
@@ -294,7 +314,7 @@ describe("MeedProgram Contract", function () {
         startDate,
         expirationDate
       )
-    ).to.be.revertedWith("MeedProgram: Not Authorized");
+    ).to.be.revertedWithCustomError(meedProgram, "MeedProgram__AuthorizedFactoryOnly");
   });
 
   it("should be possible to add a promotion", async () => {

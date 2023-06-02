@@ -18,10 +18,10 @@ import {IMeedProgram} from "../interfaces/IMeedProgram.sol";
  *  - Deployer can mint to recipients.
  */
 
-/** TODO:
+// @todo
+/**
  *  - Add identity proof to ensure only one NFT per person?
  *  - Send unique NFT to brand creator to recognise him
- *
  */
 
 contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
@@ -61,15 +61,13 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
   mapping(address => Membership) private membershipPerAddress;
   mapping(uint40 => Membership) private membershipPerTokenID;
 
+  // Return true if the address is a promotion factory (to optimize onlyFactory modifier)
+  mapping(address => bool) public isFactory;
+
   modifier onlyFactory() {
     _onlyFactory();
     _;
   }
-
-  // modifier onlyAuthorized() {
-  //   _onlyAuthorized();
-  //   _;
-  // }
 
   /**
    * @param _name Name of the new MeedProgram (user input).
@@ -95,6 +93,13 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     TIER_TRACKER = _tierTracker;
     _baseURIextended = _uri;
     factories = _factories;
+
+    for (uint i = 0; i < _factories.length; ) {
+      isFactory[_factories[i]] = true;
+      unchecked {
+        i++;
+      }
+    }
 
     _initializeTierStructure(amounts[0], amounts[1], amounts[2], amounts[3]);
 
@@ -395,19 +400,6 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
   }
 
   function _onlyFactory() private view {
-    bool isFactory = false;
-    uint256 factoriesLength = factories.length;
-
-    for (uint256 i = 0; i < factoriesLength; ) {
-      if (_msgSender() == factories[i]) {
-        isFactory = true;
-        break;
-      }
-      unchecked {
-        i++;
-      }
-    }
-
-    require(isFactory, "MeedProgram: Not Authorized");
+    if (!isFactory[_msgSender()]) revert MeedProgram__AuthorizedFactoryOnly();
   }
 }

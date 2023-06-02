@@ -62,16 +62,22 @@ library RedeemCodeLib {
     bytes memory codeBytes = new bytes(6);
 
     uint256 letterIndex = 0;
-    for (uint256 i = 0; i < 2; i++) {
+    for (uint256 i = 0; i < 2; ) {
       uint8 letter = (uint8(hash[i]) % 26) + 65;
       codeBytes[letterIndex] = bytes1(letter);
       letterIndex++;
+      unchecked {
+        i++;
+      }
     }
 
-    for (uint256 i = 2; i < 6; i++) {
+    for (uint256 i = 2; i < 6; ) {
       uint8 digit = (uint8(hash[i]) % 10) + 48;
       codeBytes[letterIndex] = bytes1(digit);
       letterIndex++;
+      unchecked {
+        i++;
+      }
     }
 
     return string(codeBytes);
