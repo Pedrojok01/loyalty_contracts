@@ -31,7 +31,7 @@ import {Errors} from "../utils/Errors.sol";
  * 9f309450  =>  renewSubscription(uint256,Plan,bool)
  * 80c55351  =>  changeSubscriptionPlan(uint256,Plan)
  * c87b56dd  =>  tokenURI(uint256)
- * ae5e67a7  =>  isSubscribers(address)
+ * ae5e67a7  =>  isSubscriber(address)
  * e85c8f6d  =>  calculateSubscriptionPrice(Plan,bool)
  * 18160ddd  =>  totalSupply()
  * 5abf3838  =>  getSubscriber(address)
@@ -57,7 +57,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   Counters.Counter private _tokenIds;
-  string[3] private baseURIs;
+  string[4] private baseURIs;
 
   struct Subscriber {
     Plan plan; // 1 byte
@@ -87,9 +87,9 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
   constructor(
     string memory name_,
     string memory symbol_,
-    string[3] memory uris_
+    string[4] memory uris_
   ) ERC721(name_, symbol_) {
-    require(uris_.length == 3, "Subscriptions: Invalid URIs length");
+    require(uris_.length == 4, "Subscriptions: Invalid URIs length");
     _initialize();
     baseURIs = uris_;
   }
@@ -110,6 +110,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
     if (balanceOf(subscriber) != 0) revert Subscriptions__UserAlreadyOwnsSubscription();
 
     // Handle payment per tier & duration
+    if (!_isValidPlan(plan) && !_isPaidPlan(plan)) revert Subscriptions__InvalidPlan();
     _checkAmountPaid(plan, duration);
 
     uint64 expiration = duration
@@ -142,6 +143,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
     Subscriber memory temp = subscribers[subscriber];
 
     // Handle payment per tier & duration
+    if (!_isValidPlan(plan) && !_isPaidPlan(plan)) revert Subscriptions__InvalidPlan();
     _checkAmountPaid(plan, duration);
 
     uint64 durationToAdd = duration ? 365 days : 30 days;
@@ -178,6 +180,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
     if (ownerOf(tokenId) != subscriber) revert Subscriptions__TokenNotOwned();
 
     Subscriber memory temp = subscribers[subscriber];
+    if (!_isValidPlan(plan)) revert Subscriptions__InvalidPlan();
     if (temp.plan >= plan) revert Subscriptions__CannotDowngradeTier(); // Simpler for now
 
     // Calculate payment adjustment for remaining time
@@ -211,12 +214,14 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
 
     Subscriber memory subscriber = subscribers[ownerOf(tokenId)];
 
-    if (subscriber.plan == Plan.BASIC) {
+    if (subscriber.plan == Plan.FREE) {
       return baseURIs[0];
-    } else if (subscriber.plan == Plan.PRO) {
+    } else if (subscriber.plan == Plan.BASIC) {
       return baseURIs[1];
-    } else if (subscriber.plan == Plan.ENTERPRISE) {
+    } else if (subscriber.plan == Plan.PRO) {
       return baseURIs[2];
+    } else if (subscriber.plan == Plan.ENTERPRISE) {
+      return baseURIs[3];
     } else {
       revert Subscriptions__InvalidPlan();
     }
@@ -226,10 +231,16 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
    * @notice Returns the details of a subscriber
    * @param subscriber The address of the subscriber
    */
-  function isSubscribers(address subscriber) public view returns (bool) {
-    if (subscribers[subscriber].expiration < block.timestamp)
-      revert Subscriptions__SubscriptionExpired();
-    return true;
+  function isSubscriber(address subscriber) public view returns (bool) {
+    return subscribers[subscriber].expiration >= block.timestamp;
+  }
+
+  /**
+   * @notice Returns true if the subscriber's plan is not FREE
+   * @param subscriber The address of the subscriber
+   */
+  function isPaidSubscriber(address subscriber) public view returns (bool) {
+    return isSubscriber(subscriber) && subscribers[subscriber].plan != Plan.FREE;
   }
 
   /**
@@ -238,6 +249,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
    * @param duration the chosen duration of the subscription (true = anually with 2 months off, false = monthly)
    */
   function calculateSubscriptionPrice(Plan plan, bool duration) public view returns (uint256) {
+    if (!_isValidPlan(plan) && !_isPaidPlan(plan)) revert Subscriptions__InvalidPlan();
     return duration ? fees[plan] * 10 : fees[plan];
   }
 
@@ -254,6 +266,18 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
    */
   function getSubscriber(address subscriber) external view returns (Subscriber memory) {
     return subscribers[subscriber];
+  }
+
+  /**
+   * @notice Returns the details of a subscriber
+   * @param subscriber The address of the subscriber
+   */
+  function getSubscriberPlan(address subscriber) public view returns (Plan) {
+    if (!isSubscriber(subscriber) || !isPaidSubscriber(subscriber)) {
+      return Plan.FREE;
+    } else {
+      return subscribers[subscriber].plan;
+    }
   }
 
   /**
@@ -277,7 +301,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
   /**
    * @dev Get the remaining time and the corresponding price to upgrade a subscription
    * @param tokenId the id of the subscription NFT
-   * @param plan the choser plan of the subscription (Basic, Pro, Enterprise)
+   * @param plan the chosen plan of the subscription (Basic, Pro, Enterprise)
    * @return the remaining time left in the subscription
    * @return the cost difference of the remaining subscription time
    */
@@ -302,24 +326,21 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
   }
 
   /**
-   * @dev Returns true if the subscriber is a PRO or ENTERPRISE plan
+   * @dev Returns true if the subscriber has a PRO or ENTERPRISE plan
    * @param subscriber The address of the subscriber
    */
-  function isProOrEnterprise(address subscriber) external view {
-    isSubscribers(subscriber); // Check for subscriber only
-    Plan _plan = subscribers[subscriber].plan;
-    if (_plan != Plan.PRO && _plan != Plan.ENTERPRISE)
-      revert Subscriptions__PleaseUpgradeYourPlan();
+  function isProOrEnterprise(address subscriber) external view returns (bool) {
+    return
+      isPaidSubscriber(subscriber) &&
+      (subscribers[subscriber].plan == Plan.PRO || subscribers[subscriber].plan == Plan.ENTERPRISE);
   }
 
   /**
    * @dev Returns true if the subscriber has an ENTERPRISE plan
    * @param subscriber The address of the subscriber
    */
-  function isEnterprise(address subscriber) external view {
-    isSubscribers(subscriber); // Check for subscriber only
-    Plan _plan = subscribers[subscriber].plan;
-    if (_plan != Plan.ENTERPRISE) revert Subscriptions__PleaseUpgradeYourPlan();
+  function isEnterprise(address subscriber) external view returns (bool) {
+    return isPaidSubscriber(subscriber) && subscribers[subscriber].plan == Plan.ENTERPRISE;
   }
 
   function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
@@ -394,5 +415,21 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
   function _onlySubscribers() private view {
     if (subscribers[_msgSender()].expiration < block.timestamp)
       revert Subscriptions__SubscriptionExpired();
+  }
+
+  /**
+   * @dev Returns true if the plan is a valid paid plan
+   */
+  function _isPaidPlan(Plan plan) private pure returns (bool) {
+    if (plan == Plan.FREE) return false;
+    return true;
+  }
+
+  /**
+   * @dev Returns true if the plan is a valid plan
+   */
+  function _isValidPlan(Plan plan) private pure returns (bool) {
+    if (plan > Plan.ENTERPRISE) return false;
+    return true;
   }
 }

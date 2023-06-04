@@ -127,14 +127,14 @@ describe("MeedProgram Contract", function () {
       "Adminable__NotAuthorized"
     );
 
-    await meedProgram.connect(owner).mint(user1.address);
-    await meedProgram.connect(owner).mint(user2.address);
+    await meedProgram.mint(user1.address);
+    await meedProgram.mint(user2.address);
 
     expect(await meedProgram.tokenURI(1)).to.equal(meedProgram_uri);
     expect(await meedProgram.tokenURI(2)).to.equal(meedProgram_uri);
 
     // revert if already subscribed
-    await expect(meedProgram.connect(owner).mint(user1.address)).to.be.revertedWithCustomError(
+    await expect(meedProgram.mint(user1.address)).to.be.revertedWithCustomError(
       meedProgram,
       "MeedProgram_AlreadyMember"
     );
@@ -151,7 +151,7 @@ describe("MeedProgram Contract", function () {
       "MeedProgram_TokenDoesNotExist"
     );
 
-    await meedProgram.connect(owner).mint(user1.address);
+    await meedProgram.mint(user1.address);
     expect(await meedProgram.tokenURI(1)).to.equal(meedProgram_uri);
   });
 
@@ -205,7 +205,7 @@ describe("MeedProgram Contract", function () {
     const levelBefore = await meedProgram.getMemberLevel(user1.address);
     expect(levelBefore).to.equal(0);
 
-    await meedProgram.connect(owner).mint(user1.address);
+    await meedProgram.mint(user1.address);
 
     const levelAfter = await meedProgram.getMemberLevel(user1.address);
     expect(levelAfter).to.equal(1);
@@ -214,7 +214,7 @@ describe("MeedProgram Contract", function () {
   it("should update a new member correctly", async () => {
     const { meedProgram, owner, user1 } = await loadFixture(deployFixture);
 
-    await meedProgram.connect(owner).mint(user1.address);
+    await meedProgram.mint(user1.address);
 
     const levelAfter = await meedProgram.getMemberLevel(user1.address);
     expect(levelAfter).to.equal(1);
@@ -225,12 +225,13 @@ describe("MeedProgram Contract", function () {
     ).to.be.revertedWithCustomError(meedProgram, "Adminable__NotAuthorized");
 
     // revert if amount is 0
-    await expect(
-      meedProgram.connect(owner).updateMember(user1.address, 0)
-    ).to.be.revertedWithCustomError(meedProgram, "MeedProgram_AmountVolumeIsZero");
+    await expect(meedProgram.updateMember(user1.address, 0)).to.be.revertedWithCustomError(
+      meedProgram,
+      "MeedProgram_AmountVolumeIsZero"
+    );
 
     // Update the member after purchase (without tier increase)
-    await meedProgram.connect(owner).updateMember(user1.address, 50);
+    await meedProgram.updateMember(user1.address, 50);
 
     const userBefore = await meedProgram.getMembershipPerAddress(user1.address);
     expect(userBefore.level).to.equal(1);
@@ -238,7 +239,7 @@ describe("MeedProgram Contract", function () {
     expect(userBefore.amountVolume).to.equal(50);
 
     // Update the member again and make sure his tier increased
-    const receipt = await meedProgram.connect(owner).updateMember(user1.address, 221);
+    const receipt = await meedProgram.updateMember(user1.address, 221);
     await expect(receipt).to.emit(meedProgram, "LevelUpdated").withArgs(user1.address, 2);
 
     const userAfter = await meedProgram.getMembershipPerAddress(user1.address);
@@ -257,7 +258,7 @@ describe("MeedProgram Contract", function () {
     expect(initialLevel).to.equal(0);
     expect(await meedProgram.totalSupply()).to.equal(1);
 
-    await meedProgram.connect(owner).updateMember(user1.address, 98);
+    await meedProgram.updateMember(user1.address, 98);
 
     const newLevel = await meedProgram.getMemberLevel(user1.address);
 
@@ -278,17 +279,17 @@ describe("MeedProgram Contract", function () {
     expect(initialLevel).to.equal(0);
 
     // Update to level III
-    await meedProgram.connect(owner).updateMember(user1.address, 530);
+    await meedProgram.updateMember(user1.address, 530);
     const midLevel = await meedProgram.getMemberLevel(user1.address);
     expect(midLevel).to.equal(3);
 
     // Update to max level
-    await meedProgram.connect(owner).updateMember(user1.address, 10_849);
+    await meedProgram.updateMember(user1.address, 10_849);
     const maxLevel = await meedProgram.getMemberLevel(user1.address);
     expect(maxLevel).to.equal(5);
 
     // Shouldn't update the level anymore
-    await meedProgram.connect(owner).updateMember(user1.address, 100_000);
+    await meedProgram.updateMember(user1.address, 100_000);
     const checkLevel = await meedProgram.getMemberLevel(user1.address);
     expect(checkLevel).to.equal(5);
   });
@@ -382,14 +383,6 @@ describe("MeedProgram Contract", function () {
 
     const inactives = await meedProgram.getAllPromotionsPerStatus(false);
     expect(inactives.length).to.equal(0);
-
-    // Now, get all promos paged (offset, limit)
-    const [paged, offset, total] = await meedProgram.getAllPromotionsPaging(0, 10);
-    expect(paged.length).to.equal(Number(total));
-    expect(Number(offset)).to.equal(6);
-
-    const [, ,] = await meedProgram.getAllPromotionsPaging(100, 500);
-    const [, ,] = await meedProgram.getAllPromotionsPaging(0, 0);
   });
 
   it("should be possible to deactivate a promotion if authorized", async () => {
@@ -419,11 +412,11 @@ describe("MeedProgram Contract", function () {
 
     // revert if not owner or admin
     await expect(
-      meedProgram.connect(user1).switchStatus(newPromos[0].promotionAddress, false)
+      meedProgram.connect(user1).switchActivationStatus(newPromos[0].promotionAddress, false)
     ).to.be.revertedWithCustomError(meedProgram, "Adminable__NotAuthorized");
 
     // Deactivate the promo
-    await meedProgram.connect(owner).switchStatus(newPromos[0].promotionAddress, false);
+    await meedProgram.switchActivationStatus(newPromos[0].promotionAddress, false);
     const promoUpdated = await meedProgram.getAllPromotions();
 
     expect(promoUpdated[0].active).to.equal(false);
@@ -447,7 +440,7 @@ describe("MeedProgram Contract", function () {
       meedProgram.connect(user1).setBaseURI("ipfs://new_uri/")
     ).to.be.revertedWithCustomError(meedProgram, "Adminable__NotAuthorized");
 
-    await meedProgram.connect(owner).setBaseURI("ipfs://new_uri/");
+    await meedProgram.setBaseURI("ipfs://new_uri/");
     expect(await meedProgram.tokenURI(0)).to.equal("ipfs://new_uri/");
 
     await expect(meedProgram.tokenURI(4)).to.be.revertedWithCustomError(

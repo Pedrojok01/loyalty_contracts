@@ -3,6 +3,7 @@ pragma solidity 0.8.18;
 
 interface ISubscriptions {
   enum Plan {
+    FREE,
     BASIC,
     PRO,
     ENTERPRISE

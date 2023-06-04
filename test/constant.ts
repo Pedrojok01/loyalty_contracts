@@ -3,9 +3,15 @@ import { PromiseOrValue } from "../typechain-types/common";
 import { BigNumberish, utils } from "ethers";
 
 export const plan = {
-  basic: 0,
-  pro: 1,
-  enterprise: 2,
+  free: 0,
+  basic: 1,
+  pro: 2,
+  enterprise: 3,
+};
+
+export const planDuration = {
+  monthly: false,
+  yearly: true,
 };
 
 export const promoType = {
@@ -49,11 +55,12 @@ export const subscriptionAddress = "";
 // For Subscriptions NFTs
 export const subscriptions_name = "Meed Program Owner";
 export const subscriptions_symbol = "MPO";
-export const subscriptions_uris: [PromiseOrValue<string>, PromiseOrValue<string>, PromiseOrValue<string>] = [
-  "",
-  "",
-  "",
-];
+export const subscriptions_uris: [
+  PromiseOrValue<string>,
+  PromiseOrValue<string>,
+  PromiseOrValue<string>,
+  PromiseOrValue<string>
+] = ["", "", "", ""];
 
 // For MeedProgram NFTs
 export const meedProgram_name = "Meed Program";
@@ -65,3 +72,36 @@ export const meedProgram_amounts: [
   PromiseOrValue<BigNumberish>,
   PromiseOrValue<BigNumberish>
 ] = [100, 500, 1000, 10_000];
+
+export const auto_rewards = [
+  {
+    promotion: "",
+    tokenId: 0,
+    levelRequired: 1,
+    amountRequired: 100,
+  },
+  {
+    promotion: "",
+    tokenId: 1,
+    levelRequired: 2,
+    amountRequired: 200,
+  },
+  {
+    promotion: "",
+    tokenId: 2,
+    levelRequired: 3,
+    amountRequired: 300,
+  },
+  {
+    promotion: "",
+    tokenId: 4,
+    levelRequired: 4,
+    amountRequired: 400,
+  },
+  {
+    promotion: "",
+    tokenId: 4,
+    levelRequired: 5,
+    amountRequired: 500,
+  },
+];

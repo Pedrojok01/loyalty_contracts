@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: CC0-1.0
 pragma solidity 0.8.18;
 
+// import "hardhat/console.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Errors} from "../utils/Errors.sol";
 
@@ -33,29 +34,57 @@ contract SubscriberChecks is Context, Errors {
     _;
   }
 
-  function _onlySubscribers(address subscriber) internal {
-    (bool success, ) = SUBSCRIPTIONS_CONTRACT.call(
-      abi.encodeWithSignature("isSubscribers(address)", subscriber)
+  /**
+   * @dev Return the subscription plan of a subscriber.
+   * @param subscriber Address of the meedProgram owner
+   */
+  function _getSubscriberPlan(address subscriber) internal returns (uint) {
+    (bool success, bytes memory data) = SUBSCRIPTIONS_CONTRACT.call(
+      abi.encodeWithSignature("getSubscriberPlan(address)", subscriber)
     );
+
     if (!success) {
+      revert SubscriberChecks__PleaseSubscribeFirst();
+    }
+
+    return abi.decode(data, (uint));
+  }
+
+  /**
+   * @dev Throws if the sender is not a subscriber.
+   * @param subscriber Address of the meedProgram owner
+   */
+  function _onlySubscribers(address subscriber) internal {
+    (bool success, bytes memory result) = SUBSCRIPTIONS_CONTRACT.call(
+      abi.encodeWithSignature("isPaidSubscriber(address)", subscriber)
+    );
+    if (!success || abi.decode(result, (bool)) == false) {
       revert SubscriberChecks__PleaseSubscribeFirst();
     }
   }
 
+  /**
+   * @dev Throws if the sender is not a Pro or Enterprise subscriber.
+   * @param subscriber Address of the meedProgram owner
+   */
   function _onlyProOrEnterprise(address subscriber) internal {
-    (bool success, ) = SUBSCRIPTIONS_CONTRACT.call(
+    (bool success, bytes memory result) = SUBSCRIPTIONS_CONTRACT.call(
       abi.encodeWithSignature("isProOrEnterprise(address)", subscriber)
     );
-    if (!success) {
+    if (!success || abi.decode(result, (bool)) == false) {
       revert SubscriberChecks__PleaseSubscribeToProOrEnterpriseFirst();
     }
   }
 
+  /**
+   * @dev Throws if the sender is not an Enterprise subscriber.
+   * @param subscriber Address of the meedProgram owner
+   */
   function _onlyEnterprise(address subscriber) internal {
-    (bool success, ) = SUBSCRIPTIONS_CONTRACT.call(
+    (bool success, bytes memory result) = SUBSCRIPTIONS_CONTRACT.call(
       abi.encodeWithSignature("isEnterprise(address)", subscriber)
     );
-    if (!success) {
+    if (!success || abi.decode(result, (bool)) == false) {
       revert SubscriberChecks__PleaseSubscribeToEnterpriseFirst();
     }
   }

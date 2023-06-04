@@ -322,7 +322,7 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
     if (isExpired()) {
       if (isActive()) {
         _deactivate();
-        meedProgram.switchStatus(address(this), false);
+        meedProgram.switchActivationStatus(address(this), false);
       }
       revert Bundles__EventExpired();
     }

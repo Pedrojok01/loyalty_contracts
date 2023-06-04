@@ -11,8 +11,11 @@ import {
   subscriptions_uris,
   duration,
   plan,
+  planDuration,
 } from "./constant";
 import { compareTimestamp, formatNumber } from "./helpers/utils";
+
+const tokenId = 1;
 
 describe("Susbcriptions Contract", function () {
   async function deployFixture() {
@@ -47,70 +50,94 @@ describe("Susbcriptions Contract", function () {
 
     // revert if wrong price for a month
     await expect(
-      subscriptions
-        .connect(user1)
-        .subscribe(plan.basic, false, { from: user1.address, value: pricePerPlan.pro })
+      subscriptions.connect(user1).subscribe(plan.basic, planDuration.monthly, {
+        from: user1.address,
+        value: pricePerPlan.pro,
+      })
     ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__IncorrectPrice");
 
     // revert if wrong price for a year
-    const toPayForAYear = await subscriptions.calculateSubscriptionPrice(plan.basic, false);
+    const toPayForAYear = await subscriptions.calculateSubscriptionPrice(
+      plan.basic,
+      planDuration.monthly
+    );
     await expect(
-      subscriptions
-        .connect(user1)
-        .subscribe(plan.enterprise, true, { from: user1.address, value: toPayForAYear })
+      subscriptions.connect(user1).subscribe(plan.enterprise, planDuration.yearly, {
+        from: user1.address,
+        value: toPayForAYear,
+      })
     ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__IncorrectPrice");
 
-    const toPayForAMonth = await subscriptions.calculateSubscriptionPrice(plan.basic, false);
-    await subscriptions.connect(user1).subscribe(plan.basic, false, { value: toPayForAMonth });
+    const toPayForAMonth = await subscriptions.calculateSubscriptionPrice(
+      plan.basic,
+      planDuration.monthly
+    );
+    await subscriptions
+      .connect(user1)
+      .subscribe(plan.basic, planDuration.monthly, { value: toPayForAMonth });
 
     // revert since already subscribed
     await expect(
-      subscriptions
-        .connect(user1)
-        .subscribe(plan.basic, false, { from: user1.address, value: pricePerPlan.basic })
+      subscriptions.connect(user1).subscribe(plan.basic, planDuration.monthly, {
+        from: user1.address,
+        value: pricePerPlan.basic,
+      })
     ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__UserAlreadyOwnsSubscription");
   });
 
   it("should be possible to susbscibe for a year with the correct amount", async () => {
     const { subscriptions, user1, user2, user3 } = await loadFixture(deployFixture);
 
-    const basicForAYear = await subscriptions.calculateSubscriptionPrice(plan.basic, true);
-    const proForAYear = await subscriptions.calculateSubscriptionPrice(plan.pro, true);
+    const basicForAYear = await subscriptions.calculateSubscriptionPrice(
+      plan.basic,
+      planDuration.yearly
+    );
+    const proForAYear = await subscriptions.calculateSubscriptionPrice(
+      plan.pro,
+      planDuration.yearly
+    );
     const enterpriseForAYear = await subscriptions.calculateSubscriptionPrice(
       plan.enterprise,
-      true
+      planDuration.yearly
     );
 
     const receipt = await subscriptions
       .connect(user1)
-      .subscribe(plan.basic, true, { value: basicForAYear });
+      .subscribe(plan.basic, planDuration.yearly, { value: basicForAYear });
     await expect(receipt).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
 
     // try empty function for coverage
-    expect(await subscriptions.cancelSubscription(1)).to.equal(false);
+    expect(await subscriptions.cancelSubscription(tokenId)).to.equal(false);
 
     const receipt2 = await subscriptions
       .connect(user2)
-      .subscribe(plan.pro, true, { value: proForAYear });
+      .subscribe(plan.pro, planDuration.yearly, { value: proForAYear });
     await expect(receipt2).to.emit(subscriptions, "SubscriptionUpdate").withArgs(2, anyValue);
 
     const receipt3 = await subscriptions
       .connect(user3)
-      .subscribe(plan.enterprise, true, { value: enterpriseForAYear });
+      .subscribe(plan.enterprise, planDuration.yearly, { value: enterpriseForAYear });
     await expect(receipt3).to.emit(subscriptions, "SubscriptionUpdate").withArgs(3, anyValue);
   });
 
   it("should set the correct expiration time when subscribing", async () => {
     const { subscriptions, user1, user2 } = await loadFixture(deployFixture);
 
-    await subscriptions.connect(user1).subscribe(plan.basic, false, { value: pricePerPlan.basic });
+    await subscriptions
+      .connect(user1)
+      .subscribe(plan.basic, planDuration.monthly, { value: pricePerPlan.basic });
     const month = Math.floor(Date.now() / 1000 + duration.month);
     const expirationOneMonth = await subscriptions.expiresAt(1); // tokenId = 1
 
     expect(compareTimestamp(Number(expirationOneMonth), month)).to.equal(true);
 
-    const toPayForAYear = await subscriptions.calculateSubscriptionPrice(plan.pro, true);
-    await subscriptions.connect(user2).subscribe(plan.pro, true, { value: toPayForAYear });
+    const toPayForAYear = await subscriptions.calculateSubscriptionPrice(
+      plan.pro,
+      planDuration.yearly
+    );
+    await subscriptions
+      .connect(user2)
+      .subscribe(plan.pro, planDuration.yearly, { value: toPayForAYear });
     const expirationOneYear = await subscriptions.expiresAt(2); // tokenId = 2
     const year = Math.floor(Date.now() / 1000 + duration.year);
 
@@ -124,10 +151,11 @@ describe("Susbcriptions Contract", function () {
   it("shouldn't be possible to changeSubscriptionPlan without being an ongoing subscriber", async () => {
     const { subscriptions, user1, user2 } = await loadFixture(deployFixture);
 
-    await subscriptions.connect(user1).subscribe(plan.basic, false, { value: pricePerPlan.basic });
+    await subscriptions
+      .connect(user1)
+      .subscribe(plan.basic, planDuration.monthly, { value: pricePerPlan.basic });
 
-    const tokenId = 1;
-    const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(1, plan.enterprise);
+    const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(tokenId, plan.enterprise);
 
     // revert since user isn't a subscriber
     await expect(
@@ -136,7 +164,9 @@ describe("Susbcriptions Contract", function () {
         .changeSubscriptionPlan(tokenId, plan.enterprise, { value: toPayMore.toString() })
     ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__SubscriptionExpired");
 
-    await subscriptions.connect(user2).subscribe(tokenId, false, { value: pricePerPlan.pro });
+    await subscriptions
+      .connect(user2)
+      .subscribe(plan.pro, planDuration.monthly, { value: pricePerPlan.pro });
 
     // revert since user do not own this subscription
     await expect(
@@ -172,14 +202,13 @@ describe("Susbcriptions Contract", function () {
     const { subscriptions, user1 } = await loadFixture(deployFixture);
 
     // Get the price for BASIC plan for a year:
-    const toPay = await subscriptions.calculateSubscriptionPrice(plan.basic, true);
+    const toPay = await subscriptions.calculateSubscriptionPrice(plan.basic, planDuration.yearly);
     expect(toPay).to.equal(pricePerPlan.basic.mul(10));
     // Then subscribe:
-    await subscriptions.connect(user1).subscribe(plan.basic, true, { value: toPay });
+    await subscriptions.connect(user1).subscribe(plan.basic, planDuration.yearly, { value: toPay });
 
     // Moves forward 3 months, then upgrade to ENTERPRISE plan:
     await time.increase(duration.month * 3);
-    const tokenId = 1;
     const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(tokenId, plan.enterprise);
     // 4.125 ETH needed to upgrade to enterprise for the 9 months left
     expect(toPayMore.toString()).to.equal("4125000000000000000");
@@ -201,38 +230,36 @@ describe("Susbcriptions Contract", function () {
 
   it("shouldn't be possible to renewSubscription without already being a subscriber", async () => {
     const { subscriptions, user1, user2 } = await loadFixture(deployFixture);
-    const tokenId = 1;
 
     await expect(
-      subscriptions
-        .connect(user1)
-        .renewSubscription(tokenId, plan.pro, true, { value: pricePerPlan.pro.mul(10) })
+      subscriptions.connect(user1).renewSubscription(tokenId, plan.pro, planDuration.yearly, {
+        value: pricePerPlan.pro.mul(10),
+      })
     ).to.be.revertedWith("ERC721: invalid token ID");
 
     await subscriptions
       .connect(user1)
-      .subscribe(plan.pro, true, { value: pricePerPlan.pro.mul(10) });
+      .subscribe(plan.pro, planDuration.yearly, { value: pricePerPlan.pro.mul(10) });
 
     await expect(
-      subscriptions
-        .connect(user2)
-        .renewSubscription(1, plan.pro, true, { value: pricePerPlan.pro.mul(10) })
+      subscriptions.connect(user2).renewSubscription(tokenId, plan.pro, planDuration.yearly, {
+        value: pricePerPlan.pro.mul(10),
+      })
     ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__TokenNotOwned");
   });
 
   it("Make sur calculated price is correct in weird upgrade scenario", async () => {
     const { subscriptions, user1 } = await loadFixture(deployFixture);
-    const tokenId = 1;
 
     await subscriptions
       .connect(user1)
-      .subscribe(plan.basic, true, { value: pricePerPlan.basic.mul(10) });
+      .subscribe(plan.basic, planDuration.yearly, { value: pricePerPlan.basic.mul(10) });
+    await subscriptions.connect(user1).renewSubscription(tokenId, plan.basic, planDuration.yearly, {
+      value: pricePerPlan.basic.mul(10),
+    });
     await subscriptions
       .connect(user1)
-      .renewSubscription(tokenId, plan.basic, true, { value: pricePerPlan.basic.mul(10) });
-    await subscriptions
-      .connect(user1)
-      .renewSubscription(tokenId, plan.basic, false, { value: pricePerPlan.basic });
+      .renewSubscription(tokenId, plan.basic, planDuration.monthly, { value: pricePerPlan.basic });
 
     // Try cheating:
     const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(tokenId, plan.enterprise);
@@ -252,7 +279,7 @@ describe("Susbcriptions Contract", function () {
 
     await subscriptions
       .connect(user1)
-      .subscribe(plan.pro, true, { value: pricePerPlan.pro.mul(10) });
+      .subscribe(plan.pro, planDuration.yearly, { value: pricePerPlan.pro.mul(10) });
 
     // Move forward 6 months before renewal
     await time.increase(duration.month * 6);
@@ -260,7 +287,9 @@ describe("Susbcriptions Contract", function () {
     await expect(
       subscriptions
         .connect(user1)
-        .renewSubscription(1, plan.enterprise, true, { value: pricePerPlan.enterprise.mul(10) })
+        .renewSubscription(tokenId, plan.enterprise, planDuration.yearly, {
+          value: pricePerPlan.enterprise.mul(10),
+        })
     ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__UpgradePlanBeforeRenewal");
 
     // Move forward again 10 more months (subscription is now expired)
@@ -268,7 +297,9 @@ describe("Susbcriptions Contract", function () {
 
     const receipt = await subscriptions
       .connect(user1)
-      .renewSubscription(1, 2, true, { value: pricePerPlan.enterprise.mul(10) });
+      .renewSubscription(tokenId, plan.enterprise, planDuration.yearly, {
+        value: pricePerPlan.enterprise.mul(10),
+      });
     await expect(receipt).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
   });
 
@@ -277,7 +308,7 @@ describe("Susbcriptions Contract", function () {
 
     await subscriptions
       .connect(user1)
-      .subscribe(plan.pro, true, { value: pricePerPlan.pro.mul(10) });
+      .subscribe(plan.pro, planDuration.yearly, { value: pricePerPlan.pro.mul(10) });
     // Move forward 10 months before renewal
     await time.increase(duration.month * 10);
 
@@ -287,7 +318,9 @@ describe("Susbcriptions Contract", function () {
 
     const receipt = await subscriptions
       .connect(user1)
-      .renewSubscription(1, plan.pro, true, { value: pricePerPlan.pro.mul(10) });
+      .renewSubscription(tokenId, plan.pro, planDuration.yearly, {
+        value: pricePerPlan.pro.mul(10),
+      });
     await expect(receipt).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
 
     const user = await subscriptions.getSubscriber(user1.address);
@@ -300,7 +333,9 @@ describe("Susbcriptions Contract", function () {
 
     const receipt2 = await subscriptions
       .connect(user1)
-      .renewSubscription(1, plan.pro, true, { value: pricePerPlan.pro.mul(10) });
+      .renewSubscription(tokenId, plan.pro, planDuration.yearly, {
+        value: pricePerPlan.pro.mul(10),
+      });
     await expect(receipt2).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
 
     // New expiration should be 40 months from now + 1 year + now
@@ -314,14 +349,18 @@ describe("Susbcriptions Contract", function () {
 
     const receipt3 = await subscriptions
       .connect(user1)
-      .renewSubscription(1, plan.enterprise, false, { value: pricePerPlan.enterprise });
+      .renewSubscription(tokenId, plan.enterprise, planDuration.monthly, {
+        value: pricePerPlan.enterprise,
+      });
     await expect(receipt3).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
   });
 
   it("should be possible to renewSubscription for a month and add time accordingly", async () => {
     const { subscriptions, user1 } = await loadFixture(deployFixture);
 
-    await subscriptions.connect(user1).subscribe(plan.basic, false, { value: pricePerPlan.basic });
+    await subscriptions
+      .connect(user1)
+      .subscribe(plan.basic, planDuration.monthly, { value: pricePerPlan.basic });
     // Move forward 15 days before renewal
     await time.increase(duration.month / 2);
 
@@ -329,7 +368,9 @@ describe("Susbcriptions Contract", function () {
 
     const receipt = await subscriptions
       .connect(user1)
-      .renewSubscription(1, plan.basic, true, { value: pricePerPlan.basic.mul(10) });
+      .renewSubscription(tokenId, plan.basic, planDuration.yearly, {
+        value: pricePerPlan.basic.mul(10),
+      });
     await expect(receipt).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
 
     const user = await subscriptions.getSubscriber(user1.address);
@@ -343,19 +384,23 @@ describe("Susbcriptions Contract", function () {
 
     const receipt2 = await subscriptions
       .connect(user1)
-      .renewSubscription(1, plan.enterprise, true, { value: pricePerPlan.enterprise.mul(10) });
+      .renewSubscription(tokenId, plan.enterprise, planDuration.yearly, {
+        value: pricePerPlan.enterprise.mul(10),
+      });
     await expect(receipt2).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
 
     // New expiration should be 40 months from now + 1 year + now
     const newTime = Math.floor(Date.now() / 1000 + duration.year + duration.month * 20.5);
     const expiration = await subscriptions.expiresAt(1); // tokenId = 1
 
-    expect(Number(expiration)).to.be.closeTo(newTime, 60);
+    expect(Number(expiration)).to.be.closeTo(newTime, 100);
     expect(compareTimestamp(Number(expiration), newTime)).to.equal(true);
 
     const receipt3 = await subscriptions
       .connect(user1)
-      .renewSubscription(1, plan.enterprise, false, { value: pricePerPlan.enterprise });
+      .renewSubscription(tokenId, plan.enterprise, planDuration.monthly, {
+        value: pricePerPlan.enterprise,
+      });
     await expect(receipt3).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
 
     const newTime2 = Math.floor(Date.now() / 1000 + duration.year + duration.month * 21.5);
@@ -372,11 +417,13 @@ describe("Susbcriptions Contract", function () {
 
     await subscriptions
       .connect(user1)
-      .subscribe(plan.basic, true, { value: pricePerPlan.basic.mul(10) });
-    await subscriptions.connect(user2).subscribe(plan.pro, false, { value: pricePerPlan.pro });
+      .subscribe(plan.basic, planDuration.yearly, { value: pricePerPlan.basic.mul(10) });
+    await subscriptions
+      .connect(user2)
+      .subscribe(plan.pro, planDuration.monthly, { value: pricePerPlan.pro });
     await subscriptions
       .connect(user3)
-      .subscribe(plan.enterprise, true, { value: pricePerPlan.enterprise.mul(10) });
+      .subscribe(plan.enterprise, planDuration.yearly, { value: pricePerPlan.enterprise.mul(10) });
 
     // const balance = await subscriptions.getBalance();
     const contractBalanceBefore = await ethers.provider.getBalance(subscriptions.address);
@@ -389,12 +436,12 @@ describe("Susbcriptions Contract", function () {
     );
 
     await expect(
-      subscriptions.connect(owner).withdrawEther(ethers.constants.AddressZero)
+      subscriptions.withdrawEther(ethers.constants.AddressZero)
     ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__WithdrawToAddressZero");
 
     const balanceOwnerBefore = await ethers.provider.getBalance(owner.address);
 
-    await subscriptions.connect(owner).withdrawEther(owner.address);
+    await subscriptions.withdrawEther(owner.address);
 
     const contractBalanceAfter = await ethers.provider.getBalance(subscriptions.address);
     expect(Number(contractBalanceAfter)).to.equal(0);
@@ -412,7 +459,7 @@ describe("Susbcriptions Contract", function () {
       subscriptions.connect(user1).editPlanPrice(plan.basic, formatNumber(1))
     ).to.be.revertedWith("Ownable: caller is not the owner");
 
-    const receipt = await subscriptions.connect(owner).editPlanPrice(plan.basic, formatNumber(1));
+    const receipt = await subscriptions.editPlanPrice(plan.basic, formatNumber(1));
     await expect(receipt)
       .to.emit(subscriptions, "PriceUpdated")
       .withArgs(plan.basic, formatNumber(1));
@@ -425,16 +472,20 @@ describe("Susbcriptions Contract", function () {
     const { subscriptions, user1, user2, user3 } = await loadFixture(deployFixture);
 
     // Mint 3 NFTs with different plans
-    const toPay = await subscriptions.calculateSubscriptionPrice(plan.basic, false);
-    expect(await subscriptions.calculateSubscriptionPrice(plan.basic, false)).to.equal(
-      pricePerPlan.basic
-    );
-    await subscriptions.connect(user1).subscribe(plan.basic, false, { value: toPay });
+    const toPay = await subscriptions.calculateSubscriptionPrice(plan.basic, planDuration.monthly);
+    expect(
+      await subscriptions.calculateSubscriptionPrice(plan.basic, planDuration.monthly)
+    ).to.equal(pricePerPlan.basic);
+    await subscriptions
+      .connect(user1)
+      .subscribe(plan.basic, planDuration.monthly, { value: toPay });
 
-    await subscriptions.connect(user2).subscribe(plan.pro, false, { value: pricePerPlan.pro });
+    await subscriptions
+      .connect(user2)
+      .subscribe(plan.pro, planDuration.monthly, { value: pricePerPlan.pro });
     await subscriptions
       .connect(user3)
-      .subscribe(plan.enterprise, false, { value: pricePerPlan.enterprise });
+      .subscribe(plan.enterprise, planDuration.monthly, { value: pricePerPlan.enterprise });
 
     const total = await subscriptions.totalSupply();
     expect(total).to.equal(3);

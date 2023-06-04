@@ -23,14 +23,6 @@ interface IMeedProgram {
 
   function getAllPromotions() external view returns (PromoLib.Promotion[] memory allPromotions);
 
-  function getAllPromotionsPaging(
-    uint256 offset,
-    uint256 limit
-  )
-    external
-    view
-    returns (PromoLib.Promotion[] memory pagedPromotions, uint256 nextOffset, uint256 total);
-
   function getAllPromotionsPerType(
     PromoLib.PromotionsType _type
   ) external view returns (PromoLib.Promotion[] memory promotionsPerType);
@@ -39,7 +31,7 @@ interface IMeedProgram {
     bool status
   ) external view returns (PromoLib.Promotion[] memory activePromotions);
 
-  function switchStatus(address promotion, bool status) external;
+  function switchActivationStatus(address promotion, bool status) external;
 
   /**
    * @dev Updates the baseURI that will be used to retrieve NFT metadata.

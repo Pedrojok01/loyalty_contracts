@@ -5,6 +5,7 @@ pragma solidity 0.8.18;
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
 import {IRedeemable} from "../interfaces/IRedeemable.sol";
+import {IAutoMintable} from "../interfaces/IAutoMintable.sol";
 import {TimeLimited} from "../utils/TimeLimited.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 import {MeedProgram} from "../meedProgram/MeedProgram.sol";
@@ -34,7 +35,7 @@ import {RedeemCodeLib} from "../library/RedeemCodeLib.sol";
  * =================================
  * 836a1040  =>  mint(uint256,address,uint256)
  * 104d4a1a  =>  batchMint(uint256,address[],uint8)
- * f32c02ab  =>  redeem(address,uint256,uint32)
+ * f32c02ab  =>  redeem(address,uint256)
  * f48cc326  =>  isRedeemable(uint256)
  * e82e55cd  =>  getRedeemable(uint256)
  * 8e264182  =>  getTotalRedeemablesSupply()
@@ -46,7 +47,7 @@ import {RedeemCodeLib} from "../library/RedeemCodeLib.sol";
  * 810bdd65  =>  _onlyOngoing()
  */
 
-contract Redeemable is ERC1155, IRedeemable, TimeLimited {
+contract Redeemable is ERC1155, IRedeemable, IAutoMintable, TimeLimited {
   using RedeemCodeLib for RedeemCodeLib.RedeemCodeStorage;
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -55,7 +56,6 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited {
 
   MeedProgram private immutable meedProgram;
   RedeemCodeLib.RedeemCodeStorage internal redeemCodeStorage;
-  bool public autoMintActivated = true; // Can automatically send vouchers if conditions are met;
 
   enum RedeemableType {
     ProductId, // 0
@@ -64,14 +64,13 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited {
   }
 
   struct RedeemableNFT {
-    RedeemableType redeemableType; // 1 byte
-    uint8 id; // 1 byte
+    uint120 circulatingSupply; // 15 bytes - Slot I
     uint112 value; // 14 bytes
-    uint120 circulatingSupply; // 15 bytes
+    RedeemableType redeemableType; // 1 byte
     bool exist; // 1 byte
-    uint8 lvlRequirement; // 1 byte
-    uint32 amountRequirement; // 4 bytes
-    bytes32 productIdOrCurrency;
+    uint8 id; // 1 byte
+    uint32 amountRequirement; // 4 bytes - Slot II
+    bytes32 productIdOrCurrency; // Slot III (@todo move to metadata?)
     string redeemCode; // 32 bytes
   }
 
@@ -97,11 +96,6 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited {
     _;
   }
 
-  modifier onlyMeedProgram() {
-    _checkMeedProgram();
-    _;
-  }
-
   /*///////////////////////////////////////////////////////////////////////////////
                                 MINT / BATCH-MINT / REDEEM
     ///////////////////////////////////////////////////////////////////////////////*/
@@ -110,46 +104,36 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited {
     @dev Limited mint - only the owner can mint the level 2 and above NFTs;
     @param id Allow to choose the kind of NFT to be minted;
     @param to Address which will receive the limited NFTs;
-    @param lvlMin Level required to mint the NFT (set to 1 for no level requirement);
     */
-  function mint(
-    uint256 id,
-    address to,
-    uint256 lvlMin
-  ) public onlyOwnerOrAdmin onlyOngoing onlyActive {
-    _mintRedeemable(id, to, lvlMin);
+  function mint(uint256 id, address to) public onlyOwnerOrAdmin onlyOngoing onlyActive {
+    if (_msgSender() == admin()) {
+      _onlySubscribers(owner());
+    } else {
+      _onlySubscribers(_msgSender());
+    }
+
+    _mintRedeemable(id, to);
   }
 
   /**
-    @dev Automatic mint - Admin restricted - Allows to automatically send vouchers if buying conditions are met;
+    @dev Limited mint - only the owner can mint the level 2 and above NFTs;
     @param id Allow to choose the kind of NFT to be minted;
     @param to Address which will receive the limited NFTs;
-    @param lvlMin Level required to mint the NFT (set to 1 for no level requirement);
-    @param purchasedAmount Amount of the purchase made by the user;
     */
-  function autoMint(
-    uint256 id,
-    address to,
-    uint256 lvlMin,
-    uint32 purchasedAmount
-  ) public onlyMeedProgram onlyOngoing onlyActive {
-    if (!autoMintActivated) revert Redeemable__AutoMintDeactivated();
-
-    if (redeemableNFTs[id].amountRequirement < purchasedAmount)
-      revert Redeemable__InsufficientAmount();
-    _mintRedeemable(id, to, lvlMin);
+  function autoMint(uint256 id, address to) external onlyOngoing onlyActive {
+    if (_msgSender() != address(meedProgram)) revert Redeemable__NotCalledFromContract();
+    _onlySubscribers(owner());
+    _mintRedeemable(id, to);
   }
 
   /**
    * @dev Mint a new NFT to a batch of specified addresses;
    * @param id Allow to choose the kind of NFT to be minted;
    * @param to Array of addresses to mint to; must be members of the loyalty program;
-   * @param lvlMin Level required to mint the NFT (set to 1 for no level requirement);
    */
   function batchMint(
     uint256 id,
-    address[] calldata to,
-    uint8 lvlMin
+    address[] calldata to
   ) external onlyOwnerOrAdmin onlyOngoing onlyActive {
     if (_msgSender() == admin()) {
       _onlyProOrEnterprise(owner());
@@ -158,7 +142,7 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited {
     }
     uint256 length = to.length;
     for (uint256 i = 0; i < length; ) {
-      mint(id, to[i], lvlMin);
+      mint(id, to[i]);
       unchecked {
         i++;
       }
@@ -169,27 +153,24 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited {
    * @dev Allows to redeem a Voucher;
    * @param from Address to burn the NFT from;
    * @param tokenId  Id of the NFT to burn;
-   * @param amount Amount of the purchase made by the user;
    */
   function redeem(
     address from,
-    uint256 tokenId,
-    uint32 amount
+    uint256 tokenId
   ) public override onlyOngoing onlyActive onlyOwnerOrAdmin {
-    _redeem(from, tokenId, amount);
+    _redeem(from, tokenId);
   }
 
   /**
    * @dev Allows to redeem a Voucher from a redeem code;
    * @param from Address to burn the NFT from;
    * @param code  Redeem code of the NFT to burn;
-   * @param amount Amount of the purchase made by the user;
    */
-  function redeemFromCode(address from, string memory code, uint32 amount) external {
+  function redeemFromCode(address from, string memory code) external {
     (address contractAddress, uint256 tokenId) = redeemCodeStorage.getDataFromRedeemCode(code);
     if (contractAddress != address(this)) revert Redeemable__WrongPromotionContract();
 
-    redeem(from, tokenId, amount);
+    redeem(from, tokenId);
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -213,12 +194,6 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited {
   /*///////////////////////////////////////////////////////////////////////////////
                                         RESTRICTED
     ///////////////////////////////////////////////////////////////////////////////*/
-  /**
-   * @dev Allows to activate / deactivate the autoMint status;
-   */
-  function switchAutoMintStatus() external onlyOwnerOrAdmin {
-    autoMintActivated = !autoMintActivated;
-  }
 
   /**
    * @dev Add a new redeemable NFT type to the contract;
@@ -229,11 +204,10 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited {
   function addNewRedeemableNFT(
     RedeemableType redeemType,
     uint256 value,
-    uint256 lvlRequirement,
     uint256 amountRequirement,
     bytes32 data
   ) external onlyOwnerOrAdmin onlyOngoing onlyActive {
-    _addNewRedeemableNFT(redeemType, uint112(value), lvlRequirement, amountRequirement, data);
+    _addNewRedeemableNFT(redeemType, uint112(value), amountRequirement, data);
     emit NewTypeAdded(redeemType, uint112(value), data);
   }
 
@@ -251,24 +225,16 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   /// @dev Common function to mint a Redeemable NFT;
-  function _mintRedeemable(uint256 id, address to, uint256 lvlMin) private {
-    if (_msgSender() == admin()) {
-      _onlySubscribers(owner());
-    } else {
-      _onlySubscribers(_msgSender());
-    }
-
+  function _mintRedeemable(uint256 id, address to) private {
     if (!_isValidId(id)) revert Redeemable__WrongId();
-    if (!_isValidLevel(lvlMin)) revert Redeemable__WrongLevel();
     uint8 currentLevel = meedProgram.getMemberLevel(to);
     if (currentLevel == 0) revert Redeemable__NonExistantUser();
-    if (currentLevel < uint8(lvlMin)) revert Redeemable__InsufficientLevel();
 
     redeemableNFTs[id].circulatingSupply++;
     _mint(to, id, 1, "");
   }
 
-  function _redeem(address from, uint256 tokenId, uint32 amount) private {
+  function _redeem(address from, uint256 tokenId) private {
     if (_msgSender() != owner()) {
       _onlySubscribers(owner());
     }
@@ -277,7 +243,6 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited {
 
     redeemableNFTs[tokenId].circulatingSupply--;
     burn(from, tokenId, 1);
-    meedProgram.updateMember(from, amount);
 
     emit Redeemed(from, tokenId);
   }
@@ -286,13 +251,6 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited {
     if (_id < redeemableNFTs.length) {
       return redeemableNFTs[_id].exist;
     } else return false;
-  }
-
-  function _isValidLevel(uint256 _level) private pure returns (bool) {
-    if (_level > 0 && _level <= 5) {
-      return true;
-    }
-    return false;
   }
 
   function _isValidType(RedeemableType _redeemType) private pure returns (bool) {
@@ -313,7 +271,6 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited {
   function _addNewRedeemableNFT(
     RedeemableType redeemType,
     uint112 _value,
-    uint256 _lvlRequirement,
     uint256 _amountRequirement,
     bytes32 _data
   ) private {
@@ -328,7 +285,6 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited {
       value: _value,
       exist: true,
       circulatingSupply: 0,
-      lvlRequirement: uint8(_lvlRequirement),
       amountRequirement: uint32(_amountRequirement),
       productIdOrCurrency: _data,
       redeemCode: redeemCodeStorage.generateRedeemCode(address(this), _id)
@@ -353,13 +309,9 @@ contract Redeemable is ERC1155, IRedeemable, TimeLimited {
     if (isExpired()) {
       if (isActive()) {
         _deactivate();
-        meedProgram.switchStatus(address(this), false);
+        meedProgram.switchActivationStatus(address(this), false);
       }
       revert NonExpirable__EventExpired();
     }
-  }
-
-  function _checkMeedProgram() private view {
-    if (address(meedProgram) != _msgSender()) revert Redeemable__NotCalledFromMeedProgram();
   }
 }

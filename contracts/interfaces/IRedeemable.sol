@@ -28,7 +28,8 @@ interface IRedeemable is IERC165 {
 
   /**
    * @notice Redeeem a token;
+   * @param from Address of the user;
    * @param tokenId Identifier of the token to redeeem;
    */
-  function redeem(address from, uint256 tokenId, uint32 amount) external;
+  function redeem(address from, uint256 tokenId) external;
 }

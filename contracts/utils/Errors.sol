@@ -18,6 +18,8 @@ contract Errors {
   error MeedProgram_TokenDoesNotExist();
   error MeedProgram_AmountVolumeIsZero();
   error MeedProgram__AuthorizedFactoryOnly();
+  error MeedProgram__PromotionLimitReached();
+  error MeedProgram__LevelOutOfRange();
 
   // MeedProgramFactory
   error MeedProgramFactory_AlreadyExists();
@@ -54,15 +56,13 @@ contract Errors {
   error Redeemable__WrongType();
   error Redeemable__WrongId();
   error Redeemable__WrongPromotionContract();
-  error Redeemable__WrongLevel();
   error Redeemable__EventExpired();
   error Redeemable__ArraysDontMatch();
   error Redeemable__WrongValue();
   error Redeemable__NonExistantUser();
   error Redeemable__InsufficientLevel();
   error Redeemable__InsufficientAmount();
-  error Redeemable__NotCalledFromMeedProgram();
-  error Redeemable__AutoMintDeactivated();
+  error Redeemable__NotCalledFromContract();
 
   // Collectibles
   error Collectibles__InvalidTokenId();
@@ -92,7 +92,6 @@ contract Errors {
   error Subscriptions__PaymentFailed();
   error Subscriptions__WithdrawToAddressZero();
   error Subscriptions__WithdrawalFailed();
-  error Subscriptions__PleaseUpgradeYourPlan();
 
   // SubscriberChecks
   error SubscriberChecks__PleaseSubscribeFirst();
