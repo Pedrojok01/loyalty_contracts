@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.18;
+pragma solidity ^0.8.19;
 
 import {Activation} from "../utils/Activation.sol";
 import {Adminable} from "../utils/Adminable.sol";
@@ -21,15 +21,13 @@ contract TimeLimited is Activation, Adminable {
     address subscriptionsAddress,
     address adminRegistryAddress
   ) Adminable(adminRegistryAddress, subscriptionsAddress) {
-    require(endDate == 0 || _startDate < _endDate, "TimeLimited: invalid dates");
+    require(endDate == 0 || _startDate < _endDate, "TimeLimited: invalid date");
     startDate = uint128(_startDate);
     endDate = uint128(_endDate);
   }
 
   /**
-   * @dev !!! potential state change in this modifier !!!
-   * Throws if the contract is expired.
-   * Will automatically deactivate the contract if it is expired.
+   * @dev Throws if the contract is expired.
    */
   modifier onlyOngoing() virtual {
     _onlyOngoing();
@@ -50,7 +48,7 @@ contract TimeLimited is Activation, Adminable {
   }
 
   function updateExpirationDate(uint256 newExpirationDate) external onlyOwnerOrAdmin onlyActive {
-    if (newExpirationDate < block.timestamp) revert NonExpirable__InvalidDate();
+    if (newExpirationDate < block.timestamp) revert TimeLimited__InvalidDate();
     uint128 oldDate = endDate;
     endDate = uint128(newExpirationDate);
     emit ExpirationDateUpdated(oldDate, uint128(newExpirationDate), _msgSender());
@@ -64,9 +62,6 @@ contract TimeLimited is Activation, Adminable {
 
   function _onlyOngoing() internal virtual {
     if (isExpired()) {
-      if (isActive()) {
-        _deactivate(address(this));
-      }
       revert TimeLimited__TokenExpired();
     }
   }

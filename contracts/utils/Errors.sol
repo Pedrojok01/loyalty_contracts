@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.18;
+pragma solidity ^0.8.19;
 
 /**
  * @title Errors
@@ -70,7 +70,6 @@ contract Errors {
 
   //NonExpirable
   error NonExpirable__InvalidMintType();
-  error NonExpirable__InvalidDate();
   error NonExpirable__NonExistantUser();
   error NonExpirable__InsufficientLevel();
   error NonExpirable__EventExpired();
@@ -100,6 +99,7 @@ contract Errors {
 
   // TimeLimited
   error TimeLimited__TokenExpired();
+  error TimeLimited__InvalidDate();
 
   // Activation
   error Activation__PromotionCurrentlyInactive();

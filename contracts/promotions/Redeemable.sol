@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.18;
+pragma solidity ^0.8.19;
 
 // import "hardhat/console.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
@@ -89,11 +89,6 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
     _setURI(_uri);
     meedProgram = MeedProgram(_meedProgram);
     transferOwnership(_owner);
-  }
-
-  modifier onlyOngoing() override {
-    _onlyOngoing();
-    _;
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -317,14 +312,5 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
     });
 
     redeemableNFTs.push(newRedeemableNFT);
-  }
-
-  function _onlyOngoing() internal override {
-    if (isExpired()) {
-      if (isActive()) {
-        this.deactivatePromotion();
-      }
-      revert NonExpirable__EventExpired();
-    }
   }
 }

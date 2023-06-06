@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.18;
+pragma solidity ^0.8.19;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -64,11 +64,6 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
     _baseURIextended = _uri;
     meedProgram = MeedProgram(data._meedProgram);
     transferOwnership(data._owner);
-  }
-
-  modifier onlyOngoing() override {
-    _onlyOngoing();
-    _;
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -295,13 +290,4 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
   /*///////////////////////////////////////////////////////////////////////////////
                                     INTERNAL / PRIVATE
     ///////////////////////////////////////////////////////////////////////////////*/
-
-  function _onlyOngoing() internal override {
-    if (isExpired()) {
-      if (isActive()) {
-        _deactivate(address(this));
-      }
-      revert Bundles__EventExpired();
-    }
-  }
 }

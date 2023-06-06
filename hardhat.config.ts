@@ -10,13 +10,13 @@ const privateKey: string | undefined =
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.18",
+    version: "0.8.19",
     settings: {
       optimizer: {
         enabled: true,
         runs: 10,
       },
-      // viaIR: true,
+      viaIR: true,
     },
   },
   networks: {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.18;
+pragma solidity ^0.8.19;
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import {Errors} from "../utils/Errors.sol";
 
 /**

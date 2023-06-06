@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.18;
+pragma solidity ^0.8.19;
 
 // import "hardhat/console.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
@@ -13,7 +13,7 @@ import {Counters} from "../utils/Counters.sol";
  * @title Collectibles
  * @author Pierre Estrabaud (@Pedrojok01)
  * @notice Part of the Meed Loyalty Platform from SuperUltra
- * @dev Collectibles are NFTs can be collected to redeem a reward.;
+ * @dev Collectibles are NFTs can be collected to win a reward.;
  *  - The whole collection must be collected for the reward to be unlocked;
  *  - The reward is decided by the brands, can be another NFT like super discount or free product;
  *  - The collected NFT are burned when used;
@@ -24,7 +24,7 @@ contract Collectibles is ERC1155, TimeLimited {
 
   MeedProgram private immutable meedProgram;
   uint256 private constant MAX_IDS = 64;
-  Counters.Counter private _redeemCounter;
+  Counters.Counter private _collectibleCounter;
 
   mapping(uint256 => string) private _uris;
 
@@ -41,18 +41,16 @@ contract Collectibles is ERC1155, TimeLimited {
     TimeLimited(_startDate, _expirationDate, _subscriptionAddress, adminRegistryAddress)
   {
     require(uris.length <= MAX_IDS, "CollectibleNFT: Too many URIs.");
-    require(_expirationDate == 0 || _expirationDate > block.timestamp, "Redeemable: invalid date");
+    require(
+      _expirationDate == 0 || _expirationDate > block.timestamp,
+      "Collectibles: invalid date"
+    );
     for (uint256 i = 0; i < uris.length; i++) {
       _uris[i] = uris[i];
       _mint(msg.sender, i, 1, "");
       meedProgram = MeedProgram(_meedProgram);
       transferOwnership(_owner);
     }
-  }
-
-  modifier onlyOngoing() override {
-    _onlyOngoing();
-    _;
   }
 
   function uri(uint256 tokenId) public view override returns (string memory) {
@@ -75,21 +73,12 @@ contract Collectibles is ERC1155, TimeLimited {
       _burn(account, i, 1);
     }
 
-    _redeemCounter.increment();
-    uint256 redeemId = _redeemCounter.current();
-    _mint(account, redeemId, 1, "");
+    _collectibleCounter.increment();
+    uint256 collectibleId = _collectibleCounter.current();
+    _mint(account, collectibleId, 1, "");
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
                                         PRIVATE
     ///////////////////////////////////////////////////////////////////////////////*/
-
-  function _onlyOngoing() internal override {
-    if (isExpired()) {
-      if (isActive()) {
-        _deactivate(address(this));
-      }
-      revert Collectibles__EventExpired();
-    }
-  }
 }

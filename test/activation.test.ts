@@ -1,10 +1,10 @@
 require("@nomicfoundation/hardhat-chai-matchers");
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 
 import { deploy } from "./helpers/deploy";
 import { ethers } from "hardhat";
-import { plan, pricePerPlan } from "./constant";
+import { duration, plan, pricePerPlan } from "./constant";
 
 describe("Activation Feature", function () {
   async function deployFixture() {
@@ -180,5 +180,48 @@ describe("Activation Feature", function () {
       redeemable,
       "Activation__PromotionCurrentlyInactive"
     );
+  });
+
+  it("shouldn't be possible to update the expiration date if inactive", async () => {
+    const { meedProgram, redeemable, owner } = await loadFixture(deployFixture);
+
+    // deactivate promo
+    const receipt = await meedProgram.deactivatePromotion(redeemable.address);
+    await expect(receipt)
+      .to.emit(redeemable, "Deactivated")
+      .withArgs(owner.address, redeemable.address);
+
+    expect(await redeemable.isActive()).to.equal(false); // deactivated
+
+    // Update expiration date (revert if inactive):
+    const newExpirationDate = (Math.floor(Date.now() / 1000) + duration.year * 3).toString();
+    await expect(redeemable.updateExpirationDate(newExpirationDate)).to.be.revertedWithCustomError(
+      redeemable,
+      "Activation__PromotionCurrentlyInactive"
+    );
+  });
+
+  it("shouldn't expire if no expiration date", async () => {
+    const { redeemableFactory, meedProgram } = await loadFixture(deployFixture);
+
+    const startDate = Math.floor(Date.now() / 1000).toString();
+
+    await redeemableFactory.createNewPromotion(
+      "ipfs://uri",
+      startDate,
+      0, // no expiration date
+      meedProgram.address,
+      1
+    );
+
+    // Get new promo instance
+    const allPromos = await meedProgram.getAllPromotions();
+    expect(allPromos.length).to.equal(2);
+    const redeemable = await ethers.getContractAt("Redeemable", allPromos[1].promotionAddress);
+
+    expect(await redeemable.isActive()).to.equal(true);
+    expect(await redeemable.isExpired()).to.equal(false);
+
+    expect(await redeemable.isExpired()).to.equal(false); // still not expired
   });
 });

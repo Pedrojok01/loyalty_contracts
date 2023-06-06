@@ -3,7 +3,7 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
-import { pricePerPlan, duration, plan, voucher_type, planDuration } from "./constant";
+import { pricePerPlan, duration, plan, voucher_type, planDuration, promoType } from "./constant";
 import { utils } from "ethers";
 import { deploy } from "./helpers/deploy";
 
@@ -158,9 +158,7 @@ describe("Redeemable Promotion Contract", function () {
   });
 
   it("shouldn't be possible to mint under following conditions", async () => {
-    const { subscriptions, meedProgram, redeemable, owner, user1 } = await loadFixture(
-      deployFixture
-    );
+    const { subscriptions, meedProgram, redeemable, user1 } = await loadFixture(deployFixture);
 
     await redeemable.addNewRedeemableNFT(type, value[0], amountRequired, data);
     await subscriptions.subscribe(plan.basic, false, { value: pricePerPlan.basic });
@@ -179,11 +177,13 @@ describe("Redeemable Promotion Contract", function () {
       "Redeemable__WrongId"
     );
 
+    expect(await redeemable.isActive()).to.equal(true); // still active
+
     // Moves forward 24 months:
     await time.increase(duration.month * 24);
     await expect(redeemable.mint(0, user1.address)).to.be.revertedWithCustomError(
       redeemable,
-      "NonExpirable__EventExpired"
+      "TimeLimited__TokenExpired"
     );
   });
 
@@ -311,7 +311,6 @@ describe("Redeemable Promotion Contract", function () {
     await redeemable.batchMint(0, to);
 
     // Redeem the voucher:
-    const amount = 1;
     const receipt = await redeemable.redeem(user1.address, tokenId_0);
     await expect(receipt).to.emit(redeemable, "Redeemed").withArgs(user1.address, tokenId_0);
 
@@ -429,11 +428,17 @@ describe("Redeemable Promotion Contract", function () {
 
     expect(validity.end).to.equal(expirationDate);
 
-    // Update expiration date (revert if unauthorized)):
+    // Update expiration date (revert if unauthorized):
     const newExpirationDate = (Math.floor(Date.now() / 1000) + duration.year * 2).toString();
     await expect(
       redeemable.connect(user1).updateExpirationDate(newExpirationDate)
     ).to.be.revertedWithCustomError(redeemable, "Adminable__NotAuthorized");
+
+    // Update expiration date (revert if invalid date):
+    const wrongExpirationDate = (Math.floor(Date.now() / 1000) - duration.month).toString();
+    await expect(
+      redeemable.updateExpirationDate(wrongExpirationDate)
+    ).to.be.revertedWithCustomError(redeemable, "TimeLimited__InvalidDate");
 
     const receipt = await redeemable.updateExpirationDate(newExpirationDate);
     await expect(receipt)

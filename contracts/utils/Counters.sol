@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (utils/Counters.sol)
 
-pragma solidity 0.8.18;
+pragma solidity ^0.8.19;
 
 /**
  * @notice Replaced openzepplin uint256 with uint40 to save gas;
