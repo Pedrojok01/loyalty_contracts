@@ -6,7 +6,6 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import {Adminable} from "../utils/Adminable.sol";
-import {Counters} from "../utils/Counters.sol";
 import {PromoLib} from "../library/PromoLib.sol";
 import {IMeedProgram} from "../interfaces/IMeedProgram.sol";
 import {ICampaign} from "../interfaces/ICampaign.sol";
@@ -26,7 +25,6 @@ import {ICampaign} from "../interfaces/ICampaign.sol";
  */
 
 contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
-  using Counters for Counters.Counter;
   using PromoLib for PromoLib.Data;
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -35,7 +33,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
 
   bool public immutable TIER_TRACKER; // true = buyVolume (purchase Times), false = amountVolume
   string private _baseURIextended;
-  Counters.Counter private _tokenIdCounter;
+  uint40 private _tokenIdCounter;
   PromoLib.Data private promoLib;
   address[] private factories;
   bool public autoMintActivated = true; // Can automatically send vouchers if conditions are met;
@@ -209,10 +207,25 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     return promotionsPerType;
   }
 
+  /**
+   * @dev Returns promotionsType (uint)
+   * DiscountVouchers  - 0
+   * FreeProducts - 1
+   * VIPpass - 2
+   * Badges  - 3
+   * Stamps - 4
+   * Paninis - 5
+   * EventTickets - 6
+   * Packs - 7
+   */
   function getPromotionType(
-    PromoLib.Promotion calldata promo
-  ) external pure returns (PromoLib.PromotionsType _type) {
-    return promo.promotionsType;
+    address promotion
+  ) external view returns (PromoLib.PromotionsType _type) {
+    return PromoLib._getPromotionType(promotion, promoLib);
+  }
+
+  function getPromotionStatus(address promotion) external view returns (bool _status) {
+    return PromoLib._getPromotionStatus(promotion, promoLib);
   }
 
   /**
@@ -360,8 +373,8 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
       revert MeedProgram_AlreadyMember();
     }
 
-    uint40 tokenId = _tokenIdCounter.current();
-    _tokenIdCounter.increment();
+    uint40 tokenId = _tokenIdCounter;
+    _tokenIdCounter++;
 
     Membership memory newMembership = Membership({
       level: 1,

@@ -4,7 +4,7 @@ import { expect } from "chai";
 
 import { deploy } from "./helpers/deploy";
 import { ethers } from "hardhat";
-import { duration, plan, pricePerPlan } from "./constant";
+import { duration, plan, pricePerPlan, promoType, subscriptions_uris } from "./constant";
 
 describe("Activation Feature", function () {
   async function deployFixture() {
@@ -13,6 +13,8 @@ describe("Activation Feature", function () {
       subscriptions,
       meedProgramFactory,
       redeemableFactory,
+      collectiblesFactory,
+      nonExpirableFactory,
       meedProgram,
       expirationDate,
       owner,
@@ -44,6 +46,8 @@ describe("Activation Feature", function () {
       subscriptions,
       meedProgramFactory,
       redeemableFactory,
+      collectiblesFactory,
+      nonExpirableFactory,
       meedProgram,
       redeemable,
       expirationDate,
@@ -192,6 +196,7 @@ describe("Activation Feature", function () {
       .withArgs(owner.address, redeemable.address);
 
     expect(await redeemable.isActive()).to.equal(false); // deactivated
+    expect(await meedProgram.getPromotionStatus(redeemable.address)).to.equal(false);
 
     // Update expiration date (revert if inactive):
     const newExpirationDate = (Math.floor(Date.now() / 1000) + duration.year * 3).toString();
@@ -220,8 +225,124 @@ describe("Activation Feature", function () {
     const redeemable = await ethers.getContractAt("Redeemable", allPromos[1].promotionAddress);
 
     expect(await redeemable.isActive()).to.equal(true);
+    expect(await meedProgram.getPromotionStatus(redeemable.address)).to.equal(true);
     expect(await redeemable.isExpired()).to.equal(false);
 
     expect(await redeemable.isExpired()).to.equal(false); // still not expired
+  });
+
+  it("should activate/deactivate fine with collectible type", async () => {
+    const { meedProgram, collectiblesFactory, owner } = await loadFixture(deployFixture);
+
+    // Create a new promo via the redeemable factory
+    const startDate = Math.floor(Date.now() / 1000).toString();
+
+    await expect(
+      collectiblesFactory.createNewPromotion(
+        subscriptions_uris,
+        startDate,
+        0,
+        meedProgram.address,
+        promoType.freeProducts
+      )
+    ).to.be.revertedWithCustomError(collectiblesFactory, "CollectiblesFactory_TypeNotSupported");
+
+    await collectiblesFactory.createNewPromotion(
+      subscriptions_uris,
+      startDate,
+      0,
+      meedProgram.address,
+      promoType.stamps
+    );
+
+    // Check the new state  (2 promos)
+    const allPromos = await meedProgram.getAllPromotions();
+    expect(allPromos.length).to.equal(2);
+
+    const collectibles = await ethers.getContractAt("Collectibles", allPromos[1].promotionAddress);
+
+    // Check the current state  (1 promo)
+    const newPromos = await meedProgram.getAllPromotions();
+    expect(newPromos[1].active).to.equal(true);
+    const activesBefore = await meedProgram.getAllPromotionsPerStatus(true);
+    expect(activesBefore.length).to.equal(2);
+    const inactivesBefore = await meedProgram.getAllPromotionsPerStatus(false);
+    expect(inactivesBefore.length).to.equal(0);
+
+    expect(await collectibles.isActive()).to.equal(true);
+
+    const receipt = await meedProgram.deactivatePromotion(collectibles.address);
+    await expect(receipt)
+      .to.emit(collectibles, "Deactivated")
+      .withArgs(owner.address, collectibles.address);
+
+    expect(await collectibles.isActive()).to.equal(false); // deactivated
+
+    const promoUpdated = await meedProgram.getAllPromotions();
+    expect(promoUpdated[1].active).to.equal(false);
+    const activesAfter = await meedProgram.getAllPromotionsPerStatus(true);
+    expect(activesAfter.length).to.equal(1);
+    const inactivesAfter = await meedProgram.getAllPromotionsPerStatus(false);
+    expect(inactivesAfter.length).to.equal(1);
+
+    const receipt2 = await meedProgram.activatePromotion(collectibles.address);
+    await expect(receipt2)
+      .to.emit(collectibles, "Activated")
+      .withArgs(owner.address, collectibles.address);
+
+    expect(await collectibles.isActive()).to.equal(true); // reactivated
+  });
+
+  it("should activate/deactivate fine with nonExpirable type", async () => {
+    const { meedProgram, nonExpirableFactory, owner } = await loadFixture(deployFixture);
+
+    // Create a new promo via the redeemable factory
+    const fakeData = 0;
+
+    await nonExpirableFactory.createNewPromotion(
+      "NE_Test",
+      "NET",
+      "ipfs://uri",
+      meedProgram.address,
+      fakeData,
+      promoType.badges
+    );
+
+    // Check the new state  (2 promos)
+    const allPromos = await meedProgram.getAllPromotions();
+    expect(allPromos.length).to.equal(2);
+
+    const nonExpirable = await ethers.getContractAt("NonExpirable", allPromos[1].promotionAddress);
+
+    // Check the current state  (1 promo)
+    const newPromos = await meedProgram.getAllPromotions();
+    expect(newPromos[1].active).to.equal(true);
+    const activesBefore = await meedProgram.getAllPromotionsPerStatus(true);
+    expect(activesBefore.length).to.equal(2);
+    const inactivesBefore = await meedProgram.getAllPromotionsPerStatus(false);
+    expect(inactivesBefore.length).to.equal(0);
+
+    expect(await nonExpirable.isActive()).to.equal(true);
+
+    const receipt = await meedProgram.deactivatePromotion(nonExpirable.address);
+    await expect(receipt)
+      .to.emit(nonExpirable, "Deactivated")
+      .withArgs(owner.address, nonExpirable.address);
+
+    expect(await nonExpirable.isActive()).to.equal(false); // deactivated
+
+    const promoUpdated = await meedProgram.getAllPromotions();
+    expect(promoUpdated[1].active).to.equal(false);
+    const activesAfter = await meedProgram.getAllPromotionsPerStatus(true);
+    expect(activesAfter.length).to.equal(1);
+    const inactivesAfter = await meedProgram.getAllPromotionsPerStatus(false);
+    expect(inactivesAfter.length).to.equal(1);
+
+    const receipt2 = await meedProgram.activatePromotion(nonExpirable.address);
+    await expect(receipt2)
+      .to.emit(nonExpirable, "Activated")
+      .withArgs(owner.address, nonExpirable.address);
+
+    expect(await nonExpirable.isActive()).to.equal(true); // reactivated
   });
 });

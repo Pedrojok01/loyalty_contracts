@@ -3,7 +3,6 @@ pragma solidity ^0.8.19;
 
 // import "hardhat/console.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {Counters} from "../utils/Counters.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ISubscriptions} from "../interfaces/ISubscriptions.sol";
 import {AdminRegistry} from "../subscriptions/AdminRegistry.sol";
@@ -50,13 +49,11 @@ import {Errors} from "../utils/Errors.sol";
  */
 
 contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
-  using Counters for Counters.Counter;
-
   /*///////////////////////////////////////////////////////////////////////////////
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
-  Counters.Counter private _tokenIds;
+  uint40 private _tokenIdCounter;
   string[4] private baseURIs;
 
   struct Subscriber {
@@ -257,7 +254,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
    * @notice Returns the current total number of subscribers
    */
   function totalSupply() external view returns (uint256) {
-    return _tokenIds.current();
+    return _tokenIdCounter;
   }
 
   /**
@@ -401,8 +398,8 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
    * @param subscriber The address of the subscriber
    */
   function _emitSubscriptionNFT(address subscriber) private returns (uint40) {
-    _tokenIds.increment();
-    uint40 newTokenId = _tokenIds.current();
+    _tokenIdCounter++;
+    uint40 newTokenId = _tokenIdCounter;
 
     _tokenOfOwner[subscriber] = newTokenId;
     _mint(subscriber, newTokenId);

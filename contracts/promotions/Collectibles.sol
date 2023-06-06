@@ -7,7 +7,7 @@ import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {TimeLimited} from "../utils/TimeLimited.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 import {MeedProgram} from "../meedProgram/MeedProgram.sol";
-import {Counters} from "../utils/Counters.sol";
+import {ICampaign} from "../interfaces/ICampaign.sol";
 
 /**
  * @title Collectibles
@@ -19,12 +19,10 @@ import {Counters} from "../utils/Counters.sol";
  *  - The collected NFT are burned when used;
  */
 
-contract Collectibles is ERC1155, TimeLimited {
-  using Counters for Counters.Counter;
-
+contract Collectibles is ERC1155, ICampaign, TimeLimited {
   MeedProgram private immutable meedProgram;
   uint256 private constant MAX_IDS = 64;
-  Counters.Counter private _collectibleCounter;
+  uint40 private _collectibleCounter;
 
   mapping(uint256 => string) private _uris;
 
@@ -47,10 +45,9 @@ contract Collectibles is ERC1155, TimeLimited {
     );
     for (uint256 i = 0; i < uris.length; i++) {
       _uris[i] = uris[i];
-      _mint(msg.sender, i, 1, "");
-      meedProgram = MeedProgram(_meedProgram);
-      transferOwnership(_owner);
     }
+    meedProgram = MeedProgram(_meedProgram);
+    transferOwnership(_owner);
   }
 
   function uri(uint256 tokenId) public view override returns (string memory) {
@@ -58,9 +55,28 @@ contract Collectibles is ERC1155, TimeLimited {
     return _uris[tokenId];
   }
 
-  function mint(uint256 tokenId, address to, uint256 amount) public onlyOwner {
+  function mint(uint256 tokenId, address to) public onlyOwnerOrAdmin onlyOngoing onlyActive {
+    if (_msgSender() == admin()) {
+      _onlySubscribers(owner());
+    } else {
+      _onlySubscribers(_msgSender());
+    }
+
     if (tokenId >= MAX_IDS) revert Collectibles__InvalidTokenId();
-    _mint(to, tokenId, amount, "");
+    _mint(to, tokenId, 1, "");
+  }
+
+  /**
+    @dev Limited mint - only the owner can mint the level 2 and above NFTs;
+    @param id Allow to choose the kind of NFT to be minted;
+    @param to Address which will receive the limited NFTs;
+    */
+  function autoMint(uint256 id, address to) external onlyOngoing onlyActive {
+    if (_msgSender() != address(meedProgram)) revert Collectibles__NotCalledFromContract();
+    _onlySubscribers(owner());
+
+    if (id >= MAX_IDS) revert Collectibles__InvalidTokenId();
+    _mint(to, id, 1, "");
   }
 
   function redeemReward(address account) public {
@@ -73,9 +89,23 @@ contract Collectibles is ERC1155, TimeLimited {
       _burn(account, i, 1);
     }
 
-    _collectibleCounter.increment();
-    uint256 collectibleId = _collectibleCounter.current();
+    _collectibleCounter++;
+    uint256 collectibleId = _collectibleCounter;
     _mint(account, collectibleId, 1, "");
+  }
+
+  /**
+   * @dev Allows to activate a promotion
+   */
+  function activatePromotion() external onlyOwnerOrAdmin {
+    _activate(address(this));
+  }
+
+  /**
+   * @dev Allows to deactivate a promotion
+   */
+  function deactivatePromotion() external onlyOwnerOrAdmin {
+    _deactivate(address(this));
   }
 
   /*///////////////////////////////////////////////////////////////////////////////

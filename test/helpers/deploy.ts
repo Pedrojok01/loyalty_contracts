@@ -5,6 +5,8 @@ import {
   RedeemableFactory,
   Subscriptions,
   NonExpirableFactory,
+  CollectiblesFactory,
+  BundlesFactory,
 } from "../../typechain-types";
 import {
   meedProgram_name,
@@ -56,12 +58,31 @@ export async function deploy() {
   );
   await nonExpirableFactory.deployed();
 
+  const CollectiblesFactory = await ethers.getContractFactory("CollectiblesFactory");
+  const collectiblesFactory: CollectiblesFactory = await CollectiblesFactory.deploy(
+    subscriptions.address,
+    adminRegistry.address
+  );
+  await collectiblesFactory.deployed();
+
+  const BundlesFactory = await ethers.getContractFactory("BundlesFactory");
+  const bundlesFactory: BundlesFactory = await BundlesFactory.deploy(
+    subscriptions.address,
+    adminRegistry.address
+  );
+  await bundlesFactory.deployed();
+
   // Deploy the MeedProgramFactory
   const MeedProgramFactory = await ethers.getContractFactory("MeedProgramFactory");
   const meedProgramFactory: MeedProgramFactory = await MeedProgramFactory.deploy(
     subscriptions.address,
     adminRegistry.address,
-    [redeemableFactory.address, nonExpirableFactory.address, redeemableFactory.address]
+    [
+      redeemableFactory.address,
+      nonExpirableFactory.address,
+      collectiblesFactory.address,
+      bundlesFactory.address,
+    ]
   );
   await meedProgramFactory.deployed();
 
@@ -87,6 +108,8 @@ export async function deploy() {
     meedProgramFactory,
     redeemableFactory,
     nonExpirableFactory,
+    collectiblesFactory,
+    bundlesFactory,
     meedProgram,
     expirationDate,
     owner,

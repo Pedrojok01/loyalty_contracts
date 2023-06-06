@@ -5,12 +5,12 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
-import {Counters} from "../utils/Counters.sol";
 import {Adminable} from "../utils/Adminable.sol";
 import {Activation} from "../utils/Activation.sol";
 import {INonExpirable} from "../interfaces/INonExpirable.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 import {MeedProgram} from "../meedProgram/MeedProgram.sol";
+import {ICampaign} from "../interfaces/ICampaign.sol";
 
 /**
  * @titleNonExpirable
@@ -33,16 +33,14 @@ import {MeedProgram} from "../meedProgram/MeedProgram.sol";
  * 810bdd65  =>  _onlyOngoing()*
  */
 
-contract NonExpirable is ERC721, INonExpirable, Adminable, Activation {
-  using Counters for Counters.Counter;
-
+contract NonExpirable is ERC721, INonExpirable, ICampaign, Adminable, Activation {
   /*///////////////////////////////////////////////////////////////////////////////
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
   string private _baseURIextended;
   MeedProgram private immutable meedProgram;
-  Counters.Counter private _tokenIdCounter;
+  uint40 private _tokenIdCounter;
 
   struct Ticket {
     bool used;
@@ -81,8 +79,8 @@ contract NonExpirable is ERC721, INonExpirable, Adminable, Activation {
     if (currentLevel == 0) revert NonExpirable__NonExistantUser();
     if (currentLevel < uint8(lvlMin)) revert NonExpirable__InsufficientLevel();
 
-    uint88 tokenId = _tokenIdCounter.current();
-    _tokenIdCounter.increment();
+    uint88 tokenId = _tokenIdCounter;
+    _tokenIdCounter++;
 
     Ticket memory ticket = Ticket({used: false, owner: to});
     ticketsOwned[to].push(ticket);
@@ -119,6 +117,24 @@ contract NonExpirable is ERC721, INonExpirable, Adminable, Activation {
     _burn(ticketId);
 
     emit TicketConsumed(from, ticketId);
+  }
+
+  /**
+   * @dev Allows to activate a promotion
+   */
+  function activatePromotion() external onlyOwnerOrAdmin {
+    _activate(address(this));
+  }
+
+  /**
+   * @dev Allows to deactivate a promotion
+   */
+  function deactivatePromotion() external onlyOwnerOrAdmin {
+    _deactivate(address(this));
+  }
+
+  function autoMint(uint256 id, address to) external pure {
+    revert("Not needed in this contract");
   }
 
   /*///////////////////////////////////////////////////////////////////////////////

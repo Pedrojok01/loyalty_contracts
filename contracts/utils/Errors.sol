@@ -67,6 +67,7 @@ contract Errors {
   // Collectibles
   error Collectibles__InvalidTokenId();
   error Collectibles__EventExpired();
+  error Collectibles__NotCalledFromContract();
 
   //NonExpirable
   error NonExpirable__InvalidMintType();

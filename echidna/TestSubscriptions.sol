@@ -10,7 +10,7 @@ contract TestSubscriptions is Subscriptions {
   // function echidna_*() public returns (bool) {
 
   function echidna_constructor() public returns (bool) {
-    return baseURIs.length == 3;
+    return _baseURI.length == 3;
   }
 
   function echidna_getRemainingTimeAndPrice(

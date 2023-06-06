@@ -17,6 +17,7 @@ import {IBundles} from "../interfaces/IBundles.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 import {MeedProgram} from "../meedProgram/MeedProgram.sol";
 import {PromoDataLib} from "../library/PromoDataLib.sol";
+import {ICampaign} from "../interfaces/ICampaign.sol";
 
 /**
  * @title EventTicket
@@ -41,7 +42,7 @@ import {PromoDataLib} from "../library/PromoDataLib.sol";
  * 810bdd65  =>  _onlyOngoing()
  */
 
-contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
+contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, ICampaign, TimeLimited {
   using SafeERC20 for IERC20;
   // using PromoDataLib for PromoDataLib.BundlesPromoData;
 
@@ -269,6 +270,24 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
   }
 
   event BundleAssetClaimed(uint256 tokenId, address _to, address[] _addresses, uint256[] _numbers);
+
+  /**
+   * @dev Allows to activate a promotion
+   */
+  function activatePromotion() external onlyOwnerOrAdmin {
+    _activate(address(this));
+  }
+
+  /**
+   * @dev Allows to deactivate a promotion
+   */
+  function deactivatePromotion() external onlyOwnerOrAdmin {
+    _deactivate(address(this));
+  }
+
+  function autoMint(uint256 id, address to) external pure {
+    revert("Not needed in this contract");
+  }
 
   /*///////////////////////////////////////////////////////////////////////////////
                                         VIEW

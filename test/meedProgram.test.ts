@@ -49,6 +49,11 @@ describe("MeedProgram Contract", function () {
     );
     await redeemableFactory.deployed();
 
+    // Manually register the owner: revert if unauthorized
+    await expect(
+      adminRegistry.connect(user1).registerOwner(owner.address)
+    ).to.be.revertedWithCustomError(adminRegistry, "AdminRegistry__NotAuthorized");
+
     // Manually register the owner in the AdminRegistry (since we are not using the factory)
     await adminRegistry.connect(admin).registerOwner(owner.address);
 
@@ -109,6 +114,26 @@ describe("MeedProgram Contract", function () {
     expect(await meedProgram.supportsInterface(ERC721Enumerable_ID)).to.be.true;
     expect(await meedProgram.supportsInterface(ERC721Metadata_ID)).to.be.true;
     expect(await meedProgram.supportsInterface(nonExistentInterface_ID)).to.be.false;
+  });
+
+  it("should correctly update the admin if authorized", async () => {
+    const { adminRegistry, admin, user1 } = await loadFixture(deployFixture);
+
+    // revert if not owner or admin
+    await expect(
+      adminRegistry.connect(user1).transferAdmin(user1.address)
+    ).to.be.revertedWithCustomError(adminRegistry, "AdminRegistry__NotAuthorized");
+
+    // revert if not owner or admin
+    await expect(
+      adminRegistry.connect(admin).transferAdmin(ethers.constants.AddressZero)
+    ).to.be.revertedWithCustomError(adminRegistry, "AdminRegistry__AddressZero");
+
+    // Update success
+    const receipt = await adminRegistry.connect(admin).transferAdmin(user1.address);
+    await expect(receipt)
+      .to.emit(adminRegistry, "AdminTransferred")
+      .withArgs(admin.address, user1.address);
   });
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -343,7 +368,7 @@ describe("MeedProgram Contract", function () {
     const newPromos = await meedProgram.getAllPromotions();
     expect(newPromos.length).to.equal(1);
 
-    const promoType = await meedProgram.getPromotionType(newPromos[0]);
+    const promoType = await meedProgram.getPromotionType(newPromos[0].promotionAddress);
     expect(promoType).to.equal(1); // DiscountVouchers
   });
 

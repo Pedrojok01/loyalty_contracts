@@ -12,11 +12,9 @@ pragma solidity ^0.8.19;
  */
 
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {Counters} from "../utils/Counters.sol";
 
 library RedeemCodeLib {
   using Strings for uint256;
-  using Counters for Counters.Counter;
 
   struct Voucher {
     address contractAddress;
@@ -25,7 +23,7 @@ library RedeemCodeLib {
 
   struct RedeemCodeStorage {
     mapping(string => Voucher) redeemCodes;
-    Counters.Counter codeIndex;
+    uint256 codeIndex;
   }
 
   function getDataFromRedeemCode(
@@ -43,7 +41,7 @@ library RedeemCodeLib {
     address _contractAddress,
     uint256 _tokenID
   ) internal returns (string memory) {
-    uint256 index = self.codeIndex.current();
+    uint256 index = self.codeIndex;
     string memory code = generateUniqueCode(index);
 
     Voucher storage voucher = self.redeemCodes[code];
@@ -52,7 +50,7 @@ library RedeemCodeLib {
     voucher.contractAddress = _contractAddress;
     voucher.tokenID = _tokenID;
 
-    self.codeIndex.increment();
+    self.codeIndex++;
 
     return code;
   }
