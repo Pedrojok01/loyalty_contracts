@@ -1,15 +1,14 @@
 import hre, { ethers } from "hardhat";
 import fs from "fs";
 
-import { subscriptions_name, subscriptions_symbol, subscriptions_uris, ADMIN_ADDRESS } from "./constants";
+import { subscriptions_name, subscriptions_symbol, subscriptions_uris } from "./constants";
 
 async function main() {
   const Subscriptions = await ethers.getContractFactory("Subscriptions");
   const subscriptions = await Subscriptions.deploy(
     subscriptions_name,
     subscriptions_symbol,
-    subscriptions_uris,
-    ADMIN_ADDRESS
+    subscriptions_uris
   );
   await subscriptions.deployed();
 
@@ -18,7 +17,9 @@ async function main() {
   console.log("\n");
 
   // Get Staking Contract ABI
-  const abiFile = JSON.parse(fs.readFileSync("./artifacts/contracts/Subscriptions.sol/Subscriptions.json", "utf8"));
+  const abiFile = JSON.parse(
+    fs.readFileSync("./artifacts/contracts/Subscriptions.sol/Subscriptions.json", "utf8")
+  );
   const abi = JSON.stringify(abiFile.abi);
 
   console.log("Subscriptions ABI:");

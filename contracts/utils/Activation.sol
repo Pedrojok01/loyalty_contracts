@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.18;
 
+import "hardhat/console.sol";
 import {Errors} from "../utils/Errors.sol";
 
 /**
@@ -13,6 +14,12 @@ import {Errors} from "../utils/Errors.sol";
 contract Activation is Errors {
   bool private active = true;
 
+  /**
+   * @dev Events emitted when a promotion is activated/deactivated by `account`.
+   */
+  event Activated(address account, address promoAddress);
+  event Deactivated(address account, address promoAddress);
+
   modifier onlyActive() {
     _requireActivated();
     _;
@@ -24,36 +31,26 @@ contract Activation is Errors {
   }
 
   /**
-   * @dev Allows the current owner or admin to activate the promotion.
-   */
-  function _activate() internal onlyInactive {
-    active = true;
-    emit Activated(msg.sender);
-  }
-
-  /**
-   * @dev Emitted when the pause is triggered by `account`.
-   */
-  event Activated(address account);
-
-  /**
-   * @dev Allows the current owner or admin to deactivate the promotion.
-   */
-  function _deactivate() internal onlyActive {
-    active = false;
-    emit Deactivated(msg.sender);
-  }
-
-  /**
-   * @dev Emitted when the pause is lifted by `account`.
-   */
-  event Deactivated(address account);
-
-  /**
    * @dev Returns true if the promotion is active, and false otherwise.
    */
   function isActive() public view returns (bool) {
     return active;
+  }
+
+  /**
+   * @dev Allows the current owner or admin to activate the promotion.
+   */
+  function _activate(address promoAddress) internal onlyInactive {
+    active = true;
+    emit Activated(tx.origin, promoAddress);
+  }
+
+  /**
+   * @dev Allows the current owner or admin to deactivate the promotion.
+   */
+  function _deactivate(address promoAddress) internal onlyActive {
+    active = false;
+    emit Deactivated(tx.origin, promoAddress);
   }
 
   /**

@@ -1,11 +1,14 @@
 import hre, { ethers } from "hardhat";
 import fs from "fs";
 
-import { subscriptionAddress } from "./constants";
+import { adminRegistryAddress, subscriptionAddress } from "./constants";
 
 async function main() {
   const NonExpirableFactory = await ethers.getContractFactory("NonExpirableFactory");
-  const nonExpirableFactory = await NonExpirableFactory.deploy(subscriptionAddress);
+  const nonExpirableFactory = await NonExpirableFactory.deploy(
+    subscriptionAddress,
+    adminRegistryAddress
+  );
   await nonExpirableFactory.deployed();
 
   console.log("\n");
@@ -14,7 +17,10 @@ async function main() {
 
   // Get Staking Contract ABI
   const abiFile = JSON.parse(
-    fs.readFileSync("./artifacts/contracts/promotions/NonExpirableFactory.sol/NonExpirableFactory.json", "utf8")
+    fs.readFileSync(
+      "./artifacts/contracts/promotions/NonExpirableFactory.sol/NonExpirableFactory.json",
+      "utf8"
+    )
   );
   const abi = JSON.stringify(abiFile.abi);
 

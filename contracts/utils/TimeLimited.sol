@@ -65,7 +65,7 @@ contract TimeLimited is Activation, Adminable {
   function _onlyOngoing() internal virtual {
     if (isExpired()) {
       if (isActive()) {
-        _deactivate();
+        _deactivate(address(this));
       }
       revert TimeLimited__TokenExpired();
     }

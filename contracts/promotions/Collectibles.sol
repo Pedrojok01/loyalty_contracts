@@ -87,8 +87,7 @@ contract Collectibles is ERC1155, TimeLimited {
   function _onlyOngoing() internal override {
     if (isExpired()) {
       if (isActive()) {
-        _deactivate();
-        meedProgram.switchActivationStatus(address(this), false);
+        _deactivate(address(this));
       }
       revert Collectibles__EventExpired();
     }

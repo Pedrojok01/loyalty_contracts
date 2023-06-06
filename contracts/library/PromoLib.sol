@@ -23,11 +23,11 @@ library PromoLib {
   }
 
   struct Promotion {
-    uint40 startDate;
-    uint40 endDate;
-    address promotionAddress;
-    bool active;
-    PromotionsType promotionsType;
+    address promotionAddress; // 20 bytes
+    uint40 startDate; // 5 bytes
+    uint40 endDate; // 5 bytes
+    bool active; // 1 byte
+    PromotionsType promotionsType; // 1 byte
   }
 
   struct Data {
@@ -72,7 +72,8 @@ library PromoLib {
    */
   function _setPromotionStatus(address _promotion, bool _status, Data storage self) internal {
     self.promotion[_promotion].active = _status;
-    self.promotions[self.promotionIndex[_promotion]].active = _status;
+    uint256 index = self.promotionIndex[_promotion];
+    self.promotions[index].active = _status;
   }
 
   /*///////////////////////////////////////////////////////////////////////////////

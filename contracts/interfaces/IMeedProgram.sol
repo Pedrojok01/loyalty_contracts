@@ -31,8 +31,6 @@ interface IMeedProgram {
     bool status
   ) external view returns (PromoLib.Promotion[] memory activePromotions);
 
-  function switchActivationStatus(address promotion, bool status) external;
-
   /**
    * @dev Updates the baseURI that will be used to retrieve NFT metadata.
    * @param baseURI_ The baseURI to be used.

@@ -385,48 +385,6 @@ describe("MeedProgram Contract", function () {
     expect(inactives.length).to.equal(0);
   });
 
-  it("should be possible to deactivate a promotion if authorized", async () => {
-    const { meedProgram, owner, user1, redeemableFactory } = await loadFixture(deployFixture);
-
-    // Create a new promo via the factory
-    const startDate = Math.floor(Date.now() / 1000).toString();
-    const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
-    const receipt = await redeemableFactory.createNewPromotion(
-      "ipfs://uri",
-      startDate,
-      expirationDate,
-      meedProgram.address,
-      0
-    );
-    await expect(receipt)
-      .to.emit(redeemableFactory, "NewPromotionCreated")
-      .withArgs(owner.address, anyValue);
-
-    // Check the new state  (1 promo)
-    const newPromos = await meedProgram.getAllPromotions();
-    expect(newPromos[0].active).to.equal(true);
-    const activesBefore = await meedProgram.getAllPromotionsPerStatus(true);
-    expect(activesBefore.length).to.equal(1);
-    const inactivesBefore = await meedProgram.getAllPromotionsPerStatus(false);
-    expect(inactivesBefore.length).to.equal(0);
-
-    // revert if not owner or admin
-    await expect(
-      meedProgram.connect(user1).switchActivationStatus(newPromos[0].promotionAddress, false)
-    ).to.be.revertedWithCustomError(meedProgram, "Adminable__NotAuthorized");
-
-    // Deactivate the promo
-    await meedProgram.switchActivationStatus(newPromos[0].promotionAddress, false);
-    const promoUpdated = await meedProgram.getAllPromotions();
-
-    expect(promoUpdated[0].active).to.equal(false);
-
-    const activesAfter = await meedProgram.getAllPromotionsPerStatus(true);
-    expect(activesAfter.length).to.equal(0);
-    const inactivesAfter = await meedProgram.getAllPromotionsPerStatus(false);
-    expect(inactivesAfter.length).to.equal(1);
-  });
-
   /*///////////////////////////////////////////////////////////////////////////////
                                         URIs
     ///////////////////////////////////////////////////////////////////////////////*/

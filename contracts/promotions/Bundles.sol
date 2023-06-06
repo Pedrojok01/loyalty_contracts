@@ -50,28 +50,6 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
   uint256 public immutable maxPackSupply;
   uint256 private nonce;
 
-  // constructor(
-  //     string memory _name,
-  //     string memory _symbol,
-  //     string memory _uri,
-  //     uint256 _startDate,
-  //     uint256 _expirationDate,
-  //     address _meedProgram,
-  //     uint256 _maxLimit,
-  //     address _owner,
-  //     address _contractAddress,
-  //     address adminRegistryAddress
-  // )
-  //     ERC721(_name, _symbol)
-  //     TimeLimited(_startDate, _expirationDate, address(this), adminRegistryAddress)
-  //     SubscriberChecks(_contractAddress)
-  // {
-  //     maxPackSupply = _maxLimit;
-  //     _baseURIextended = _uri;
-  //     meedProgram = MeedProgram(_meedProgram);
-  //     transferOwnership(_owner);
-  // }
-
   constructor(
     string memory _name,
     string memory _symbol,
@@ -321,8 +299,7 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, TimeLimited {
   function _onlyOngoing() internal override {
     if (isExpired()) {
       if (isActive()) {
-        _deactivate();
-        meedProgram.switchActivationStatus(address(this), false);
+        _deactivate(address(this));
       }
       revert Bundles__EventExpired();
     }

@@ -9,7 +9,7 @@ import {Adminable} from "../utils/Adminable.sol";
 import {Counters} from "../utils/Counters.sol";
 import {PromoLib} from "../library/PromoLib.sol";
 import {IMeedProgram} from "../interfaces/IMeedProgram.sol";
-import {IAutoMintable} from "../interfaces/IAutoMintable.sol";
+import {ICampaign} from "../interfaces/ICampaign.sol";
 
 /**
  * @title MeedProgram
@@ -260,13 +260,6 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     /////////////////////////////////////////////////////////////////////////////*/
 
   /**
-   * @dev Allows to activate / deactivate a promotion
-   */
-  function switchActivationStatus(address promotion, bool status) external onlyOwnerOrAdmin {
-    PromoLib._setPromotionStatus(promotion, status, promoLib);
-  }
-
-  /**
    * @dev Allows to activate / deactivate the autoMint status;
    */
   function switchAutoMintStatus() external onlyOwnerOrAdmin {
@@ -321,6 +314,22 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
   function removeAutoMintReward(uint8 level) external onlyOwnerOrAdmin {
     require(level <= 4, "Level out of range"); // max enum value of level
     delete autoRewards[level];
+  }
+
+  /**
+   * @dev Allows to activate a promotion
+   */
+  function activatePromotion(address promoAddress) public onlyOwnerOrAdmin {
+    PromoLib._setPromotionStatus(promoAddress, false, promoLib);
+    ICampaign(promoAddress).activatePromotion();
+  }
+
+  /**
+   * @dev Allows to deactivate a promotion
+   */
+  function deactivatePromotion(address promoAddress) public onlyOwnerOrAdmin {
+    PromoLib._setPromotionStatus(promoAddress, false, promoLib);
+    ICampaign(promoAddress).deactivatePromotion();
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -390,8 +399,8 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
 
       // If a suitable reward exists
       if (bestFitReward.promotion != address(0)) {
-        IAutoMintable iAutoMintable = IAutoMintable(bestFitReward.promotion);
-        iAutoMintable.autoMint(bestFitReward.tokenId, member);
+        ICampaign iCampaign = ICampaign(bestFitReward.promotion);
+        iCampaign.autoMint(bestFitReward.tokenId, member);
       }
     }
   }

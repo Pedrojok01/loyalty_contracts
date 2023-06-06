@@ -7,6 +7,7 @@ import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/
 
 import {Counters} from "../utils/Counters.sol";
 import {Adminable} from "../utils/Adminable.sol";
+import {Activation} from "../utils/Activation.sol";
 import {INonExpirable} from "../interfaces/INonExpirable.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 import {MeedProgram} from "../meedProgram/MeedProgram.sol";
@@ -32,7 +33,7 @@ import {MeedProgram} from "../meedProgram/MeedProgram.sol";
  * 810bdd65  =>  _onlyOngoing()*
  */
 
-contract NonExpirable is ERC721, INonExpirable, Adminable {
+contract NonExpirable is ERC721, INonExpirable, Adminable, Activation {
   using Counters for Counters.Counter;
 
   /*///////////////////////////////////////////////////////////////////////////////
