@@ -49,41 +49,30 @@ contract MeedProgramFactory is Context, Errors, Ownable {
     address owner;
   }
 
-  /**
-   * @notice Map all MeedProgram IDs per owner;
-   */
+  /// @notice Map all MeedProgram IDs per owner;
   mapping(address => uint256[]) private meedIDPerOwner;
 
-  /**
-   * @notice Map all MeedProgram IDs per name;
-   */
+  /// @notice Map all MeedProgram IDs per name;
   mapping(string => uint256) private meedIDPerName;
 
-  /**
-   * @notice Map a MeedProgram ID per address;
-   */
+  /// @notice Map a MeedProgram ID per address;
   mapping(IMeedProgram => uint256) private meedIdPerAddress;
 
-  /**
-   * @notice Map all MeedProgram addresses per ID;
-   */
+  /// @notice Map all MeedProgram addresses per ID;
   mapping(uint256 => IMeedProgram) private meedAddress;
 
-  /**
-   * @notice Map all brands details per ID;
-   */
+  /// @notice Map all brands details per ID;
   mapping(uint256 => Brand) private brands;
 
-  /**
-   * @notice Array containing all created MeedProgram addresses;
-   */
+  /// @notice Array containing all created MeedProgram addresses;
   IMeedProgram[] private meedProgramList;
 
-  /**
-   * @notice Map all factory address per ID and vice versa;
-   */
+  /// @notice Map all factory address per ID and vice versa;
   mapping(uint256 => address) private factoryIdPerAddress;
   mapping(address => uint256) private fatoryAddressPerId;
+
+  /// @notice Blacklist mapping, to either blacklist or "delete" a MeedProgram
+  mapping(address => bool) public blacklist;
 
   constructor(address _controlAddress, address adminRegistryAddress, address[] memory _factories) {
     CONTROL_ADDRESS = _controlAddress;
@@ -210,6 +199,11 @@ contract MeedProgramFactory is Context, Errors, Ownable {
     return fatoryAddressPerId[factory];
   }
 
+  // Checks whether a contract is blacklisted
+  function isBlacklisted(address contractAddress) external view returns (bool) {
+    return blacklist[contractAddress];
+  }
+
   /*///////////////////////////////////////////////////////////////////////////////
                                    RESTRICTED FACTORY FUNCTIONS
     ///////////////////////////////////////////////////////////////////////////////*/
@@ -270,6 +264,30 @@ contract MeedProgramFactory is Context, Errors, Ownable {
   }
 
   event FactoryDeleted(address factory, uint256 index);
+
+  /**
+   * @dev Adds a contract to the blacklist
+   */
+  function blacklistContract(address contractAddress) external onlyOwner {
+    if (blacklist[contractAddress]) revert MeedProgramFactory_AlreadyBlacklisted();
+    blacklist[contractAddress] = true;
+
+    emit AddedToBlacklist(contractAddress);
+  }
+
+  event AddedToBlacklist(address contractAddress);
+
+  /**
+   * @dev Removes a contract from the blacklist
+   */
+  function unblacklistContract(address contractAddress) external onlyOwner {
+    if (!blacklist[contractAddress]) revert MeedProgramFactory_NotBlacklisted();
+    blacklist[contractAddress] = false;
+
+    emit RemovedFromblacklist(contractAddress);
+  }
+
+  event RemovedFromblacklist(address contractAddress);
 
   /*///////////////////////////////////////////////////////////////////////////////
                                     PRIVATE FUNCTIONS

@@ -192,6 +192,59 @@ describe("Promotions Factories Contract", function () {
   });
 
   /*///////////////////////////////////////////////////////////////////////////////
+                                      BLACKLIST
+    ///////////////////////////////////////////////////////////////////////////////*/
+
+  it("should be possible to blacklist a program", async () => {
+    const { meedProgramFactory, owner, user1, admin } = await loadFixture(deployFixture);
+
+    await meedProgramFactory.createNewMeedProgram(
+      meedProgram_name,
+      meedProgram_symbol,
+      meedProgram_uri,
+      TIER_TRACKER.total_amount,
+      meedProgram_amounts,
+      utils.formatBytes32String("food"),
+      utils.formatBytes32String("HK")
+    );
+
+    const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
+    const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
+
+    expect(await meedProgramFactory.isBlacklisted(meedProgram.address)).to.equal(false);
+
+    await expect(
+      meedProgramFactory.connect(user1).blacklistContract(meedProgram.address)
+    ).to.be.revertedWith("Ownable: caller is not the owner");
+
+    const receipt = await meedProgramFactory.blacklistContract(meedProgram.address);
+    await expect(receipt)
+      .to.emit(meedProgramFactory, "AddedToBlacklist")
+      .withArgs(meedProgram.address);
+
+    expect(await meedProgramFactory.isBlacklisted(meedProgram.address)).to.equal(true);
+
+    await expect(
+      meedProgramFactory.blacklistContract(meedProgram.address)
+    ).to.be.revertedWithCustomError(meedProgramFactory, "MeedProgramFactory_AlreadyBlacklisted");
+
+    await expect(
+      meedProgramFactory.connect(user1).unblacklistContract(meedProgram.address)
+    ).to.be.revertedWith("Ownable: caller is not the owner");
+
+    const receipt2 = await meedProgramFactory.unblacklistContract(meedProgram.address);
+    await expect(receipt2)
+      .to.emit(meedProgramFactory, "RemovedFromblacklist")
+      .withArgs(meedProgram.address);
+
+    expect(await meedProgramFactory.isBlacklisted(meedProgram.address)).to.equal(false);
+
+    await expect(
+      meedProgramFactory.unblacklistContract(meedProgram.address)
+    ).to.be.revertedWithCustomError(meedProgramFactory, "MeedProgramFactory_NotBlacklisted");
+  });
+
+  /*///////////////////////////////////////////////////////////////////////////////
                             CREATE NEW REDEEMABLE PROMO
     ///////////////////////////////////////////////////////////////////////////////*/
 

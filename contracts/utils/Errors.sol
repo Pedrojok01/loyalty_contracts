@@ -25,6 +25,8 @@ contract Errors {
   error MeedProgramFactory_AlreadyExists();
   error MeedProgramFactory_NameAlreadyTaken();
   error MeedProgramFactory_InvalidIndex();
+  error MeedProgramFactory_AlreadyBlacklisted();
+  error MeedProgramFactory_NotBlacklisted();
 
   // RedeemableFactory
   error RedeemableFactory_TypeNotSupported();
