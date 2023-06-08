@@ -12,7 +12,7 @@ async function main() {
   const meedProgramFactory = await MeedProgramFactory.deploy(
     subscriptionAddress,
     adminRegistryAddress,
-    [redeemableFactoryAddress, nonExpirableFactoryAddress, redeemableFactoryAddress]
+    [redeemableFactoryAddress]
   );
   await meedProgramFactory.deployed();
 

@@ -157,6 +157,23 @@ describe("Redeemable Promotion Contract", function () {
     await redeemable.addNewRedeemableNFT(type, value[0], amountRequired, data);
   });
 
+  it("should be possible to add new redeemable NFTs", async () => {
+    const { subscriptions, meedProgram, redeemable, owner, user1 } = await loadFixture(
+      deployFixture
+    );
+
+    await redeemable.addNewRedeemableNFT(type, value[0], amountRequired, data);
+
+    await meedProgram.mint(user1.address);
+    await redeemable.mint(0, user1.address);
+    let balance = await redeemable.balanceOf(user1.address, 0);
+    expect(balance).to.equal(1);
+
+    // await subscriptions.subscribe(plan.basic, false, { value: pricePerPlan.basic });
+    // await redeemable.mint(0, user1.address);
+    // expect(balance).to.equal(2);
+  });
+
   it("shouldn't be possible to mint under following conditions", async () => {
     const { subscriptions, meedProgram, redeemable, user1 } = await loadFixture(deployFixture);
 
@@ -198,10 +215,10 @@ describe("Redeemable Promotion Contract", function () {
 
     // Try minting without level requirement
 
-    // Should revert if not susbcribed
+    // Should revert if not a member
     await expect(redeemable.mint(1, user1.address)).to.be.revertedWithCustomError(
       redeemable,
-      "SubscriberChecks__PleaseSubscribeFirst"
+      "Redeemable__NonExistantUser"
     );
 
     // Subscribe owner, then try again
@@ -223,7 +240,7 @@ describe("Redeemable Promotion Contract", function () {
   });
 
   it("should be possible to batch mint redeemable NFTs", async () => {
-    const { subscriptions, meedProgram, redeemable, owner, user1, user2, user3 } =
+    const { subscriptions, meedProgram, redeemable, admin, user1, user2, user3 } =
       await loadFixture(deployFixture);
 
     // Subscribe owner, then add redeeeemable NFTs, then add users to the Meed program
@@ -241,7 +258,7 @@ describe("Redeemable Promotion Contract", function () {
       "Adminable__NotAuthorized"
     );
 
-    await expect(redeemable.batchMint(0, to)).to.be.revertedWithCustomError(
+    await expect(redeemable.connect(admin).batchMint(0, to)).to.be.revertedWithCustomError(
       redeemable,
       "SubscriberChecks__PleaseSubscribeToProOrEnterpriseFirst"
     );
@@ -250,7 +267,7 @@ describe("Redeemable Promotion Contract", function () {
     const tokenId = 1;
     const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(tokenId, plan.enterprise);
     await subscriptions.changeSubscriptionPlan(tokenId, plan.enterprise, { value: toPayMore });
-    await redeemable.batchMint(0, to);
+    await redeemable.connect(admin).batchMint(0, to);
   });
 
   it("should set everything properly when minting vouchers", async () => {

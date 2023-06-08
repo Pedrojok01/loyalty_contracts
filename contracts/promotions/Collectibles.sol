@@ -58,8 +58,6 @@ contract Collectibles is ERC1155, ICampaign, TimeLimited {
   function mint(uint256 tokenId, address to) public onlyOwnerOrAdmin onlyOngoing onlyActive {
     if (_msgSender() == admin()) {
       _onlySubscribers(owner());
-    } else {
-      _onlySubscribers(_msgSender());
     }
 
     if (tokenId >= MAX_IDS) revert Collectibles__InvalidTokenId();

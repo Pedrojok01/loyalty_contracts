@@ -6,10 +6,10 @@ import { PromiseOrValue } from "../typechain-types/common";
 export const ADMIN_ADDRESS = "0xf0eeaab7153ff42849acb0e817efee09fb078c1b";
 
 // For Factories
-export const adminRegistryAddress = "";
-export const subscriptionAddress = "0xa92EA6d6b6276a72700DdB1C50b246C2eDbdFa06"; // v1 on mumbai - temp - not verified
+export const adminRegistryAddress = "0x93F13D995EF021bFa781252d127a4286e95E6aD7"; // v2 on mumbai - temp - not verified (07 juin 2023)
+export const subscriptionAddress = "0x1874BDb18a2d27242B221f6e1269873406826FF0"; // v2 on mumbai - temp - not verified (07 juin 2023)
 
-export const redeemableFactoryAddress = "0x9f001da4E68077A0fD25e38aa36D07eA42eBf491"; // v1 on mumbai - temp - not verified
+export const redeemableFactoryAddress = "0x05a14bD6d2fAb0E6Fa98832c8bF3C20770429322"; // v2 on mumbai - temp - not verified (07 juin 2023)
 export const nonExpirableFactoryAddress = "0x45a63C7051854DBE47a119cc3523c951cEcB1C7D"; // v1 on mumbai - temp - not verified
 export const collectibleFactoryAddress = "";
 export const bundlesFactoryAddress = "";

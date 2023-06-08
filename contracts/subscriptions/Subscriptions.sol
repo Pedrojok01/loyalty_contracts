@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: CC0-1.0
+// SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.19;
 
 // import "hardhat/console.sol";
@@ -298,7 +298,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
   /**
    * @dev Get the remaining time and the corresponding price to upgrade a subscription
    * @param tokenId the id of the subscription NFT
-   * @param plan the chosen plan of the subscription (Basic, Pro, Enterprise)
+   * @param plan the chosen plan of the subscription (Free, Basic, Pro, Enterprise)
    * @return the remaining time left in the subscription
    * @return the cost difference of the remaining subscription time
    */
@@ -306,18 +306,24 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
     uint256 tokenId,
     Plan plan
   ) public view returns (uint256, uint256) {
-    address owner = ownerOf(tokenId);
+    if (!_isValidPlan(plan)) revert Subscriptions__InvalidPlan();
+    if (tokenId == 0 || !_exists(tokenId)) revert Subscriptions__NoSubscriptionFound();
 
-    Subscriber memory temp = subscribers[owner];
-    if (temp.expiration <= block.timestamp) return (0, 0);
+    address _owner = ownerOf(tokenId);
 
-    // Calculate the remaining time left in the subscription
-    uint256 remainingTime = temp.expiration - block.timestamp;
-    uint256 remainingTimeInDay = (remainingTime + 120) / 1 days; // add 2 minutes buffer to round up
+    Subscriber memory temp = subscribers[_owner];
+    uint256 remainingTime = 0;
+    uint256 cost = 0;
 
-    // Calculate the cost difference of the remaining subscription time
-    uint256 leftOnInitialPayment = ((fees[temp.plan] * remainingTimeInDay * 1000) / 30);
-    uint256 cost = ((fees[plan] * remainingTimeInDay * 1000) / 30) - leftOnInitialPayment;
+    if (temp.expiration > block.timestamp) {
+      // Calculate the remaining time left in the subscription
+      remainingTime = temp.expiration - block.timestamp;
+      uint256 remainingTimeInDay = (remainingTime + 120) / 1 days; // add 2 minutes buffer to round up
+
+      // Calculate the cost difference of the remaining subscription time
+      uint256 leftOnInitialPayment = ((fees[temp.plan] * remainingTimeInDay * 1000) / 30);
+      cost = ((fees[plan] * remainingTimeInDay * 1000) / 30) - leftOnInitialPayment;
+    }
 
     return (remainingTime, cost / 1000);
   }
@@ -354,6 +360,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
    * @param price the new price of the plan (in ether)
    */
   function editPlanPrice(Plan plan, uint256 price) external onlyOwner {
+    if (!_isValidPlan(plan) && !_isPaidPlan(plan)) revert Subscriptions__InvalidPlan();
     fees[plan] = price;
     emit PriceUpdated(plan, price);
   }
@@ -378,6 +385,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
    * @dev Initialize the price of each plan in the contructor
    */
   function _initialize() private {
+    fees[Plan.FREE] = 0;
     fees[Plan.BASIC] = 0.05 ether;
     fees[Plan.PRO] = 0.1 ether;
     fees[Plan.ENTERPRISE] = 0.5 ether;

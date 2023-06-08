@@ -103,8 +103,6 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
   function mint(uint256 id, address to) public onlyOwnerOrAdmin onlyOngoing onlyActive {
     if (_msgSender() == admin()) {
       _onlySubscribers(owner());
-    } else {
-      _onlySubscribers(_msgSender());
     }
 
     _mintRedeemable(id, to);
@@ -132,9 +130,8 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
   ) external onlyOwnerOrAdmin onlyOngoing onlyActive {
     if (_msgSender() == admin()) {
       _onlyProOrEnterprise(owner());
-    } else {
-      _onlyProOrEnterprise(_msgSender());
     }
+
     uint256 length = to.length;
     for (uint256 i = 0; i < length; ) {
       mint(id, to[i]);
@@ -206,6 +203,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
    * @dev Add a new redeemable NFT type to the contract;
    * @param redeemType Type of the redeemable NFT (ProductId, Amount, Percentage);
    * @param value Value of the redeemable NFT (in fiat currency or % );
+   * @param amountRequirement Purchased amount required to trigger a voucher autoMint;
    * @param data Data of the redeemable NFT (productId for ProductId, currency for Amount);
    */
   function addNewRedeemableNFT(

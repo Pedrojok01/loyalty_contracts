@@ -15,7 +15,7 @@
     "prettier": "prettier --write \"**/*.sol\"",
     "compile": "hardhat compile --show-stack-traces",
     "test": "hardhat test --show-stack-traces",
-    "deploy": "hardhat run --network polygonMumbai scripts/deploy_MeedFactory.ts",
+    "deploy": "hardhat run --network polygonMumbai scripts/deploy_RedeemableFactory.ts",
     "flatten": "hardhat flatten-all --show-stack-traces",
     "size": "hardhat size-contracts",
     "doc": "hardhat docgen",

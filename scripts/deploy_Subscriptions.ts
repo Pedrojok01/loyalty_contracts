@@ -16,9 +16,12 @@ async function main() {
   console.log("Subscriptions deployed to: ", subscriptions.address);
   console.log("\n");
 
-  // Get Staking Contract ABI
+  // Get Subscriptions Contract ABI
   const abiFile = JSON.parse(
-    fs.readFileSync("./artifacts/contracts/Subscriptions.sol/Subscriptions.json", "utf8")
+    fs.readFileSync(
+      "./artifacts/contracts/subscriptions/Subscriptions.sol/Subscriptions.json",
+      "utf8"
+    )
   );
   const abi = JSON.stringify(abiFile.abi);
 
@@ -33,10 +36,10 @@ async function main() {
 
   /** VERIFICATION:
    *****************/
-  await hre.run("verify:verify", {
-    address: subscriptions.address,
-    constructorArguments: [subscriptions_name, subscriptions_symbol, subscriptions_uris],
-  });
+  // await hre.run("verify:verify", {
+  //   address: subscriptions.address,
+  //   constructorArguments: [subscriptions_name, subscriptions_symbol, subscriptions_uris],
+  // });
 }
 
 main().catch((error) => {
