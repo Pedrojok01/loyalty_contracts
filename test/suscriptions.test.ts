@@ -104,7 +104,9 @@ describe("Susbcriptions Contract", function () {
     const receipt = await subscriptions
       .connect(user1)
       .subscribe(plan.basic, planDuration.yearly, { value: basicForAYear });
-    await expect(receipt).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
+    await expect(receipt)
+      .to.emit(subscriptions, "SubscribedOrExtended")
+      .withArgs(user1.address, 1, anyValue);
 
     // try empty function for coverage
     expect(await subscriptions.cancelSubscription(tokenId)).to.equal(false);
@@ -112,12 +114,16 @@ describe("Susbcriptions Contract", function () {
     const receipt2 = await subscriptions
       .connect(user2)
       .subscribe(plan.pro, planDuration.yearly, { value: proForAYear });
-    await expect(receipt2).to.emit(subscriptions, "SubscriptionUpdate").withArgs(2, anyValue);
+    await expect(receipt2)
+      .to.emit(subscriptions, "SubscribedOrExtended")
+      .withArgs(user2.address, 2, anyValue);
 
     const receipt3 = await subscriptions
       .connect(user3)
       .subscribe(plan.enterprise, planDuration.yearly, { value: enterpriseForAYear });
-    await expect(receipt3).to.emit(subscriptions, "SubscriptionUpdate").withArgs(3, anyValue);
+    await expect(receipt3)
+      .to.emit(subscriptions, "SubscribedOrExtended")
+      .withArgs(user3.address, 3, anyValue);
   });
 
   it("should set the correct expiration time when subscribing", async () => {
@@ -225,7 +231,7 @@ describe("Susbcriptions Contract", function () {
       .changeSubscriptionPlan(1, plan.enterprise, { value: toPayMore.toString() });
     await expect(receipt)
       .to.emit(subscriptions, "SubscriptionUpgraded")
-      .withArgs(tokenId, anyValue, toPayMore);
+      .withArgs(user1.address, tokenId, anyValue, toPayMore);
   });
 
   it("shouldn't be possible to renewSubscription without already being a subscriber", async () => {
@@ -300,7 +306,9 @@ describe("Susbcriptions Contract", function () {
       .renewSubscription(tokenId, plan.enterprise, planDuration.yearly, {
         value: pricePerPlan.enterprise.mul(10),
       });
-    await expect(receipt).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
+    await expect(receipt)
+      .to.emit(subscriptions, "SubscribedOrExtended")
+      .withArgs(user1.address, 1, anyValue);
   });
 
   it("should be possible to renewSubscription for a year and add time accordingly", async () => {
@@ -321,7 +329,9 @@ describe("Susbcriptions Contract", function () {
       .renewSubscription(tokenId, plan.pro, planDuration.yearly, {
         value: pricePerPlan.pro.mul(10),
       });
-    await expect(receipt).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
+    await expect(receipt)
+      .to.emit(subscriptions, "SubscribedOrExtended")
+      .withArgs(user1.address, 1, anyValue);
 
     const user = await subscriptions.getSubscriber(user1.address);
     const newExpiration = Math.floor(Number(initialExpiration) + duration.year);
@@ -336,7 +346,9 @@ describe("Susbcriptions Contract", function () {
       .renewSubscription(tokenId, plan.pro, planDuration.yearly, {
         value: pricePerPlan.pro.mul(10),
       });
-    await expect(receipt2).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
+    await expect(receipt2)
+      .to.emit(subscriptions, "SubscribedOrExtended")
+      .withArgs(user1.address, 1, anyValue);
 
     // New expiration should be 40 months from now + 1 year + now
     const newTime = Math.floor(Date.now() / 1000 + duration.year + duration.month * 40);
@@ -352,7 +364,9 @@ describe("Susbcriptions Contract", function () {
       .renewSubscription(tokenId, plan.enterprise, planDuration.monthly, {
         value: pricePerPlan.enterprise,
       });
-    await expect(receipt3).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
+    await expect(receipt3)
+      .to.emit(subscriptions, "SubscribedOrExtended")
+      .withArgs(user1.address, 1, anyValue);
   });
 
   it("should be possible to renewSubscription for a month and add time accordingly", async () => {
@@ -371,7 +385,9 @@ describe("Susbcriptions Contract", function () {
       .renewSubscription(tokenId, plan.basic, planDuration.yearly, {
         value: pricePerPlan.basic.mul(10),
       });
-    await expect(receipt).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
+    await expect(receipt)
+      .to.emit(subscriptions, "SubscribedOrExtended")
+      .withArgs(user1.address, 1, anyValue);
 
     const user = await subscriptions.getSubscriber(user1.address);
 
@@ -387,7 +403,9 @@ describe("Susbcriptions Contract", function () {
       .renewSubscription(tokenId, plan.enterprise, planDuration.yearly, {
         value: pricePerPlan.enterprise.mul(10),
       });
-    await expect(receipt2).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
+    await expect(receipt2)
+      .to.emit(subscriptions, "SubscribedOrExtended")
+      .withArgs(user1.address, 1, anyValue);
 
     // New expiration should be 40 months from now + 1 year + now
     const newTime = Math.floor(Date.now() / 1000 + duration.year + duration.month * 20.5);
@@ -401,7 +419,9 @@ describe("Susbcriptions Contract", function () {
       .renewSubscription(tokenId, plan.enterprise, planDuration.monthly, {
         value: pricePerPlan.enterprise,
       });
-    await expect(receipt3).to.emit(subscriptions, "SubscriptionUpdate").withArgs(1, anyValue);
+    await expect(receipt3)
+      .to.emit(subscriptions, "SubscribedOrExtended")
+      .withArgs(user1.address, 1, anyValue);
 
     const newTime2 = Math.floor(Date.now() / 1000 + duration.year + duration.month * 21.5);
     const expiration2 = await subscriptions.expiresAt(1); // tokenId = 1

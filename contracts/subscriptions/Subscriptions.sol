@@ -24,16 +24,18 @@ import {Errors} from "../utils/Errors.sol";
 
 /**
  * Sighash   |   Function Signature
- * ========================
+ * =================================
  * 21235083  =>  cancelSubscription(uint256)
  * a51cca63  =>  subscribe(Plan,bool)
  * 9f309450  =>  renewSubscription(uint256,Plan,bool)
  * 80c55351  =>  changeSubscriptionPlan(uint256,Plan)
- * c87b56dd  =>  tokenURI(uint256)
- * ae5e67a7  =>  isSubscriber(address)
+ * c4804ef0  =>  isSubscriber(address)
+ * 7f432517  =>  isPaidSubscriber(address)
+ * 5abf3838  =>  getSubscriber(address)
+ * b6f92b5c  =>  getSubscriberPlan(address)
  * e85c8f6d  =>  calculateSubscriptionPrice(Plan,bool)
  * 18160ddd  =>  totalSupply()
- * 5abf3838  =>  getSubscriber(address)
+ * c87b56dd  =>  tokenURI(uint256)
  * 17c95709  =>  expiresAt(uint256)
  * cde317af  =>  isRenewable(uint256)
  * d654db53  =>  getRemainingTimeAndPrice(uint256,Plan)
@@ -46,6 +48,8 @@ import {Errors} from "../utils/Errors.sol";
  * 7ee6931b  =>  _checkAmountPaid(Plan,bool)
  * 2e12cd4a  =>  _emitSubscriptionNFT(address)
  * b69fdf2e  =>  _onlySubscribers()
+ * b887b4b6  =>  _isPaidPlan(Plan)
+ * aea0b886  =>  _isValidPlan(Plan)
  */
 
 contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
@@ -102,7 +106,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
    *  - false = monthly (30 days);
    *  - true = anually (365 days);
    */
-  function subscribe(Plan plan, bool duration) public payable {
+  function subscribe(Plan plan, bool duration) external payable {
     address subscriber = _msgSender();
     if (balanceOf(subscriber) != 0) revert Subscriptions__UserAlreadyOwnsSubscription();
 
@@ -125,7 +129,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
     subscribers[subscriber] = newSubscriber;
     _tokenOfOwner[subscriber] = tokenID;
 
-    emit SubscriptionUpdate(tokenID, expiration);
+    emit SubscribedOrExtended(subscriber, tokenID, expiration);
   }
 
   /**
@@ -163,7 +167,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
     }
 
     subscribers[subscriber] = temp;
-    emit SubscriptionUpdate(tokenId, temp.expiration);
+    emit SubscribedOrExtended(subscriber, tokenId, temp.expiration);
   }
 
   /**
@@ -186,10 +190,8 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
     temp.plan = plan;
     subscribers[subscriber] = temp;
 
-    emit SubscriptionUpgraded(tokenId, remainingTime, cost);
+    emit SubscriptionUpgraded(subscriber, tokenId, remainingTime, cost);
   }
-
-  event SubscriptionUpgraded(uint256 tokenId, uint256 remainingTime, uint256 cost);
 
   /**
    * @dev Cancel a subscription in case of auto-renewal
@@ -201,28 +203,6 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
   /*///////////////////////////////////////////////////////////////////////////////
                                             VIEW
     ///////////////////////////////////////////////////////////////////////////////*/
-
-  /**
-   * @dev Get the URI of the subscription NFT, based on the subscribed plan
-   * @param tokenId The id of the subscription NFT
-   */
-  function tokenURI(uint256 tokenId) public view override returns (string memory) {
-    if (!_exists(tokenId)) revert Subscriptions__NoSubscriptionFound();
-
-    Subscriber memory subscriber = subscribers[ownerOf(tokenId)];
-
-    if (subscriber.plan == Plan.FREE) {
-      return baseURIs[0];
-    } else if (subscriber.plan == Plan.BASIC) {
-      return baseURIs[1];
-    } else if (subscriber.plan == Plan.PRO) {
-      return baseURIs[2];
-    } else if (subscriber.plan == Plan.ENTERPRISE) {
-      return baseURIs[3];
-    } else {
-      revert Subscriptions__InvalidPlan();
-    }
-  }
 
   /**
    * @notice Returns the details of a subscriber
@@ -238,6 +218,26 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
    */
   function isPaidSubscriber(address subscriber) public view returns (bool) {
     return isSubscriber(subscriber) && subscribers[subscriber].plan != Plan.FREE;
+  }
+
+  /**
+   * @notice Returns the details of a subscriber
+   * @param subscriber The address of the subscriber
+   */
+  function getSubscriber(address subscriber) external view returns (Subscriber memory) {
+    return subscribers[subscriber];
+  }
+
+  /**
+   * @notice Returns the details of a subscriber
+   * @param subscriber The address of the subscriber
+   */
+  function getSubscriberPlan(address subscriber) public view returns (Plan) {
+    if (!isSubscriber(subscriber) || !isPaidSubscriber(subscriber)) {
+      return Plan.FREE;
+    } else {
+      return subscribers[subscriber].plan;
+    }
   }
 
   /**
@@ -258,22 +258,24 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
   }
 
   /**
-   * @notice Returns the details of a subscriber
-   * @param subscriber The address of the subscriber
+   * @dev Get the URI of the subscription NFT, based on the subscribed plan
+   * @param tokenId The id of the subscription NFT
    */
-  function getSubscriber(address subscriber) external view returns (Subscriber memory) {
-    return subscribers[subscriber];
-  }
+  function tokenURI(uint256 tokenId) public view override returns (string memory) {
+    if (!_exists(tokenId)) revert Subscriptions__NoSubscriptionFound();
 
-  /**
-   * @notice Returns the details of a subscriber
-   * @param subscriber The address of the subscriber
-   */
-  function getSubscriberPlan(address subscriber) public view returns (Plan) {
-    if (!isSubscriber(subscriber) || !isPaidSubscriber(subscriber)) {
-      return Plan.FREE;
+    Subscriber memory subscriber = subscribers[ownerOf(tokenId)];
+
+    if (subscriber.plan == Plan.FREE) {
+      return baseURIs[0];
+    } else if (subscriber.plan == Plan.BASIC) {
+      return baseURIs[1];
+    } else if (subscriber.plan == Plan.PRO) {
+      return baseURIs[2];
+    } else if (subscriber.plan == Plan.ENTERPRISE) {
+      return baseURIs[3];
     } else {
-      return subscribers[subscriber].plan;
+      revert Subscriptions__InvalidPlan();
     }
   }
 
