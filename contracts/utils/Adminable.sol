@@ -11,7 +11,7 @@ import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 /**
  * @title Adminable;
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Contract module which provides an access control mechanism for
  * either the owner or the admin.
  *

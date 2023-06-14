@@ -15,7 +15,7 @@ import {ICampaign} from "../interfaces/ICampaign.sol";
 /**
  * @titleNonExpirable
  * @author Pedrojok01
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev ERC721 time limited NFT | Auto-burn when used:
  *  - Can either be airdrop to a specified membership level, or
  *  - Minted upon condition.
@@ -134,6 +134,7 @@ contract NonExpirable is ERC721, INonExpirable, ICampaign, Adminable, Activation
   }
 
   function autoMint(uint256 id, address to) external pure {
+    // @todo implement conditional achievements system ?
     revert("Not needed in this contract");
   }
 

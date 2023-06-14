@@ -7,7 +7,7 @@ import {Errors} from "../utils/Errors.sol";
 /**
  * @title Activation
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Provides a simple way to activate/desactivate a promotion;
  */
 

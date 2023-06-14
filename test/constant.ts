@@ -60,7 +60,7 @@ export const subscriptions_uris: [
   PromiseOrValue<string>,
   PromiseOrValue<string>,
   PromiseOrValue<string>
-] = ["", "", "", ""];
+] = ["0", "1", "2", "3"];
 
 // For MeedProgram NFTs
 export const meedProgram_name = "Meed Program";

@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 /**
  * @title RedeemCodeLib
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Provides "random" redeem code getter and setter for all promotion's vouchers.
  *
  * using RedeemCodeLib for RedeemCodeLib.RedeemCodeStorage;

@@ -11,7 +11,6 @@ const type = voucher_type.percentDiscount;
 const value = [10, 15, 20, 25, 30]; // vouchers value in percent
 const levelRequired = [1, 2, 3, 4, 5]; // Bronze, Silver, Gold, Diamond, Platinum
 const amountRequired = [100, 200, 300, 400, 500]; // purchased amount required
-const data = utils.formatBytes32String("percent");
 const tokenId = [0, 1, 2, 3, 4];
 const amounts = [50, 145, 220, 367, 455, 999]; // Fake purchase amounts
 
@@ -47,11 +46,11 @@ describe("Auto Mint Feature", function () {
     expect(allPromos.length).to.equal(1);
 
     const redeemable = await ethers.getContractAt("Redeemable", allPromos[0].promotionAddress);
-    await redeemable.addNewRedeemableNFT(type, value[0], amountRequired[0], data);
-    await redeemable.addNewRedeemableNFT(type, value[1], amountRequired[1], data);
-    await redeemable.addNewRedeemableNFT(type, value[2], amountRequired[2], data);
-    await redeemable.addNewRedeemableNFT(type, value[3], amountRequired[3], data);
-    await redeemable.addNewRedeemableNFT(type, value[4], amountRequired[4], data);
+    await redeemable.addNewRedeemableNFT(type, value[0], amountRequired[0]);
+    await redeemable.addNewRedeemableNFT(type, value[1], amountRequired[1]);
+    await redeemable.addNewRedeemableNFT(type, value[2], amountRequired[2]);
+    await redeemable.addNewRedeemableNFT(type, value[3], amountRequired[3]);
+    await redeemable.addNewRedeemableNFT(type, value[4], amountRequired[4]);
 
     return {
       adminRegistry,
@@ -118,6 +117,27 @@ describe("Auto Mint Feature", function () {
           auto_rewards[2].amountRequired
         )
     ).to.be.revertedWithCustomError(meedProgram, "SubscriberChecks__PleaseSubscribeFirst");
+
+    // Add a new autoReward with the admin account => revert if wrong level passed
+    const zeroLevel = 0;
+    await expect(
+      meedProgram.addAutoMintReward(
+        zeroLevel,
+        auto_rewards[2].promotion,
+        auto_rewards[2].tokenId,
+        auto_rewards[2].amountRequired
+      )
+    ).to.be.revertedWithCustomError(redeemable, "MeedProgram__LevelOutOfRange");
+
+    const outOfRangeLevel = 8;
+    await expect(
+      meedProgram.addAutoMintReward(
+        outOfRangeLevel,
+        auto_rewards[2].promotion,
+        auto_rewards[2].tokenId,
+        auto_rewards[2].amountRequired
+      )
+    ).to.be.revertedWithCustomError(redeemable, "MeedProgram__LevelOutOfRange");
 
     // Subscribe the owner to the basic plan
     await subscriptions.subscribe(plan.basic, false, { value: pricePerPlan.basic });
@@ -188,6 +208,36 @@ describe("Auto Mint Feature", function () {
     await expect(redeemable.autoMint(tokenId[0], user1.address)).to.be.revertedWithCustomError(
       redeemable,
       "Redeemable__NotCalledFromContract"
+    );
+  });
+
+  it("should not be possible to switch autoMint feature if not authorized", async () => {
+    const { meedProgram, redeemable, user1, admin } = await loadFixture(deployFixture);
+
+    await expect(meedProgram.connect(user1).switchAutoMintStatus()).to.be.revertedWithCustomError(
+      redeemable,
+      "Adminable__NotAuthorized"
+    );
+  });
+
+  it("should not be possible to remove autoMint rewards if not authorized/wrong level", async () => {
+    const { meedProgram, redeemable, user1 } = await loadFixture(deployFixture);
+
+    await expect(meedProgram.connect(user1).removeAutoMintReward(1)).to.be.revertedWithCustomError(
+      redeemable,
+      "Adminable__NotAuthorized"
+    );
+
+    const zeroLevel = 0;
+    await expect(meedProgram.removeAutoMintReward(zeroLevel)).to.be.revertedWithCustomError(
+      redeemable,
+      "MeedProgram__LevelOutOfRange"
+    );
+
+    const outOfRangeLevel = 8;
+    await expect(meedProgram.removeAutoMintReward(outOfRangeLevel)).to.be.revertedWithCustomError(
+      redeemable,
+      "MeedProgram__LevelOutOfRange"
     );
   });
 

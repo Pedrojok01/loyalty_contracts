@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 /**
  * @title Interface for Bundles.sol contract;
  * @author @Pedrojok01
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  *
  * * Contract based on the EIP-3589: https://eips.ethereum.org/EIPS/eip-3589
  */

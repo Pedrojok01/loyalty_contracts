@@ -13,7 +13,7 @@ import {Bundles} from "../promotions/Bundles.sol";
 /**
  * @title BundlesFactory
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Contracts factory to deploy a Bundles type promotion (ERC721);
  *  - Allows brands to deploy a Bundles campaign (Mystery Packs).
  *  - Deployer will receive NFT id 0, proving its ownership.

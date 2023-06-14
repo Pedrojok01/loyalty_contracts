@@ -7,7 +7,7 @@ import {Errors} from "../utils/Errors.sol";
 /**
  * @title AdminRegistry;
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Contract module which provides a basic access control mechanism, where
  * there is an account (an admin) that can be granted exclusive access to
  * specific functions.

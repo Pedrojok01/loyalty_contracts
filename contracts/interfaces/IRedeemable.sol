@@ -6,7 +6,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 /**
  * @title Interface for MeedProgram.sol contract;
  * @author @Pedrojok01
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Allows the factory to communicate with each game;
  */
 

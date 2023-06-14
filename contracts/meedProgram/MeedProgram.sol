@@ -13,7 +13,7 @@ import {ICampaign} from "../interfaces/ICampaign.sol";
 /**
  * @title MeedProgram
  * @author Pedrojok01
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev ERC721 NFT with the following features:
  *  - Deployer can mint to recipients.
  */
@@ -325,7 +325,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
   event AutoRewardAdded(uint8 level, address promotion, uint8 tokenId, uint32 amountRequired);
 
   function removeAutoMintReward(uint8 level) external onlyOwnerOrAdmin {
-    require(level <= 4, "Level out of range"); // max enum value of level
+    if (level == 0 || level > 5) revert MeedProgram__LevelOutOfRange();
     delete autoRewards[level];
   }
 

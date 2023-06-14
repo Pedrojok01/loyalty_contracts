@@ -3,15 +3,15 @@ pragma solidity ^0.8.19;
 
 // import "hardhat/console.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
 import {ISubscriptions} from "../interfaces/ISubscriptions.sol";
 import {AdminRegistry} from "../subscriptions/AdminRegistry.sol";
-import {Errors} from "../utils/Errors.sol";
+import {Credits} from "../utils/Credits.sol";
 
 /**
  * @title Subscription
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Main Payment controller in charge of handling subscriptions and features access;
  *
  * Based on EIP: ERC5643
@@ -47,12 +47,11 @@ import {Errors} from "../utils/Errors.sol";
  * 80ae4ebc  =>  _initialize()
  * 7ee6931b  =>  _checkAmountPaid(Plan,bool)
  * 2e12cd4a  =>  _emitSubscriptionNFT(address)
- * b69fdf2e  =>  _onlySubscribers()
  * b887b4b6  =>  _isPaidPlan(Plan)
  * aea0b886  =>  _isValidPlan(Plan)
  */
 
-contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
+contract Subscriptions is ERC721, ISubscriptions, Credits {
   /*///////////////////////////////////////////////////////////////////////////////
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
@@ -74,11 +73,6 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
   /*///////////////////////////////////////////////////////////////////////////////
                                 MODIFIERS / CONSTRUCTOR
     ///////////////////////////////////////////////////////////////////////////////*/
-
-  modifier onlySubscribers() {
-    _onlySubscribers();
-    _;
-  }
 
   /**
    * @param name_ The name of the NFT;
@@ -111,7 +105,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
     if (balanceOf(subscriber) != 0) revert Subscriptions__UserAlreadyOwnsSubscription();
 
     // Handle payment per tier & duration
-    if (!_isValidPlan(plan) && !_isPaidPlan(plan)) revert Subscriptions__InvalidPlan();
+    if (!_isPaidPlan(plan)) revert Subscriptions__InvalidPlan();
     _checkAmountPaid(plan, duration);
 
     uint64 expiration = duration
@@ -144,7 +138,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
     Subscriber memory temp = subscribers[subscriber];
 
     // Handle payment per tier & duration
-    if (!_isValidPlan(plan) && !_isPaidPlan(plan)) revert Subscriptions__InvalidPlan();
+    if (!_isPaidPlan(plan)) revert Subscriptions__InvalidPlan();
     _checkAmountPaid(plan, duration);
 
     uint64 durationToAdd = duration ? 365 days : 30 days;
@@ -176,12 +170,17 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
    * @param plan the chosen plan of the subscription (Basic, Pro, Enterprise)
    * @notice MUST be subscriber already
    */
-  function changeSubscriptionPlan(uint256 tokenId, Plan plan) external payable onlySubscribers {
+  function changeSubscriptionPlan(uint256 tokenId, Plan plan) external payable {
     address subscriber = _msgSender();
     if (ownerOf(tokenId) != subscriber) revert Subscriptions__TokenNotOwned();
 
     Subscriber memory temp = subscribers[subscriber];
-    if (!_isValidPlan(plan)) revert Subscriptions__InvalidPlan();
+
+    if (temp.expiration < block.timestamp) {
+      subscribers[subscriber].plan = Plan.FREE;
+      revert Subscriptions__SubscriptionExpired();
+    }
+
     if (temp.plan >= plan) revert Subscriptions__CannotDowngradeTier(); // Simpler for now
 
     // Calculate payment adjustment for remaining time
@@ -246,7 +245,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
    * @param duration the chosen duration of the subscription (true = anually with 2 months off, false = monthly)
    */
   function calculateSubscriptionPrice(Plan plan, bool duration) public view returns (uint256) {
-    if (!_isValidPlan(plan) && !_isPaidPlan(plan)) revert Subscriptions__InvalidPlan();
+    if (!_isPaidPlan(plan)) revert Subscriptions__InvalidPlan();
     return duration ? fees[plan] * 10 : fees[plan];
   }
 
@@ -265,8 +264,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
     if (!_exists(tokenId)) revert Subscriptions__NoSubscriptionFound();
 
     Subscriber memory subscriber = subscribers[ownerOf(tokenId)];
-
-    if (subscriber.plan == Plan.FREE) {
+    if (subscriber.expiration < block.timestamp || subscriber.plan == Plan.FREE) {
       return baseURIs[0];
     } else if (subscriber.plan == Plan.BASIC) {
       return baseURIs[1];
@@ -308,7 +306,6 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
     uint256 tokenId,
     Plan plan
   ) public view returns (uint256, uint256) {
-    if (!_isValidPlan(plan)) revert Subscriptions__InvalidPlan();
     if (tokenId == 0 || !_exists(tokenId)) revert Subscriptions__NoSubscriptionFound();
 
     address _owner = ownerOf(tokenId);
@@ -362,7 +359,7 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
    * @param price the new price of the plan (in ether)
    */
   function editPlanPrice(Plan plan, uint256 price) external onlyOwner {
-    if (!_isValidPlan(plan) && !_isPaidPlan(plan)) revert Subscriptions__InvalidPlan();
+    if (!_isPaidPlan(plan)) revert Subscriptions__InvalidPlan();
     fees[plan] = price;
     emit PriceUpdated(plan, price);
   }
@@ -371,11 +368,9 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
 
   /**
    * @dev Allows to withdraw the ether from the contract
-   * @param to The address to send the ether to
    */
-  function withdrawEther(address to) external onlyOwner {
-    if (to == address(0)) revert Subscriptions__WithdrawToAddressZero();
-    (bool sent, ) = to.call{value: address(this).balance}("");
+  function withdrawEther() external onlyOwner {
+    (bool sent, ) = owner().call{value: address(this).balance}("");
     if (!sent) revert Subscriptions__WithdrawalFailed();
   }
 
@@ -417,26 +412,10 @@ contract Subscriptions is ERC721, ISubscriptions, Ownable, Errors {
   }
 
   /**
-   * @dev Makes sure that the subscription is not expired
-   */
-  function _onlySubscribers() private view {
-    if (subscribers[_msgSender()].expiration < block.timestamp)
-      revert Subscriptions__SubscriptionExpired();
-  }
-
-  /**
    * @dev Returns true if the plan is a valid paid plan
    */
   function _isPaidPlan(Plan plan) private pure returns (bool) {
     if (plan == Plan.FREE) return false;
-    return true;
-  }
-
-  /**
-   * @dev Returns true if the plan is a valid plan
-   */
-  function _isValidPlan(Plan plan) private pure returns (bool) {
-    if (plan > Plan.ENTERPRISE) return false;
     return true;
   }
 }

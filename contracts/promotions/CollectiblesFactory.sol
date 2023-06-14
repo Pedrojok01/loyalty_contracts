@@ -12,7 +12,7 @@ import {Collectibles} from "../promotions/Collectibles.sol";
 /**
  * @title CollectiblesFactory
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Contracts factory to deploy a Collectibles type promotion (ERC1155);
  *  - Allows brands to deploy a Collectibles campaign (Discount vouchers, Freebies, etc);
  *  - Deployer will receive NFT id 0, proving its ownership.

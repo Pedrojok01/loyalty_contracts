@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 /**
  * @title Errors
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Stores all the errors used in the contracts:
  * - saves gas;
  * - makes the code more readable;
@@ -55,7 +55,6 @@ contract Errors {
   // Redeemable
   error Redeemable__TokenNotRedeemable(uint256 id);
   error Redeemable__TokenNotOwned();
-  error Redeemable__WrongType();
   error Redeemable__WrongId();
   error Redeemable__WrongPromotionContract();
   error Redeemable__EventExpired();
@@ -92,7 +91,6 @@ contract Errors {
   error Subscriptions__AlreadySubscribedToTier();
   error Subscriptions__IncorrectPrice();
   error Subscriptions__PaymentFailed();
-  error Subscriptions__WithdrawToAddressZero();
   error Subscriptions__WithdrawalFailed();
 
   // SubscriberChecks
@@ -120,4 +118,9 @@ contract Errors {
   error AdminRegistry__UserOptedOut();
   error AdminRegistry__UserNotRegistered();
   error AdminRegistry__AdminAlreadySet();
+
+  // Credits
+  error Credits__InvalidPlanId();
+  error Credits__InsufficientFunds();
+  error Credits__InsufficientCredits();
 }

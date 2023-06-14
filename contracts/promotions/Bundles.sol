@@ -22,7 +22,7 @@ import {ICampaign} from "../interfaces/ICampaign.sol";
 /**
  * @title EventTicket
  * @author Pedrojok01
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Bundles assets into an NFT:
  *  - Can either be airdrop to a specified membership level, or
  *  - Minted upon condition.

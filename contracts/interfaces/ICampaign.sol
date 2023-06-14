@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 /**
  * @title Interface for ICampaign.sol contract;
  * @author @Pedrojok01
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  *
  * Contains functions common to all campaigns, so they can be called from a Meed program.
  * See specific interfaces for each campaign for specific functions.

@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 /**
  * @title Interface for NonExpirable.sol contract;
  * @author @Pedrojok01
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  */
 
 interface INonExpirable {

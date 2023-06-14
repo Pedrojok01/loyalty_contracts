@@ -12,7 +12,7 @@ import {ICampaign} from "../interfaces/ICampaign.sol";
 /**
  * @title Collectibles
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Collectibles are NFTs can be collected to win a reward.;
  *  - The whole collection must be collected for the reward to be unlocked;
  *  - The reward is decided by the brands, can be another NFT like super discount or free product;

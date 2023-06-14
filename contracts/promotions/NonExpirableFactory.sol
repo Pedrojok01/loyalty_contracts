@@ -12,7 +12,7 @@ import {NonExpirable} from "../promotions/NonExpirable.sol";
 /**
  * @title NonExpirableFactory
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Contracts factory to deploy a NonExpirable promotion (ERC721);
  *  - Allows brands to deploy a NonExpirable campaign (Badge, VIP/MVP pass, etc..);
  *  - Deployer will receive NFT id 0, proving its ownership.

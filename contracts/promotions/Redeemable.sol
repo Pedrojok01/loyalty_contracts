@@ -14,10 +14,10 @@ import {RedeemCodeLib} from "../library/RedeemCodeLib.sol";
 /**
  * @title Redeemable
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Reedemable are NFTs that can be redeemed for a product or a discount;
- *  - The redeemanle type is defined by its id (0-5)
- *  - productIdOrCurrency indicate either the ID of the redeemable product or the currency in case of reduction voucher;
+ *  - The redeemanle type is defined by its id
+ *  - productId (for freebies) or currency (for fiat discount) are now added to metadata ans store in IPFS;
  *  - Discount can either be a percentage (0-100) or an amount;
  *  - The vouchers are burned when used;
  *
@@ -41,7 +41,6 @@ import {RedeemCodeLib} from "../library/RedeemCodeLib.sol";
  * 8e264182  =>  getTotalRedeemablesSupply()
  * 3bc06d6c  =>  addNewRedeemableNFT(RedeemableType,uint120,bytes32)
  * 02fe5305  =>  setURI(string)
- * 0b075f1a  =>  _isValidType(RedeemableType)
  * d410d6e2  =>  _isValidId(uint256)
  * ffdc4334  =>  _addNewRedeemableNFT(RedeemableType,uint120)
  * 810bdd65  =>  _onlyOngoing()
@@ -70,7 +69,6 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
     bool exist; // 1 byte
     uint8 id; // 1 byte
     uint32 amountRequirement; // 4 bytes - Slot II
-    bytes32 productIdOrCurrency; // Slot III (@todo move to metadata?)
     string redeemCode; // 32 bytes
   }
 
@@ -204,19 +202,17 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
    * @param redeemType Type of the redeemable NFT (ProductId, Amount, Percentage);
    * @param value Value of the redeemable NFT (in fiat currency or % );
    * @param amountRequirement Purchased amount required to trigger a voucher autoMint;
-   * @param data Data of the redeemable NFT (productId for ProductId, currency for Amount);
    */
   function addNewRedeemableNFT(
     RedeemableType redeemType,
     uint256 value,
-    uint256 amountRequirement,
-    bytes32 data
+    uint256 amountRequirement
   ) external onlyOwnerOrAdmin onlyOngoing onlyActive {
-    _addNewRedeemableNFT(redeemType, uint112(value), amountRequirement, data);
-    emit NewTypeAdded(redeemType, uint112(value), data);
+    _addNewRedeemableNFT(redeemType, uint112(value), amountRequirement);
+    emit NewTypeAdded(redeemType, uint112(value));
   }
 
-  event NewTypeAdded(RedeemableType indexed redeemType, uint112 value, bytes32 productIdOrCurrency);
+  event NewTypeAdded(RedeemableType indexed redeemType, uint112 value);
 
   function setURI(string memory newuri) external onlyOwnerOrAdmin onlyOngoing onlyActive {
     _setURI(newuri);
@@ -272,17 +268,6 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
     } else return false;
   }
 
-  function _isValidType(RedeemableType _redeemType) private pure returns (bool) {
-    if (
-      _redeemType == RedeemableType.ProductId ||
-      _redeemType == RedeemableType.Amount ||
-      _redeemType == RedeemableType.Percentage
-    ) {
-      return true;
-    }
-    return false;
-  }
-
   function _isSupplyForId(uint256 _id) private view returns (bool) {
     return redeemableNFTs[_id].circulatingSupply > 0;
   }
@@ -290,10 +275,8 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
   function _addNewRedeemableNFT(
     RedeemableType redeemType,
     uint112 _value,
-    uint256 _amountRequirement,
-    bytes32 _data
+    uint256 _amountRequirement
   ) private {
-    if (!_isValidType(redeemType)) revert Redeemable__WrongType();
     if (_value == 0 && redeemType != RedeemableType.ProductId) revert Redeemable__WrongValue();
 
     uint256 _id = redeemableNFTs.length;
@@ -305,7 +288,6 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
       exist: true,
       circulatingSupply: 0,
       amountRequirement: uint32(_amountRequirement),
-      productIdOrCurrency: _data,
       redeemCode: redeemCodeStorage.generateRedeemCode(address(this), _id)
     });
 

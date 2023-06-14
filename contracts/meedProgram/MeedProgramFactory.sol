@@ -13,7 +13,7 @@ import {Errors} from "../utils/Errors.sol";
 /**
  * @title MeedProgramFactory
  * @author Pedrojok01
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Contracts factory to deploy the MeedProgram ERC721;
  *  - Deployer can launch its own Membership program.
  *  - Deployer will receive NFT id 0, proving its ownership.
@@ -36,7 +36,12 @@ contract MeedProgramFactory is Context, Errors, Ownable {
 
   address private immutable CONTROL_ADDRESS; // Subscriptions contract address
   address private _adminRegistry;
+
+  /// @notice Array containing all factory addresses;
   address[] public factories;
+
+  /// @notice Array containing all created MeedProgram addresses;
+  IMeedProgram[] private meedProgramList;
 
   /**
    * @dev Main brand details to allow:
@@ -63,9 +68,6 @@ contract MeedProgramFactory is Context, Errors, Ownable {
 
   /// @notice Map all brands details per ID;
   mapping(uint256 => Brand) private brands;
-
-  /// @notice Array containing all created MeedProgram addresses;
-  IMeedProgram[] private meedProgramList;
 
   /// @notice Map all factory address per ID and vice versa;
   mapping(uint256 => address) private factoryIdPerAddress;
@@ -114,7 +116,7 @@ contract MeedProgramFactory is Context, Errors, Ownable {
     uint64[4] memory amounts,
     bytes32 productType,
     bytes32 location
-  ) external returns (IMeedProgram newMeed) {
+  ) external returns (IMeedProgram) {
     uint256 meedId = meedProgramList.length;
 
     if (meedAddress[meedId] != IMeedProgram(address(0))) {

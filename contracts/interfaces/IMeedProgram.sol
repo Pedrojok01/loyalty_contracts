@@ -6,7 +6,7 @@ import {PromoLib} from "../library/PromoLib.sol";
 /**
  * @title Interface for MeedProgram.sol contract;
  * @author @Pedrojok01
- * @notice Part of the Meed Loyalty Platform from SuperUltra
+ * @notice Part of the Meed Loyalty Platform
  * @dev Allows the Meed factory to deploy new loyalty contracts;
  */
 

@@ -84,7 +84,7 @@ describe("Activation Feature", function () {
   });
 
   it("should be possible to deactivate a promo if owner", async () => {
-    const { meedProgram, redeemable, owner } = await loadFixture(deployFixture);
+    const { meedProgram, redeemable, owner, user1 } = await loadFixture(deployFixture);
 
     // Check the current state  (1 promo)
     const newPromos = await meedProgram.getAllPromotions();
@@ -109,6 +109,11 @@ describe("Activation Feature", function () {
     expect(activesAfter.length).to.equal(0);
     const inactivesAfter = await meedProgram.getAllPromotionsPerStatus(false);
     expect(inactivesAfter.length).to.equal(1);
+
+    // revert if not owner or admin
+    await expect(
+      meedProgram.connect(user1).activatePromotion(redeemable.address)
+    ).to.be.revertedWithCustomError(meedProgram, "Adminable__NotAuthorized");
 
     const receipt2 = await meedProgram.activatePromotion(redeemable.address);
     await expect(receipt2)

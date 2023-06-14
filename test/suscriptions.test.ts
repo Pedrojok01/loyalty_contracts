@@ -45,8 +45,16 @@ describe("Susbcriptions Contract", function () {
                                     SUBSCRIBE
     ///////////////////////////////////////////////////////////////////////////////*/
 
-  it("should not be able to susbribe if wrong price or already member", async () => {
+  it("should not be possible to susbribe if wrong price or already member", async () => {
     const { subscriptions, user1 } = await loadFixture(deployFixture);
+
+    // revert if wrong plan
+    await expect(
+      subscriptions.connect(user1).subscribe(plan.free, planDuration.monthly, {
+        from: user1.address,
+        value: pricePerPlan.pro,
+      })
+    ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__InvalidPlan");
 
     // revert if wrong price for a month
     await expect(
@@ -106,7 +114,9 @@ describe("Susbcriptions Contract", function () {
       .subscribe(plan.basic, planDuration.yearly, { value: basicForAYear });
     await expect(receipt)
       .to.emit(subscriptions, "SubscribedOrExtended")
-      .withArgs(user1.address, 1, anyValue);
+      .withArgs(user1.address, tokenId, anyValue);
+
+    expect(await subscriptions.getSubscriberPlan(user1.address)).to.equal(plan.basic);
 
     // try empty function for coverage
     expect(await subscriptions.cancelSubscription(tokenId)).to.equal(false);
@@ -163,12 +173,12 @@ describe("Susbcriptions Contract", function () {
 
     const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(tokenId, plan.enterprise);
 
-    // revert since user isn't a subscriber
+    // revert since user doesnt own the token
     await expect(
       subscriptions
         .connect(user2)
         .changeSubscriptionPlan(tokenId, plan.enterprise, { value: toPayMore.toString() })
-    ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__SubscriptionExpired");
+    ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__TokenNotOwned");
 
     await subscriptions
       .connect(user2)
@@ -189,6 +199,17 @@ describe("Susbcriptions Contract", function () {
     ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__CannotDowngradeTier");
 
     await time.increase(duration.month * 2);
+
+    // revert if wrong token id
+    const zeroTokenId = 0;
+    await expect(
+      subscriptions.getRemainingTimeAndPrice(zeroTokenId, plan.enterprise)
+    ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__NoSubscriptionFound");
+
+    const nonexistantTokenId = 1120;
+    await expect(
+      subscriptions.getRemainingTimeAndPrice(nonexistantTokenId, plan.enterprise)
+    ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__NoSubscriptionFound");
 
     const [remaining, toPay] = await subscriptions.getRemainingTimeAndPrice(
       tokenId,
@@ -451,17 +472,13 @@ describe("Susbcriptions Contract", function () {
       Number(pricePerPlan.basic.add(pricePerPlan.enterprise).mul(10).add(pricePerPlan.pro))
     );
 
-    await expect(subscriptions.connect(user1).withdrawEther(user1.address)).to.be.revertedWith(
+    await expect(subscriptions.connect(user1).withdrawEther()).to.be.revertedWith(
       "Ownable: caller is not the owner"
     );
 
-    await expect(
-      subscriptions.withdrawEther(ethers.constants.AddressZero)
-    ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__WithdrawToAddressZero");
-
     const balanceOwnerBefore = await ethers.provider.getBalance(owner.address);
 
-    await subscriptions.withdrawEther(owner.address);
+    await subscriptions.withdrawEther();
 
     const contractBalanceAfter = await ethers.provider.getBalance(subscriptions.address);
     expect(Number(contractBalanceAfter)).to.equal(0);
@@ -473,7 +490,7 @@ describe("Susbcriptions Contract", function () {
   });
 
   it("should be possible to edit all price plan individually", async () => {
-    const { subscriptions, owner, user1 } = await loadFixture(deployFixture);
+    const { subscriptions, user1 } = await loadFixture(deployFixture);
 
     await expect(
       subscriptions.connect(user1).editPlanPrice(plan.basic, formatNumber(1))
@@ -488,7 +505,7 @@ describe("Susbcriptions Contract", function () {
   /*///////////////////////////////////////////////////////////////////////////////
                                     DYNAMIC URIs
     ///////////////////////////////////////////////////////////////////////////////*/
-  it("should mint an NFT with the correct URI based on chose plan", async () => {
+  it("should mint an NFT with the correct URI based on chosen plan", async () => {
     const { subscriptions, user1, user2, user3 } = await loadFixture(deployFixture);
 
     // Mint 3 NFTs with different plans
@@ -510,13 +527,18 @@ describe("Susbcriptions Contract", function () {
     const total = await subscriptions.totalSupply();
     expect(total).to.equal(3);
 
-    expect(await subscriptions.tokenURI(1)).to.equal(subscriptions_uris[0]);
-    expect(await subscriptions.tokenURI(2)).to.equal(subscriptions_uris[1]);
-    expect(await subscriptions.tokenURI(3)).to.equal(subscriptions_uris[2]);
+    expect(await subscriptions.tokenURI(plan.basic)).to.equal(subscriptions_uris[1]);
+    expect(await subscriptions.tokenURI(plan.pro)).to.equal(subscriptions_uris[2]);
+    expect(await subscriptions.tokenURI(plan.enterprise)).to.equal(subscriptions_uris[3]);
 
+    // Revert if no subscription found
     await expect(subscriptions.tokenURI(4)).to.be.revertedWithCustomError(
       subscriptions,
       "Subscriptions__NoSubscriptionFound"
     );
+
+    // Move forward 2 months so all subscriptions are expired
+    await time.increase(duration.month * 2);
+    expect(await subscriptions.tokenURI(plan.basic)).to.equal(subscriptions_uris[0]);
   });
 });
