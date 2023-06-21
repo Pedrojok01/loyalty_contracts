@@ -21,11 +21,16 @@ describe("Susbcriptions Contract", function () {
   async function deployFixture() {
     const [owner, user1, user2, user3, admin] = await ethers.getSigners();
 
+    const AdminRegistry = await ethers.getContractFactory("AdminRegistry");
+    const adminRegistry = await AdminRegistry.deploy(admin.address);
+    await adminRegistry.deployed();
+
     const Subscriptions = await ethers.getContractFactory("Subscriptions");
     const subscriptions: Subscriptions = await Subscriptions.deploy(
       subscriptions_name,
       subscriptions_symbol,
-      subscriptions_uris
+      subscriptions_uris,
+      adminRegistry.address
     );
     await subscriptions.deployed();
 
@@ -178,7 +183,7 @@ describe("Susbcriptions Contract", function () {
       subscriptions
         .connect(user2)
         .changeSubscriptionPlan(tokenId, plan.enterprise, { value: toPayMore.toString() })
-    ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__TokenNotOwned");
+    ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__SubscriptionExpired");
 
     await subscriptions
       .connect(user2)

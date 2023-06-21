@@ -1,14 +1,21 @@
 import hre, { ethers } from "hardhat";
 import fs from "fs";
 
-import { subscriptions_name, subscriptions_symbol, subscriptions_uris } from "./constants";
+import {
+  ADMIN_ADDRESS,
+  adminRegistryAddress,
+  subscriptions_name,
+  subscriptions_symbol,
+  subscriptions_uris,
+} from "./constants";
 
 async function main() {
   const Subscriptions = await ethers.getContractFactory("Subscriptions");
   const subscriptions = await Subscriptions.deploy(
     subscriptions_name,
     subscriptions_symbol,
-    subscriptions_uris
+    subscriptions_uris,
+    adminRegistryAddress
   );
   await subscriptions.deployed();
 

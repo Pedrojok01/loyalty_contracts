@@ -123,4 +123,6 @@ contract Errors {
   error Credits__InvalidPlanId();
   error Credits__InsufficientFunds();
   error Credits__InsufficientCredits();
+  error Credits__InvalidArrayLength();
+  error Credits__ErrorWhileRemovingCredit();
 }

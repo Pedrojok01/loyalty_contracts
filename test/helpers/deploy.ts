@@ -23,17 +23,18 @@ import { utils } from "ethers";
 export async function deploy() {
   const [owner, user1, user2, user3, admin] = await ethers.getSigners();
 
+  const AdminRegistry = await ethers.getContractFactory("AdminRegistry");
+  const adminRegistry = await AdminRegistry.deploy(admin.address);
+  await adminRegistry.deployed();
+
   const Subscriptions = await ethers.getContractFactory("Subscriptions");
   const subscriptions: Subscriptions = await Subscriptions.deploy(
     subscriptions_name,
     subscriptions_symbol,
-    subscriptions_uris
+    subscriptions_uris,
+    adminRegistry.address
   );
   await subscriptions.deployed();
-
-  const AdminRegistry = await ethers.getContractFactory("AdminRegistry");
-  const adminRegistry = await AdminRegistry.deploy(admin.address);
-  await adminRegistry.deployed();
 
   const RedeemCodeLib = await ethers.getContractFactory("RedeemCodeLib");
   const redeemCodeLib = await RedeemCodeLib.deploy();

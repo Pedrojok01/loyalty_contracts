@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.19;
 
+// import "hardhat/console.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {AdminRegistry} from "../subscriptions/AdminRegistry.sol";
 import {Errors} from "../utils/Errors.sol";
 
 /**
@@ -15,6 +17,12 @@ import {Errors} from "../utils/Errors.sol";
  */
 
 contract Credits is Ownable, Errors {
+  address private immutable ADMIN_REGISTRY_CONTRACT;
+  uint256 internal monthlyCreditsForFreePlan = 100;
+  uint256 internal monthlyCreditsForBasicPlan = 2_500;
+  uint256 internal monthlyCreditsForProPlan = 10_000;
+  uint256 internal monthlyCreditsForEnterprisePlan = 50_000;
+
   struct CreditPlan {
     uint256 credits;
     uint256 price;
@@ -30,22 +38,16 @@ contract Credits is Ownable, Errors {
   event CreditsAdded(address indexed user, uint256 totalCredits);
   event CreditsDeducted(address indexed user, uint256 totalCredits);
 
-  constructor() {
-    // Initialize with predefined plans
-    creditPlans[0] = (CreditPlan(100, 0)); // Free trial
-    creditPlans[0] = (CreditPlan(500, 0.02 ether));
-    creditPlans[1] = (CreditPlan(5000, 0.15 ether));
-    creditPlans[2] = (CreditPlan(25_000, 0.5 ether));
-    creditPlans[3] = (CreditPlan(100_000, 1.5 ether));
+  constructor(address adminRegistryAddress) {
+    ADMIN_REGISTRY_CONTRACT = adminRegistryAddress;
+    _initializeCreditsPlan();
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
                                         WRITE
     ///////////////////////////////////////////////////////////////////////////////*/
 
-  function buyCredits(uint8 planId) public payable {
-    if (planId >= creditPlans.length) revert Credits__InvalidPlanId();
-
+  function buyCredits(uint8 planId) public payable virtual {
     CreditPlan memory plan = creditPlans[planId];
     if (msg.value < plan.price) revert Credits__InsufficientFunds();
 
@@ -60,7 +62,7 @@ contract Credits is Ownable, Errors {
   }
 
   function setUserCredits(address user, uint256 credits) public onlyOwner {
-    userCredits[user] = credits;
+    userCredits[user] += credits;
     emit CreditsAdded(user, credits);
   }
 
@@ -69,6 +71,17 @@ contract Credits is Ownable, Errors {
     userCredits[user] -= credits;
     emit CreditsDeducted(user, credits);
   }
+
+  function setCreditPlan(uint8 planId, uint256 credits, uint256 price) public onlyOwner {
+    if (planId >= creditPlans.length) revert Credits__InvalidPlanId();
+
+    creditPlans[planId] = CreditPlan(credits, price);
+  }
+
+  // function setAllCreditPlans(CreditPlan[4] memory newPlans) public onlyOwner {
+  //   if (newPlans.length != creditPlans.length) revert Credits__InsufficientCredits();
+  //   creditPlans = newPlans;
+  // }
 
   // Owner can withdraw Ether from contract
   function withdraw() external onlyOwner {
@@ -81,5 +94,26 @@ contract Credits is Ownable, Errors {
 
   function getUserCredits(address user) public view returns (uint256) {
     return userCredits[user];
+  }
+
+  function _autoAddUserCredits(address user, uint256 credits) internal {
+    userCredits[user] += credits;
+    emit CreditsAdded(user, credits);
+  }
+
+  function _autoRemoveUserCredits(address user) external {
+    if (tx.origin != AdminRegistry(ADMIN_REGISTRY_CONTRACT).admin())
+      revert AdminRegistry__NotAdmin();
+
+    userCredits[user]--;
+  }
+
+  function _initializeCreditsPlan() private {
+    // Initialize with predefined plans
+    // creditPlans[0] = (CreditPlan(100, 0)); // Free trial
+    creditPlans[0] = CreditPlan({credits: 500, price: 0.02 ether});
+    creditPlans[1] = CreditPlan({credits: 5000, price: 0.15 ether});
+    creditPlans[2] = CreditPlan({credits: 25_000, price: 0.5 ether});
+    creditPlans[3] = CreditPlan({credits: 100_000, price: 1.5 ether});
   }
 }

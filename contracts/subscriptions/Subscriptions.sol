@@ -82,11 +82,17 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
   constructor(
     string memory name_,
     string memory symbol_,
-    string[4] memory uris_
-  ) ERC721(name_, symbol_) {
+    string[4] memory uris_,
+    address adminRegistryAddress
+  ) ERC721(name_, symbol_) Credits(adminRegistryAddress) {
     require(uris_.length == 4, "Subscriptions: Invalid URIs length");
     _initialize();
     baseURIs = uris_;
+  }
+
+  modifier onlySubscriber(address subscriber) {
+    _onlySubscriber(subscriber);
+    _;
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -122,6 +128,8 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
 
     subscribers[subscriber] = newSubscriber;
     _tokenOfOwner[subscriber] = tokenID;
+
+    _addCreditsWithSubscription(subscriber, plan, duration);
 
     emit SubscribedOrExtended(subscriber, tokenID, expiration);
   }
@@ -161,6 +169,9 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
     }
 
     subscribers[subscriber] = temp;
+
+    _addCreditsWithSubscription(subscriber, plan, duration);
+
     emit SubscribedOrExtended(subscriber, tokenId, temp.expiration);
   }
 
@@ -170,16 +181,14 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
    * @param plan the chosen plan of the subscription (Basic, Pro, Enterprise)
    * @notice MUST be subscriber already
    */
-  function changeSubscriptionPlan(uint256 tokenId, Plan plan) external payable {
+  function changeSubscriptionPlan(
+    uint256 tokenId,
+    Plan plan
+  ) external payable onlySubscriber(_msgSender()) {
     address subscriber = _msgSender();
     if (ownerOf(tokenId) != subscriber) revert Subscriptions__TokenNotOwned();
 
     Subscriber memory temp = subscribers[subscriber];
-
-    if (temp.expiration < block.timestamp) {
-      subscribers[subscriber].plan = Plan.FREE;
-      revert Subscriptions__SubscriptionExpired();
-    }
 
     if (temp.plan >= plan) revert Subscriptions__CannotDowngradeTier(); // Simpler for now
 
@@ -198,6 +207,25 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
    */
   // solhint-disable-next-line no-empty-blocks
   function cancelSubscription(uint256 tokenId) external view returns (bool) {}
+
+  /**
+   * @dev Allows to topup credits for a user
+   * @param planId the id of the plan to buy credits for
+   */
+  function buyCredits(uint8 planId) public payable override onlySubscriber(_msgSender()) {
+    CreditPlan memory plan = creditPlans[planId];
+    if (msg.value < plan.price) revert Credits__InsufficientFunds();
+
+    // Add credits to the user balance
+    userCredits[_msgSender()] += plan.credits;
+    emit CreditsAdded(_msgSender(), userCredits[_msgSender()]);
+
+    // Refund excess payment
+    if (msg.value > plan.price) {
+      (bool success, ) = _msgSender().call{value: msg.value - plan.price}("");
+      require(success);
+    }
+  }
 
   /*///////////////////////////////////////////////////////////////////////////////
                                             VIEW
@@ -417,5 +445,28 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
   function _isPaidPlan(Plan plan) private pure returns (bool) {
     if (plan == Plan.FREE) return false;
     return true;
+  }
+
+  function _onlySubscriber(address subscriber) private {
+    if (subscribers[subscriber].expiration < block.timestamp) {
+      subscribers[subscriber].plan = Plan.FREE;
+      revert Subscriptions__SubscriptionExpired();
+    }
+  }
+
+  function _addCreditsWithSubscription(address subscriber, Plan plan, bool duration) private {
+    // Calculate credits based on plan and duration
+    uint256 creditsPerMonth = 0;
+    if (plan == Plan.BASIC) {
+      creditsPerMonth = monthlyCreditsForBasicPlan;
+    } else if (plan == Plan.PRO) {
+      creditsPerMonth = monthlyCreditsForProPlan;
+    } else if (plan == Plan.ENTERPRISE) {
+      creditsPerMonth = monthlyCreditsForEnterprisePlan;
+    }
+    uint256 totalCredits = creditsPerMonth * (duration ? 12 : 1);
+
+    // Give credits to the subscriber
+    _autoAddUserCredits(subscriber, totalCredits);
   }
 }

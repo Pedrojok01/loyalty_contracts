@@ -9,6 +9,32 @@ export const plan = {
   enterprise: 3,
 };
 
+export const creditsPerPlan = {
+  free: 100,
+  basic: 2500,
+  pro: 10000,
+  enterprise: 50000,
+};
+
+export const topUpFormula = {
+  small: {
+    id: 0,
+    value: 500,
+  },
+  medium: {
+    id: 1,
+    value: 5000,
+  },
+  big: {
+    id: 2,
+    value: 25_000,
+  },
+  huge: {
+    id: 3,
+    value: 100_000,
+  },
+};
+
 export const planDuration = {
   monthly: false,
   yearly: true,

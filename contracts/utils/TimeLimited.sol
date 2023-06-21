@@ -12,6 +12,7 @@ import {Adminable} from "../utils/Adminable.sol";
  */
 
 contract TimeLimited is Activation, Adminable {
+  address private immutable SUBSCRIPTIONS_CONTRACT;
   uint128 private startDate;
   uint128 private endDate; // 0 = no expiration
 
@@ -22,6 +23,7 @@ contract TimeLimited is Activation, Adminable {
     address adminRegistryAddress
   ) Adminable(adminRegistryAddress, subscriptionsAddress) {
     require(endDate == 0 || _startDate < _endDate, "TimeLimited: invalid date");
+    SUBSCRIPTIONS_CONTRACT = subscriptionsAddress;
     startDate = uint128(_startDate);
     endDate = uint128(_endDate);
   }
@@ -49,6 +51,7 @@ contract TimeLimited is Activation, Adminable {
 
   function updateExpirationDate(uint256 newExpirationDate) external onlyOwnerOrAdmin onlyActive {
     if (newExpirationDate < block.timestamp) revert TimeLimited__InvalidDate();
+    _creditsCheck();
     uint128 oldDate = endDate;
     endDate = uint128(newExpirationDate);
     emit ExpirationDateUpdated(oldDate, uint128(newExpirationDate), _msgSender());
@@ -63,6 +66,22 @@ contract TimeLimited is Activation, Adminable {
   function _onlyOngoing() internal virtual {
     if (isExpired()) {
       revert TimeLimited__TokenExpired();
+    }
+  }
+
+  function _creditsCheck() internal {
+    if (_msgSender() == admin()) {
+      (bool success, bytes memory result) = SUBSCRIPTIONS_CONTRACT.call(
+        abi.encodeWithSignature("getUserCredits(address)", owner())
+      );
+      if (!success || abi.decode(result, (uint256)) < 1) {
+        revert Credits__InsufficientCredits();
+      } else {
+        (bool removalSuccess, ) = SUBSCRIPTIONS_CONTRACT.call(
+          abi.encodeWithSignature("_autoRemoveUserCredits(address)", owner())
+        );
+        if (!removalSuccess) revert Credits__ErrorWhileRemovingCredit();
+      }
     }
   }
 }

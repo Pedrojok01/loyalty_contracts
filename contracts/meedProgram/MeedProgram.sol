@@ -31,6 +31,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
+  address private immutable SUBSCRIPTIONS_CONTRACT;
   bool public immutable TIER_TRACKER; // true = buyVolume (purchase Times), false = amountVolume
   string private _baseURIextended;
   uint40 private _tokenIdCounter;
@@ -109,6 +110,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     address[] memory _factories
   ) ERC721(_name, _symbol) Adminable(adminRegistryAddress, subscriptionsAddress_) {
     transferOwnership(_owner);
+    SUBSCRIPTIONS_CONTRACT = subscriptionsAddress_;
     TIER_TRACKER = _tierTracker;
     _baseURIextended = _uri;
     factories = _factories;
@@ -134,11 +136,13 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
    * @param to Address of the new member to be added.
    */
   function mint(address to) public onlyOwnerOrAdmin {
+    _creditsCheck();
     _addMember(to);
   }
 
   function updateMember(address member, uint32 amountVolume) external onlyOwnerOrAdmin {
     if (amountVolume == 0) revert MeedProgram_AmountVolumeIsZero();
+    _creditsCheck();
     _updateMember(member, amountVolume);
   }
 
@@ -276,6 +280,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
    * @dev Allows to activate / deactivate the autoMint status;
    */
   function switchAutoMintStatus() external onlyOwnerOrAdmin {
+    _creditsCheck();
     autoMintActivated = !autoMintActivated;
   }
 
@@ -284,6 +289,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
    * @param baseURI_ The baseURI to be used.
    */
   function setBaseURI(string calldata baseURI_) external onlyOwnerOrAdmin {
+    _creditsCheck();
     _baseURIextended = baseURI_;
   }
 
@@ -315,6 +321,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     uint8 tokenId,
     uint32 amountRequired
   ) external onlyOwnerOrAdmin {
+    _creditsCheck();
     if (level == 0 || level > 5) revert MeedProgram__LevelOutOfRange(); // max enum value of level
     AutoReward memory newReward = AutoReward(promotion, tokenId, level, amountRequired);
     autoRewards[level] = newReward;
@@ -325,6 +332,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
   event AutoRewardAdded(uint8 level, address promotion, uint8 tokenId, uint32 amountRequired);
 
   function removeAutoMintReward(uint8 level) external onlyOwnerOrAdmin {
+    _creditsCheck();
     if (level == 0 || level > 5) revert MeedProgram__LevelOutOfRange();
     delete autoRewards[level];
   }
@@ -333,6 +341,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
    * @dev Allows to activate a promotion
    */
   function activatePromotion(address promoAddress) public onlyOwnerOrAdmin {
+    _creditsCheck();
     PromoLib._setPromotionStatus(promoAddress, false, promoLib);
     ICampaign(promoAddress).activatePromotion();
   }
@@ -341,6 +350,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
    * @dev Allows to deactivate a promotion
    */
   function deactivatePromotion(address promoAddress) public onlyOwnerOrAdmin {
+    _creditsCheck();
     PromoLib._setPromotionStatus(promoAddress, false, promoLib);
     ICampaign(promoAddress).deactivatePromotion();
   }
@@ -474,5 +484,21 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
 
   function _onlyFactory() private view {
     if (!isFactory[_msgSender()]) revert MeedProgram__AuthorizedFactoryOnly();
+  }
+
+  function _creditsCheck() private {
+    if (_msgSender() == admin()) {
+      (bool success, bytes memory result) = SUBSCRIPTIONS_CONTRACT.call(
+        abi.encodeWithSignature("getUserCredits(address)", owner())
+      );
+      if (!success || abi.decode(result, (uint256)) < 1) {
+        revert Credits__InsufficientCredits();
+      } else {
+        (bool removalSuccess, ) = SUBSCRIPTIONS_CONTRACT.call(
+          abi.encodeWithSignature("_autoRemoveUserCredits(address)", owner())
+        );
+        if (!removalSuccess) revert Credits__ErrorWhileRemovingCredit();
+      }
+    }
   }
 }

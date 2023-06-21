@@ -53,6 +53,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
+  address private immutable SUBSCRIPTIONS_CONTRACT;
   MeedProgram private immutable meedProgram;
   RedeemCodeLib.RedeemCodeStorage internal redeemCodeStorage;
 
@@ -85,6 +86,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
   ) ERC1155(_uri) TimeLimited(_startDate, _endDate, subscriptionsAddress, adminRegistryAddress) {
     require(_endDate == 0 || _endDate > block.timestamp, "Redeemable: invalid date");
     _setURI(_uri);
+    SUBSCRIPTIONS_CONTRACT = subscriptionsAddress;
     meedProgram = MeedProgram(_meedProgram);
     transferOwnership(_owner);
   }
@@ -101,6 +103,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
   function mint(uint256 id, address to) public onlyOwnerOrAdmin onlyOngoing onlyActive {
     if (_msgSender() == admin()) {
       _onlySubscribers(owner());
+      _creditsCheck();
     }
 
     _mintRedeemable(id, to);
@@ -128,6 +131,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
   ) external onlyOwnerOrAdmin onlyOngoing onlyActive {
     if (_msgSender() == admin()) {
       _onlyProOrEnterprise(owner());
+      _creditsCheck();
     }
 
     uint256 length = to.length;
@@ -148,6 +152,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
     address from,
     uint256 tokenId
   ) public override onlyOngoing onlyActive onlyOwnerOrAdmin {
+    _creditsCheck();
     _redeem(from, tokenId);
   }
 
@@ -208,6 +213,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
     uint256 value,
     uint256 amountRequirement
   ) external onlyOwnerOrAdmin onlyOngoing onlyActive {
+    _creditsCheck();
     _addNewRedeemableNFT(redeemType, uint112(value), amountRequirement);
     emit NewTypeAdded(redeemType, uint112(value));
   }
@@ -215,6 +221,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
   event NewTypeAdded(RedeemableType indexed redeemType, uint112 value);
 
   function setURI(string memory newuri) external onlyOwnerOrAdmin onlyOngoing onlyActive {
+    _creditsCheck();
     _setURI(newuri);
     emit NewURISet(newuri);
   }
@@ -225,6 +232,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
    * @dev Allows to activate a promotion
    */
   function activatePromotion() external onlyOwnerOrAdmin {
+    _creditsCheck();
     _activate(address(this));
   }
 
@@ -232,6 +240,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
    * @dev Allows to deactivate a promotion
    */
   function deactivatePromotion() external onlyOwnerOrAdmin {
+    _creditsCheck();
     _deactivate(address(this));
   }
 

@@ -4,7 +4,6 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 import { pricePerPlan, duration, plan, voucher_type, planDuration, promoType } from "./constant";
-import { utils } from "ethers";
 import { deploy } from "./helpers/deploy";
 
 const type = voucher_type.percentDiscount;
