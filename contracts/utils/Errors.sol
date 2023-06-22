@@ -120,7 +120,6 @@ contract Errors {
   error AdminRegistry__AdminAlreadySet();
 
   // Credits
-  error Credits__InvalidPlanId();
   error Credits__InsufficientFunds();
   error Credits__InsufficientCredits();
   error Credits__InvalidArrayLength();

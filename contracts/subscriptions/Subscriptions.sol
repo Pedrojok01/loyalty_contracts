@@ -43,7 +43,7 @@ import {Credits} from "../utils/Credits.sol";
  * 4f022b1c  =>  isEnterprise(address)
  * 01ffc9a7  =>  supportsInterface(bytes4)
  * 56508d6c  =>  editPlanPrice(Plan,uint256)
- * af933b57  =>  withdrawEther(address)
+ * af933b57  =>  withdraw(address)
  * 80ae4ebc  =>  _initialize()
  * 7ee6931b  =>  _checkAmountPaid(Plan,bool)
  * 2e12cd4a  =>  _emitSubscriptionNFT(address)
@@ -397,7 +397,7 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
   /**
    * @dev Allows to withdraw the ether from the contract
    */
-  function withdrawEther() external onlyOwner {
+  function withdraw() external override onlyOwner {
     (bool sent, ) = owner().call{value: address(this).balance}("");
     if (!sent) revert Subscriptions__WithdrawalFailed();
   }

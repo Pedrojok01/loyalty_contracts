@@ -19,19 +19,23 @@ export const creditsPerPlan = {
 export const topUpFormula = {
   small: {
     id: 0,
-    value: 500,
+    credits: 500,
+    price: utils.parseEther("0.02"),
   },
   medium: {
     id: 1,
-    value: 5000,
+    credits: 5000,
+    price: utils.parseEther("0.15"),
   },
   big: {
     id: 2,
-    value: 25_000,
+    credits: 25_000,
+    price: utils.parseEther("0.5"),
   },
   huge: {
     id: 3,
-    value: 100_000,
+    credits: 100_000,
+    price: utils.parseEther("1.5"),
   },
 };
 

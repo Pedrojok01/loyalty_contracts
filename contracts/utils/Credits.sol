@@ -73,8 +73,6 @@ contract Credits is Ownable, Errors {
   }
 
   function setCreditPlan(uint8 planId, uint256 credits, uint256 price) public onlyOwner {
-    if (planId >= creditPlans.length) revert Credits__InvalidPlanId();
-
     creditPlans[planId] = CreditPlan(credits, price);
   }
 
@@ -84,7 +82,7 @@ contract Credits is Ownable, Errors {
   // }
 
   // Owner can withdraw Ether from contract
-  function withdraw() external onlyOwner {
+  function withdraw() external virtual onlyOwner {
     payable(owner()).transfer(address(this).balance);
   }
 

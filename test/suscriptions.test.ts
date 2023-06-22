@@ -477,13 +477,13 @@ describe("Susbcriptions Contract", function () {
       Number(pricePerPlan.basic.add(pricePerPlan.enterprise).mul(10).add(pricePerPlan.pro))
     );
 
-    await expect(subscriptions.connect(user1).withdrawEther()).to.be.revertedWith(
+    await expect(subscriptions.connect(user1).withdraw()).to.be.revertedWith(
       "Ownable: caller is not the owner"
     );
 
     const balanceOwnerBefore = await ethers.provider.getBalance(owner.address);
 
-    await subscriptions.withdrawEther();
+    await subscriptions.withdraw();
 
     const contractBalanceAfter = await ethers.provider.getBalance(subscriptions.address);
     expect(Number(contractBalanceAfter)).to.equal(0);
