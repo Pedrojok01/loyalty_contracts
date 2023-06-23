@@ -219,7 +219,7 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
     // Refund excess payment
     if (msg.value > plan.price) {
       (bool success, ) = _msgSender().call{value: msg.value - plan.price}("");
-      require(success);
+      require(success, "Subscriptions: Failed to refund excess payment");
     }
   }
 
