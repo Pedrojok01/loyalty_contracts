@@ -100,6 +100,18 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   /**
+   * @dev Allows anyone to start a free trial of 1 month with 100 credits;
+   * @notice This function is only callable once per address;
+   */
+  function startTrial() public {
+    address subscriber = _msgSender();
+    if (balanceOf(subscriber) != 0) revert Subscriptions__UserAlreadyOwnsSubscription();
+
+    _addNewSubscriber(subscriber, Plan.FREE, false);
+    _autoAddUserCredits(subscriber, 100);
+  }
+
+  /**
    * @dev Subscribe to Meed Rewards and emit a subscription NFT;
    * @param plan Chosen plan of the subscription (Basic, Pro, Enterprise)
    * @param duration Chosen duration of the subscription:
@@ -112,26 +124,10 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
 
     // Handle payment per tier & duration
     if (!_isPaidPlan(plan)) revert Subscriptions__InvalidPlan();
+
     _checkAmountPaid(plan, duration);
-
-    uint64 expiration = duration
-      ? uint64(block.timestamp + 365 days)
-      : uint64(block.timestamp + 30 days);
-    uint40 tokenID = _emitSubscriptionNFT(subscriber);
-
-    Subscriber memory newSubscriber = Subscriber({
-      tokenId: tokenID,
-      expiration: expiration,
-      plan: plan,
-      startTime: uint64(block.timestamp)
-    });
-
-    subscribers[subscriber] = newSubscriber;
-    _tokenOfOwner[subscriber] = tokenID;
-
+    _addNewSubscriber(subscriber, plan, duration);
     _addCreditsWithSubscription(subscriber, plan, duration);
-
-    emit SubscribedOrExtended(subscriber, tokenID, expiration);
   }
 
   /**
@@ -452,6 +448,25 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
       subscribers[subscriber].plan = Plan.FREE;
       revert Subscriptions__SubscriptionExpired();
     }
+  }
+
+  function _addNewSubscriber(address subscriber, Plan plan, bool duration) private {
+    uint64 expiration = duration
+      ? uint64(block.timestamp + 365 days)
+      : uint64(block.timestamp + 30 days);
+    uint40 tokenID = _emitSubscriptionNFT(subscriber);
+
+    Subscriber memory newSubscriber = Subscriber({
+      tokenId: tokenID,
+      expiration: expiration,
+      plan: plan,
+      startTime: uint64(block.timestamp)
+    });
+
+    subscribers[subscriber] = newSubscriber;
+    _tokenOfOwner[subscriber] = tokenID;
+
+    emit SubscribedOrExtended(subscriber, tokenID, expiration);
   }
 
   function _addCreditsWithSubscription(address subscriber, Plan plan, bool duration) private {

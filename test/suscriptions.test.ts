@@ -98,6 +98,43 @@ describe("Susbcriptions Contract", function () {
     ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__UserAlreadyOwnsSubscription");
   });
 
+  it("should be possible to start the trial for free (1 month & 100 credits)", async () => {
+    const { subscriptions, user1 } = await loadFixture(deployFixture);
+
+    const receipt = await subscriptions.connect(user1).startTrial();
+    await expect(receipt)
+      .to.emit(subscriptions, "SubscribedOrExtended")
+      .withArgs(user1.address, tokenId, anyValue);
+
+    expect(await subscriptions.getSubscriberPlan(user1.address)).to.equal(plan.free);
+
+    // revert if already trialed ot subscribed
+    await expect(subscriptions.connect(user1).startTrial()).to.be.revertedWithCustomError(
+      subscriptions,
+      "Subscriptions__UserAlreadyOwnsSubscription"
+    );
+
+    // revert it try to renew the trial
+    await expect(
+      subscriptions.connect(user1).renewSubscription(tokenId, plan.free, planDuration.monthly)
+    ).to.be.revertedWithCustomError(subscriptions, "Subscriptions__InvalidPlan");
+
+    // check that upgrade is possible from trial plan:
+    const toPay = await subscriptions.calculateSubscriptionPrice(
+      plan.enterprise,
+      planDuration.monthly
+    );
+
+    const receipt_2 = await subscriptions
+      .connect(user1)
+      .changeSubscriptionPlan(tokenId, plan.enterprise, { value: toPay.toString() });
+    await expect(receipt_2)
+      .to.emit(subscriptions, "SubscriptionUpgraded")
+      .withArgs(user1.address, tokenId, anyValue, toPay);
+
+    expect(await subscriptions.isPaidSubscriber(user1.address)).to.equal(true);
+  });
+
   it("should be possible to susbscibe for a year with the correct amount", async () => {
     const { subscriptions, user1, user2, user3 } = await loadFixture(deployFixture);
 
