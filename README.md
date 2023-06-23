@@ -1,5 +1,6 @@
 <div align="center">
-<img src="./meed_logo_black.png"  width="100px" />
+<img src="./meed_logo.png"  width="100px" />
+<br><br>
 
 <h1><strong>Meed Loyalty - Smart Contracts</strong></h1>
 
@@ -14,6 +15,18 @@
 Initial Smart Contracts draft associated with the Meed Loyalty project. Not to be used for production (yet!).
 
 ## Compile:
+
+Make sure to uncomment the following line in `hardhat.config.js`:
+
+```js
+solidity: {
+    settings: {
+        viaIR: true,
+    },
+  },
+```
+
+then run:
 
 ```shell
 yarn compile
@@ -33,6 +46,18 @@ yarn slither
 
 ## Coverage:
 
+Make sure to comment the following line in `hardhat.config.js`:
+
+```js
+solidity: {
+    settings: {
+       // viaIR: true,
+    },
+  },
+```
+
+then run:
+
 ```shell
 yarn cover
 ```
@@ -42,3 +67,13 @@ yarn cover
 ```shell
 yarn deploy
 ```
+
+## Left To Add:
+
+- [x] Credits features
+- [ ] Limit number of promotions per tier (override exisiting promo)
+- [ ] Limit airdrop size per tier
+- [ ] Add interface support for Subscriptions
+- [ ] Add URI per vouchers in Redeemable?
+- [ ] Finish Non-Expirable & Collectibles promotions
+- [ ] Add Marketing / Referral / Partnerships features (array/mapping of promo/program?)
