@@ -372,10 +372,10 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
       diamond: _amount4
     });
 
+    promoLimits[SubscriptionPlan.Free] = 1;
     promoLimits[SubscriptionPlan.Basic] = 10;
     promoLimits[SubscriptionPlan.Pro] = 25;
     promoLimits[SubscriptionPlan.Enterprise] = 100;
-    promoLimits[SubscriptionPlan.Free] = 1;
   }
 
   function _addMember(address to) private {
