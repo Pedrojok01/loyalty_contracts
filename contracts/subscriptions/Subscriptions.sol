@@ -58,6 +58,7 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
 
   uint40 private _tokenIdCounter;
   string[4] private baseURIs;
+  uint256 private constant TIME_UNIT_CONVERSION = 120;
 
   struct Subscriber {
     Plan plan; // 1 byte
@@ -285,7 +286,7 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
    * @param tokenId The id of the subscription NFT
    */
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
-    if (!_exists(tokenId)) revert Subscriptions__NoSubscriptionFound();
+    if (!_exists(tokenId)) revert Subscriptions__NoSubscriptionFound(tokenId);
 
     Subscriber memory subscriber = subscribers[ownerOf(tokenId)];
     if (subscriber.expiration < block.timestamp || subscriber.plan == Plan.FREE) {
@@ -320,7 +321,8 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
   }
 
   /**
-   * @dev Get the remaining time and the corresponding price to upgrade a subscription
+   * @notice Get the remaining time and the corresponding price to upgrade a subscription
+   * @dev Calculates the remaining time and cost difference of a subscription given the tokenId and plan
    * @param tokenId the id of the subscription NFT
    * @param plan the chosen plan of the subscription (Free, Basic, Pro, Enterprise)
    * @return the remaining time left in the subscription
@@ -330,22 +332,27 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
     uint256 tokenId,
     Plan plan
   ) public view returns (uint256, uint256) {
-    if (tokenId == 0 || !_exists(tokenId)) revert Subscriptions__NoSubscriptionFound();
+    if (tokenId == 0 || !_exists(tokenId)) revert Subscriptions__NoSubscriptionFound(tokenId);
 
     address _owner = ownerOf(tokenId);
-
     Subscriber memory temp = subscribers[_owner];
-    uint256 remainingTime = 0;
-    uint256 cost = 0;
 
-    if (temp.expiration > block.timestamp) {
-      // Calculate the remaining time left in the subscription
-      remainingTime = temp.expiration - block.timestamp;
-      uint256 remainingTimeInDay = (remainingTime + 120) / 1 days; // add 2 minutes buffer to round up
+    if (temp.expiration <= block.timestamp) {
+      return (0, 0);
+    }
 
-      // Calculate the cost difference of the remaining subscription time
-      uint256 leftOnInitialPayment = ((fees[temp.plan] * remainingTimeInDay * 1000) / 30);
-      cost = ((fees[plan] * remainingTimeInDay * 1000) / 30) - leftOnInitialPayment;
+    uint256 remainingTime = temp.expiration - block.timestamp;
+    uint256 remainingTimeInDay = (remainingTime + TIME_UNIT_CONVERSION) / 1 days; // add 2 minutes buffer to round up
+
+    uint256 baseValue = (remainingTimeInDay * 1000) / 30;
+    uint256 newCost = fees[plan] * baseValue;
+    uint256 leftOnInitialPayment = fees[temp.plan] * baseValue;
+
+    uint256 cost;
+    if (newCost >= leftOnInitialPayment) {
+      cost = newCost - leftOnInitialPayment;
+    } else {
+      cost = 0;
     }
 
     return (remainingTime, cost / 1000);

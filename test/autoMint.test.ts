@@ -46,11 +46,11 @@ describe("Auto Mint Feature", function () {
     expect(allPromos.length).to.equal(1);
 
     const redeemable = await ethers.getContractAt("Redeemable", allPromos[0].promotionAddress);
-    await redeemable.addNewRedeemableNFT(type, value[0], amountRequired[0]);
-    await redeemable.addNewRedeemableNFT(type, value[1], amountRequired[1]);
-    await redeemable.addNewRedeemableNFT(type, value[2], amountRequired[2]);
-    await redeemable.addNewRedeemableNFT(type, value[3], amountRequired[3]);
-    await redeemable.addNewRedeemableNFT(type, value[4], amountRequired[4]);
+    await redeemable.addNewRedeemableNFT(type, value[0]);
+    await redeemable.addNewRedeemableNFT(type, value[1]);
+    await redeemable.addNewRedeemableNFT(type, value[2]);
+    await redeemable.addNewRedeemableNFT(type, value[3]);
+    await redeemable.addNewRedeemableNFT(type, value[4]);
 
     return {
       adminRegistry,

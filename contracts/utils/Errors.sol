@@ -62,7 +62,6 @@ contract Errors {
   error Redeemable__WrongValue();
   error Redeemable__NonExistantUser();
   error Redeemable__InsufficientLevel();
-  error Redeemable__InsufficientAmount();
   error Redeemable__NotCalledFromContract();
 
   // Collectibles
@@ -83,7 +82,7 @@ contract Errors {
   // Subscriptions
   error Subscriptions__TokenNotOwned();
   error Subscriptions__UserAlreadyOwnsSubscription();
-  error Subscriptions__NoSubscriptionFound();
+  error Subscriptions__NoSubscriptionFound(uint256 tokenId);
   error Subscriptions__SubscriptionExpired();
   error Subscriptions__UpgradePlanBeforeRenewal();
   error Subscriptions__InvalidPlan();

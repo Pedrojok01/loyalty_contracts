@@ -279,8 +279,8 @@ describe("Susbcriptions Contract", function () {
     // Moves forward 3 months, then upgrade to ENTERPRISE plan:
     await time.increase(duration.month * 3);
     const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(tokenId, plan.enterprise);
-    // 4.125 ETH needed to upgrade to enterprise for the 9 months left
-    expect(toPayMore.toString()).to.equal("4125000000000000000");
+    // 4.1247 ETH needed to upgrade to enterprise for the 9 months left
+    expect(toPayMore.toString()).to.equal("4124700000000000000");
 
     // revert if wrong price
     await expect(
@@ -333,7 +333,7 @@ describe("Susbcriptions Contract", function () {
     // Try cheating:
     const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(tokenId, plan.enterprise);
     // The price is slighlty different because it is now calculated per day
-    expect(toPayMore.toString()).to.equal("11400000000000000000");
+    expect(toPayMore.toString()).to.equal("11399850000000000000");
     await subscriptions
       .connect(user1)
       .changeSubscriptionPlan(tokenId, plan.enterprise, { value: toPayMore });

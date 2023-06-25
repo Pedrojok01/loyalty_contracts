@@ -69,8 +69,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
     RedeemableType redeemableType; // 1 byte
     bool exist; // 1 byte
     uint8 id; // 1 byte
-    uint32 amountRequirement; // 4 bytes - Slot II
-    string redeemCode; // 32 bytes
+    string redeemCode; // 32 bytes - Slot II
   }
 
   RedeemableNFT[] private redeemableNFTs;
@@ -206,15 +205,13 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
    * @dev Add a new redeemable NFT type to the contract;
    * @param redeemType Type of the redeemable NFT (ProductId, Amount, Percentage);
    * @param value Value of the redeemable NFT (in fiat currency or % );
-   * @param amountRequirement Purchased amount required to trigger a voucher autoMint;
    */
   function addNewRedeemableNFT(
     RedeemableType redeemType,
-    uint256 value,
-    uint256 amountRequirement
+    uint256 value
   ) external onlyOwnerOrAdmin onlyOngoing onlyActive {
     _creditsCheck();
-    _addNewRedeemableNFT(redeemType, uint112(value), amountRequirement);
+    _addNewRedeemableNFT(redeemType, uint112(value));
     emit NewTypeAdded(redeemType, uint112(value));
   }
 
@@ -281,11 +278,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
     return redeemableNFTs[_id].circulatingSupply > 0;
   }
 
-  function _addNewRedeemableNFT(
-    RedeemableType redeemType,
-    uint112 _value,
-    uint256 _amountRequirement
-  ) private {
+  function _addNewRedeemableNFT(RedeemableType redeemType, uint112 _value) private {
     if (_value == 0 && redeemType != RedeemableType.ProductId) revert Redeemable__WrongValue();
 
     uint256 _id = redeemableNFTs.length;
@@ -296,7 +289,6 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
       value: _value,
       exist: true,
       circulatingSupply: 0,
-      amountRequirement: uint32(_amountRequirement),
       redeemCode: redeemCodeStorage.generateRedeemCode(address(this), _id)
     });
 

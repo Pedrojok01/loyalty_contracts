@@ -16,7 +16,6 @@ import { parseEther } from "ethers/lib/utils";
 
 const type = voucher_type.percentDiscount;
 const value = [10, 20, 30];
-const amountRequired = 100;
 
 describe("Credits Feature", function () {
   async function deployFixture() {
@@ -254,7 +253,7 @@ describe("Credits Feature", function () {
     const intialCredits = await subscriptions.getUserCredits(owner.address);
     expect(intialCredits).to.equal(creditsPerPlan.basic);
 
-    await redeemable.connect(admin).addNewRedeemableNFT(type, value[0], amountRequired);
+    await redeemable.connect(admin).addNewRedeemableNFT(type, value[0]);
 
     expect(await subscriptions.getUserCredits(owner.address)).to.equal(creditsPerPlan.basic - 1);
 

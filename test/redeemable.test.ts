@@ -8,7 +8,6 @@ import { deploy } from "./helpers/deploy";
 
 const type = voucher_type.percentDiscount;
 const value = [10, 20, 30];
-const amountRequired = 100;
 
 describe("Redeemable Promotion Contract", function () {
   async function deployFixture() {
@@ -96,20 +95,18 @@ describe("Redeemable Promotion Contract", function () {
     );
 
     await expect(
-      redeemable.connect(user1).addNewRedeemableNFT(type, value[0], amountRequired)
+      redeemable.connect(user1).addNewRedeemableNFT(type, value[0])
     ).to.be.revertedWithCustomError(redeemable, "Adminable__NotAuthorized");
 
     // Add new redeemable NFT as admin with unsubscribed owner
     await expect(
-      redeemable.connect(admin).addNewRedeemableNFT(type, value[0], amountRequired)
+      redeemable.connect(admin).addNewRedeemableNFT(type, value[0])
     ).to.be.revertedWithCustomError(redeemable, "SubscriberChecks__PleaseSubscribeFirst");
 
     // Subscribe then try adding a redeeeemable NFTs
     await subscriptions.subscribe(plan.basic, false, { value: pricePerPlan.basic });
 
-    const receipt = await redeemable
-      .connect(admin)
-      .addNewRedeemableNFT(type, value[0], amountRequired);
+    const receipt = await redeemable.connect(admin).addNewRedeemableNFT(type, value[0]);
     await expect(receipt).to.emit(redeemable, "NewTypeAdded").withArgs(type, value[0]);
 
     // Remove the adminship
@@ -125,7 +122,7 @@ describe("Redeemable Promotion Contract", function () {
       .withArgs(owner.address, userOptedOut);
 
     await expect(
-      redeemable.connect(admin).addNewRedeemableNFT(type, value[2], amountRequired)
+      redeemable.connect(admin).addNewRedeemableNFT(type, value[2])
     ).to.be.revertedWithCustomError(redeemable, "Adminable__UserOptedOut");
 
     // Add the adminship back
@@ -148,10 +145,10 @@ describe("Redeemable Promotion Contract", function () {
     const { redeemable, owner, user1 } = await loadFixture(deployFixture);
 
     await expect(
-      redeemable.connect(user1).addNewRedeemableNFT(type, value[0], amountRequired)
+      redeemable.connect(user1).addNewRedeemableNFT(type, value[0])
     ).to.be.revertedWithCustomError(redeemable, "Adminable__NotAuthorized");
 
-    await redeemable.addNewRedeemableNFT(type, value[0], amountRequired);
+    await redeemable.addNewRedeemableNFT(type, value[0]);
   });
 
   it("should be possible to add new redeemable NFTs", async () => {
@@ -159,7 +156,7 @@ describe("Redeemable Promotion Contract", function () {
       deployFixture
     );
 
-    await redeemable.addNewRedeemableNFT(type, value[0], amountRequired);
+    await redeemable.addNewRedeemableNFT(type, value[0]);
 
     await meedProgram.mint(user1.address);
     await redeemable.mint(0, user1.address);
@@ -174,7 +171,7 @@ describe("Redeemable Promotion Contract", function () {
   it("shouldn't be possible to mint under following conditions", async () => {
     const { subscriptions, meedProgram, redeemable, user1 } = await loadFixture(deployFixture);
 
-    await redeemable.addNewRedeemableNFT(type, value[0], amountRequired);
+    await redeemable.addNewRedeemableNFT(type, value[0]);
     await subscriptions.subscribe(plan.basic, false, { value: pricePerPlan.basic });
 
     // Add user to the Meed program
@@ -206,9 +203,9 @@ describe("Redeemable Promotion Contract", function () {
       deployFixture
     );
 
-    await redeemable.addNewRedeemableNFT(type, value[0], amountRequired);
-    await redeemable.addNewRedeemableNFT(type, value[1], amountRequired);
-    await redeemable.addNewRedeemableNFT(type, value[2], amountRequired);
+    await redeemable.addNewRedeemableNFT(type, value[0]);
+    await redeemable.addNewRedeemableNFT(type, value[1]);
+    await redeemable.addNewRedeemableNFT(type, value[2]);
 
     // Try minting without level requirement
 
@@ -242,7 +239,7 @@ describe("Redeemable Promotion Contract", function () {
 
     // Subscribe owner, then add redeeeemable NFTs, then add users to the Meed program
     await subscriptions.subscribe(plan.basic, false, { value: pricePerPlan.basic });
-    await redeemable.addNewRedeemableNFT(type, value[2], amountRequired);
+    await redeemable.addNewRedeemableNFT(type, value[2]);
     await meedProgram.mint(user1.address);
     await meedProgram.mint(user2.address);
     await meedProgram.mint(user3.address);
@@ -274,7 +271,7 @@ describe("Redeemable Promotion Contract", function () {
 
     // Subscribe owner, then add redeeeemable NFTs, then add users to the Meed program
     await subscriptions.subscribe(plan.basic, false, { value: pricePerPlan.basic });
-    await redeemable.addNewRedeemableNFT(voucher_type.fiatDiscount, value[0], amountRequired);
+    await redeemable.addNewRedeemableNFT(voucher_type.fiatDiscount, value[0]);
 
     await meedProgram.mint(user1.address);
     await meedProgram.mint(user2.address);
@@ -306,7 +303,7 @@ describe("Redeemable Promotion Contract", function () {
 
     // Subscribe owner, then add redeeeemable NFTs, then add users to the Meed program
     await subscriptions.subscribe(plan.basic, false, { value: pricePerPlan.basic });
-    await redeemable.addNewRedeemableNFT(type, value[0], amountRequired);
+    await redeemable.addNewRedeemableNFT(type, value[0]);
     await meedProgram.mint(user1.address);
     await meedProgram.mint(user2.address);
 
@@ -335,7 +332,7 @@ describe("Redeemable Promotion Contract", function () {
 
     // Subscribe owner, then add redeeeemable NFTs, then add users to the Meed program
     await subscriptions.subscribe(plan.basic, planDuration.monthly, { value: pricePerPlan.basic });
-    await redeemable.addNewRedeemableNFT(type, value[0], amountRequired);
+    await redeemable.addNewRedeemableNFT(type, value[0]);
     await meedProgram.mint(user1.address);
     await meedProgram.mint(user2.address);
 
@@ -394,7 +391,7 @@ describe("Redeemable Promotion Contract", function () {
 
     // Subscribe owner, add redeeeemable NFTs, then add users to the Meed program
     await subscriptions.subscribe(plan.pro, false, { value: pricePerPlan.pro });
-    await redeemable.addNewRedeemableNFT(type, value[0], amountRequired);
+    await redeemable.addNewRedeemableNFT(type, value[0]);
     await meedProgram.mint(user1.address);
 
     // Batch mint to user 1 and 2
