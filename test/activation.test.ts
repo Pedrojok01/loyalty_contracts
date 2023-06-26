@@ -260,7 +260,7 @@ describe("Activation Feature", function () {
       promoType.stamps
     );
 
-    // Check the new state  (2 promos)
+    // Check the new state  (2 promos: redeemables + collectibles)
     const allPromos = await meedProgram.getAllPromotions();
     expect(allPromos.length).to.equal(2);
 
@@ -268,6 +268,7 @@ describe("Activation Feature", function () {
 
     // Check the current state  (1 promo)
     const newPromos = await meedProgram.getAllPromotions();
+    expect(newPromos[0].active).to.equal(true);
     expect(newPromos[1].active).to.equal(true);
     const activesBefore = await meedProgram.getAllPromotionsPerStatus(true);
     expect(activesBefore.length).to.equal(2);
@@ -276,6 +277,7 @@ describe("Activation Feature", function () {
 
     expect(await collectibles.isActive()).to.equal(true);
 
+    // Desactivate promo then check the status again
     const receipt = await meedProgram.deactivatePromotion(collectibles.address);
     await expect(receipt)
       .to.emit(collectibles, "Deactivated")

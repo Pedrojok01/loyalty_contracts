@@ -247,14 +247,28 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     PromoLib.Promotion[] memory activePromotions = new PromoLib.Promotion[](totalPromotions);
     uint256 count = 0;
 
-    for (uint256 i = 0; i < totalPromotions; ) {
-      if (promoLib.promotions[i].active == status) {
-        activePromotions[count] = promoLib.promotions[i];
-        count++;
-      }
+    if (status) {
+      for (uint256 i = 0; i < totalPromotions; ) {
+        if (_isPromotionActiveAndNotExpired(promoLib.promotions[i])) {
+          activePromotions[count] = promoLib.promotions[i];
+          count++;
+        }
 
-      unchecked {
-        i++;
+        unchecked {
+          i++;
+        }
+      }
+    }
+    if (!status) {
+      for (uint256 i = 0; i < totalPromotions; ) {
+        if (promoLib.promotions[i].active == false) {
+          activePromotions[count] = promoLib.promotions[i];
+          count++;
+        }
+
+        unchecked {
+          i++;
+        }
       }
     }
 
@@ -500,5 +514,11 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
         if (!removalSuccess) revert Credits__ErrorWhileRemovingCredit();
       }
     }
+  }
+
+  function _isPromotionActiveAndNotExpired(
+    PromoLib.Promotion memory promo
+  ) private view returns (bool) {
+    return promo.active && (promo.endDate > block.timestamp || promo.endDate == 0);
   }
 }
