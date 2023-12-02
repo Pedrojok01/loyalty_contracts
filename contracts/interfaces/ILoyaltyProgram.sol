@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import {PromoLib} from "../library/PromoLib.sol";
 
 /**
- * @title Interface for MeedProgram.sol contract;
+ * @title Interface for LoyaltyProgram.sol contract;
  * @author @Pedrojok01
- * @notice Part of the Meed Loyalty Platform
- * @dev Allows the Meed factory to deploy new loyalty contracts;
+ * @notice Part of the Loyalty Platform
+ * @dev Allows the Loyalty factory to deploy new loyalty contracts;
  */
 
-interface IMeedProgram {
+interface ILoyaltyProgram {
   /**
    * @dev An external method for the owner to mint Soulbound NFTs. Can only mint 1 per address.
    */

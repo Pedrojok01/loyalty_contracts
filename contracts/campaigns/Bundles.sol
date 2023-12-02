@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -9,20 +9,19 @@ import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Hol
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import {ERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Receiver.sol";
 
 import {Adminable} from "../utils/Adminable.sol";
 import {TimeLimited} from "../utils/TimeLimited.sol";
 import {IBundles} from "../interfaces/IBundles.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
-import {MeedProgram} from "../meedProgram/MeedProgram.sol";
+import {LoyaltyProgram} from "../loyaltyProgram/LoyaltyProgram.sol";
 import {PromoDataLib} from "../library/PromoDataLib.sol";
 import {ICampaign} from "../interfaces/ICampaign.sol";
 
 /**
  * @title EventTicket
  * @author Pedrojok01
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Bundles assets into an NFT:
  *  - Can either be airdrop to a specified membership level, or
  *  - Minted upon condition.
@@ -47,7 +46,7 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, ICampaign, Ti
   // using PromoDataLib for PromoDataLib.BundlesPromoData;
 
   string private _baseURIextended;
-  MeedProgram private immutable meedProgram;
+  LoyaltyProgram private immutable loyaltyProgram;
   uint256 public immutable maxPackSupply;
   uint256 private nonce;
 
@@ -56,15 +55,15 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, ICampaign, Ti
     string memory _symbol,
     string memory _uri,
     PromoDataLib.BundlesPromoData memory data,
-    address adminRegistryAddress
+    address _storageAddress
   )
     ERC721(_name, _symbol)
-    TimeLimited(data._startDate, data._expirationDate, data._contractAddress, adminRegistryAddress)
+    TimeLimited(data._startDate, data._expirationDate, _storageAddress, data._owner)
   {
     maxPackSupply = data._maxLimit;
     _baseURIextended = _uri;
-    meedProgram = MeedProgram(data._meedProgram);
-    transferOwnership(data._owner);
+    loyaltyProgram = LoyaltyProgram(data._loyaltyProgram);
+    // transferOwnership(data._owner);
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -127,7 +126,7 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, ICampaign, Ti
     returns (uint256 tokenId)
   {
     if (to == address(0)) revert Bundles__MintToAddress0();
-    uint8 currentLevel = meedProgram.getMemberLevel(to);
+    uint8 currentLevel = loyaltyProgram.getMemberLevel(to);
     if (currentLevel == 0) revert Redeemable__NonExistantUser();
     if (currentLevel < uint8(lvlMin)) revert Redeemable__InsufficientLevel();
     if (_addresses.length != _numbers[1] + _numbers[2] + _numbers[3])
@@ -294,16 +293,13 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, ICampaign, Ti
     ///////////////////////////////////////////////////////////////////////////////*/
 
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
-    if (!_exists(tokenId)) {
-      revert Bundles__TokenURIQueryForNonexistentToken();
-    }
-    return _baseURIextended;
+    if (ownerOf(tokenId) != address(0)) return _baseURIextended;
   }
 
   function supportsInterface(
     bytes4 interfaceId
-  ) public view override(ERC721, ERC1155Receiver) returns (bool) {
-    return ERC721.supportsInterface(interfaceId) || ERC1155Receiver.supportsInterface(interfaceId);
+  ) public view override(ERC721, ERC1155Holder) returns (bool) {
+    return ERC721.supportsInterface(interfaceId) || ERC1155Holder.supportsInterface(interfaceId);
   }
 
   /*///////////////////////////////////////////////////////////////////////////////

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 // import "hardhat/console.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -7,13 +7,14 @@ import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/
 
 import {Adminable} from "../utils/Adminable.sol";
 import {PromoLib} from "../library/PromoLib.sol";
-import {IMeedProgram} from "../interfaces/IMeedProgram.sol";
+import {ILoyaltyProgram} from "../interfaces/ILoyaltyProgram.sol";
 import {ICampaign} from "../interfaces/ICampaign.sol";
+import {IStorage} from "../interfaces/IStorage.sol";
 
 /**
- * @title MeedProgram
+ * @title LoyaltyProgram
  * @author Pedrojok01
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev ERC721 NFT with the following features:
  *  - Deployer can mint to recipients.
  */
@@ -24,7 +25,7 @@ import {ICampaign} from "../interfaces/ICampaign.sol";
  *  - Send unique NFT/Badge to brands to recognise them
  */
 
-contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
+contract LoyaltyProgram is ILoyaltyProgram, ERC721, ERC721Enumerable, Adminable {
   using PromoLib for PromoLib.Data;
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -38,13 +39,6 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
   PromoLib.Data private promoLib;
   address[] private factories;
   bool public autoMintActivated = true; // Can automatically send vouchers if conditions are met;
-
-  enum SubscriptionPlan {
-    Basic,
-    Pro,
-    Enterprise,
-    Free
-  }
 
   struct AutoReward {
     address promotion; // 20 bytes
@@ -78,9 +72,6 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
   mapping(address => Membership) private membershipPerAddress;
   mapping(uint40 => Membership) private membershipPerTokenID;
 
-  // track promotion limits per subscription plan
-  mapping(SubscriptionPlan => uint) promoLimits;
-
   // Return true if the address is a promotion factory (to optimize onlyFactory modifier)
   mapping(address => bool) public isFactory;
 
@@ -90,9 +81,9 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
   }
 
   /**
-   * @param _name Name of the new MeedProgram (user input).
-   * @param _symbol Symbol of the new MeedProgram (user input).
-   * @param _uri URI of the new MeedProgram (user input).
+   * @param _name Name of the new LoyaltyProgram (user input).
+   * @param _symbol Symbol of the new LoyaltyProgram (user input).
+   * @param _uri URI of the new LoyaltyProgram (user input).
    * @param _tierTracker  Determine how the tier structure is calculated:
    *  - true = based on purchase_times;
    *  - false = based on total_amount;
@@ -105,12 +96,11 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     bool _tierTracker,
     address _owner,
     uint64[4] memory amounts,
-    address adminRegistryAddress,
-    address subscriptionsAddress_,
+    address _storageAddress,
     address[] memory _factories
-  ) ERC721(_name, _symbol) Adminable(adminRegistryAddress, subscriptionsAddress_) {
-    transferOwnership(_owner);
-    SUBSCRIPTIONS_CONTRACT = subscriptionsAddress_;
+  ) ERC721(_name, _symbol) Adminable(_owner, _storageAddress) {
+    // transferOwnership(_owner);
+    SUBSCRIPTIONS_CONTRACT = IStorage(_storageAddress).getSubscriptionControl();
     TIER_TRACKER = _tierTracker;
     _baseURIextended = _uri;
     factories = _factories;
@@ -141,7 +131,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
   }
 
   function updateMember(address member, uint32 amountVolume) external onlyOwnerOrAdmin {
-    if (amountVolume == 0) revert MeedProgram_AmountVolumeIsZero();
+    if (amountVolume == 0) revert LoyaltyProgram_AmountVolumeIsZero();
     _creditsCheck();
     _updateMember(member, amountVolume);
   }
@@ -151,8 +141,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     /////////////////////////////////////////////////////////////////////////////*/
 
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
-    if (!_exists(tokenId)) revert MeedProgram_TokenDoesNotExist();
-    return _baseURIextended;
+    if (ownerOf(tokenId) != address(0)) return _baseURIextended;
   }
 
   function getTierStructure() external view returns (TierStructure memory) {
@@ -319,14 +308,31 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     uint256 _startDate,
     uint256 _endDate
   ) external onlyFactory {
-    // if (promoLib.promotions.length > _getCurrentPromotionLimit())
-    //   revert MeedProgram__PromotionLimitReached();
-
-    uint promo = promoLib.promotions.length;
+    uint promoCount = promoLib.promotions.length;
     uint limit = _getCurrentPromotionLimit();
-    if (promo > limit) revert MeedProgram__PromotionLimitReached();
 
-    PromoLib._addPromotion(promotion, _type, _startDate, _endDate, promoLib);
+    // If promo limit reached, try to replace an expired promotion
+    if (promoCount >= limit) {
+      for (uint i = 0; i < promoCount; ) {
+        if (!_isPromotionActiveAndNotExpired(promoLib.promotions[i])) {
+          PromoLib._addPromotion(promotion, _type, _startDate, _endDate, promoLib);
+          promoLib.promotionIndex[promotion] = i;
+
+          delete promoLib.promotion[promoLib.promotions[i].promotionAddress];
+          delete promoLib.promotionIndex[promoLib.promotions[i].promotionAddress];
+          promoLib.promotions[i] = promoLib.promotion[promotion];
+          return;
+        }
+        unchecked {
+          i++;
+        }
+      }
+      // If no expired promotions, revert
+      revert LoyaltyProgram__PromotionLimitReached();
+    } else {
+      // If not reached the limit, just add the new promotion
+      PromoLib._addPromotion(promotion, _type, _startDate, _endDate, promoLib);
+    }
   }
 
   function addAutoMintReward(
@@ -336,7 +342,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     uint32 amountRequired
   ) external onlyOwnerOrAdmin {
     _creditsCheck();
-    if (level == 0 || level > 5) revert MeedProgram__LevelOutOfRange(); // max enum value of level
+    if (level == 0 || level > 5) revert LoyaltyProgram__LevelOutOfRange(); // max enum value of level
     AutoReward memory newReward = AutoReward(promotion, tokenId, level, amountRequired);
     autoRewards[level] = newReward;
 
@@ -347,7 +353,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
 
   function removeAutoMintReward(uint8 level) external onlyOwnerOrAdmin {
     _creditsCheck();
-    if (level == 0 || level > 5) revert MeedProgram__LevelOutOfRange();
+    if (level == 0 || level > 5) revert LoyaltyProgram__LevelOutOfRange();
     delete autoRewards[level];
   }
 
@@ -385,16 +391,11 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
       platinum: _amount3,
       diamond: _amount4
     });
-
-    promoLimits[SubscriptionPlan.Free] = 1;
-    promoLimits[SubscriptionPlan.Basic] = 10;
-    promoLimits[SubscriptionPlan.Pro] = 25;
-    promoLimits[SubscriptionPlan.Enterprise] = 100;
   }
 
   function _addMember(address to) private {
     if (membershipPerAddress[to].level != 0) {
-      revert MeedProgram_AlreadyMember();
+      revert LoyaltyProgram_AlreadyMember();
     }
 
     uint40 tokenId = _tokenIdCounter;
@@ -471,16 +472,12 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
   event LevelUpdated(address indexed member, uint8 level);
 
   function _getCurrentPromotionLimit() private returns (uint256) {
-    return promoLimits[SubscriptionPlan(_getSubscriberPlan(owner()))];
-  }
+    (bool success, bytes memory data) = SUBSCRIPTIONS_CONTRACT.call(
+      abi.encodeWithSignature("getCurrentPromotionLimit(address)", owner())
+    );
 
-  function _beforeTokenTransfer(
-    address from,
-    address to,
-    uint256 firstTokenId,
-    uint256 batchSize
-  ) internal override(ERC721, ERC721Enumerable) {
-    super._beforeTokenTransfer(from, to, firstTokenId, batchSize);
+    require(success, "LoyaltyProgram: getCurrentPromotionLimit failed");
+    return abi.decode(data, (uint256));
   }
 
   function getBestFitReward(uint8 level, uint32 amount) public view returns (AutoReward memory) {
@@ -497,7 +494,7 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
   }
 
   function _onlyFactory() private view {
-    if (!isFactory[_msgSender()]) revert MeedProgram__AuthorizedFactoryOnly();
+    if (!isFactory[_msgSender()]) revert LoyaltyProgram__AuthorizedFactoryOnly();
   }
 
   function _creditsCheck() private {
@@ -520,5 +517,31 @@ contract MeedProgram is IMeedProgram, ERC721, ERC721Enumerable, Adminable {
     PromoLib.Promotion memory promo
   ) private view returns (bool) {
     return promo.active && (promo.endDate > block.timestamp || promo.endDate == 0);
+  }
+
+  /**
+   * @dev Needed in new OpenZeppelin v5 implementation
+   * See {ERC721-_increaseBalance}. We need that to account tokens that were minted in batch
+   */
+  function _increaseBalance(
+    address account,
+    uint128 amount
+  ) internal override(ERC721, ERC721Enumerable) {
+    if (amount > 0) {
+      revert ERC721EnumerableForbiddenBatchMint();
+    }
+    super._increaseBalance(account, amount);
+  }
+
+  /**
+   * @dev Needed in new OpenZeppelin v5 implementation
+   * @dev See {ERC721-_update}.
+   */
+  function _update(
+    address to,
+    uint256 tokenId,
+    address auth
+  ) internal override(ERC721, ERC721Enumerable) returns (address) {
+    return super._update(to, tokenId, auth);
   }
 }

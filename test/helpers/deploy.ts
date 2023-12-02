@@ -1,117 +1,87 @@
 require("@nomicfoundation/hardhat-chai-matchers");
 import { ethers } from "hardhat";
 import {
-  MeedProgramFactory,
-  RedeemableFactory,
-  Subscriptions,
-  NonExpirableFactory,
-  CollectiblesFactory,
-  BundlesFactory,
-} from "../../typechain-types";
-import {
-  meedProgram_name,
-  meedProgram_symbol,
-  meedProgram_uri,
+  loyaltyProgram_name,
+  loyaltyProgram_symbol,
+  loyaltyProgram_uri,
   duration,
-  meedProgram_amounts,
+  loyaltyProgram_amounts,
   subscriptions_name,
   subscriptions_symbol,
   subscriptions_uris,
-} from "../constant";
-import { utils } from "ethers";
+} from "./constant";
+import {
+  deployAdminRegistry,
+  deployBundlesFactory,
+  deployCollectiblesFactory,
+  deployLoyaltyProgramFactory,
+  deployNonExpirableFactory,
+  deployRedeemCodeLib,
+  deployRedeemableFactory,
+  deployStorage,
+  deploySubscriptions,
+} from "./contractDeployment";
 
 export async function deploy() {
   const [owner, user1, user2, user3, admin] = await ethers.getSigners();
 
-  const AdminRegistry = await ethers.getContractFactory("AdminRegistry");
-  const adminRegistry = await AdminRegistry.deploy(admin.address);
-  await adminRegistry.deployed();
-
-  const Subscriptions = await ethers.getContractFactory("Subscriptions");
-  const subscriptions: Subscriptions = await Subscriptions.deploy(
+  const adminRegistry = await deployAdminRegistry(admin.address);
+  const subscriptions = await deploySubscriptions(
     subscriptions_name,
     subscriptions_symbol,
     subscriptions_uris,
-    adminRegistry.address
+    adminRegistry.address,
+    owner.address,
   );
-  await subscriptions.deployed();
-
-  const RedeemCodeLib = await ethers.getContractFactory("RedeemCodeLib");
-  const redeemCodeLib = await RedeemCodeLib.deploy();
-  await redeemCodeLib.deployed();
+  const storage = await deployStorage(adminRegistry.address, subscriptions.address, owner.address);
+  const redeemCodeLib = await deployRedeemCodeLib();
 
   // Deploy all Promotion Factories
-  const RedeemableFactory = await ethers.getContractFactory("RedeemableFactory", {
-    libraries: {
-      RedeemCodeLib: redeemCodeLib.address,
-    },
-  });
-  const redeemableFactory: RedeemableFactory = await RedeemableFactory.deploy(
-    subscriptions.address,
-    adminRegistry.address
-  );
-  await redeemableFactory.deployed();
+  const redeemableFactory = await deployRedeemableFactory(redeemCodeLib.address, storage.address);
+  const nonExpirableFactory = await deployNonExpirableFactory(storage.address);
+  const collectiblesFactory = await deployCollectiblesFactory(storage.address);
+  const bundlesFactory = await deployBundlesFactory(storage.address);
 
-  const NonExpirableFactory = await ethers.getContractFactory("NonExpirableFactory");
-  const nonExpirableFactory: NonExpirableFactory = await NonExpirableFactory.deploy(
-    subscriptions.address,
-    adminRegistry.address
-  );
-  await nonExpirableFactory.deployed();
-
-  const CollectiblesFactory = await ethers.getContractFactory("CollectiblesFactory");
-  const collectiblesFactory: CollectiblesFactory = await CollectiblesFactory.deploy(
-    subscriptions.address,
-    adminRegistry.address
-  );
-  await collectiblesFactory.deployed();
-
-  const BundlesFactory = await ethers.getContractFactory("BundlesFactory");
-  const bundlesFactory: BundlesFactory = await BundlesFactory.deploy(
-    subscriptions.address,
-    adminRegistry.address
-  );
-  await bundlesFactory.deployed();
-
-  // Deploy the MeedProgramFactory
-  const MeedProgramFactory = await ethers.getContractFactory("MeedProgramFactory");
-  const meedProgramFactory: MeedProgramFactory = await MeedProgramFactory.deploy(
-    subscriptions.address,
-    adminRegistry.address,
+  // Deploy the LoyaltyProgramFactory
+  const loyaltyProgramFactory = await deployLoyaltyProgramFactory(
+    storage.address,
     [
       redeemableFactory.address,
       nonExpirableFactory.address,
       collectiblesFactory.address,
       bundlesFactory.address,
-    ]
+    ],
+    owner.address,
   );
-  await meedProgramFactory.deployed();
 
-  await adminRegistry.connect(admin).setMeedFactoryAddress(meedProgramFactory.address);
+  await adminRegistry.instance
+    .connect(admin)
+    .setLoyaltyFactoryAddress(loyaltyProgramFactory.address);
 
-  await meedProgramFactory.createNewMeedProgram(
-    meedProgram_name,
-    meedProgram_symbol,
-    meedProgram_uri,
+  await loyaltyProgramFactory.instance.createNewLoyaltyProgram(
+    loyaltyProgram_name,
+    loyaltyProgram_symbol,
+    loyaltyProgram_uri,
     false,
-    meedProgram_amounts,
-    utils.formatBytes32String("food"),
-    utils.formatBytes32String("HK")
+    loyaltyProgram_amounts,
+    ethers.encodeBytes32String("food"),
+    ethers.encodeBytes32String("HK"),
   );
 
-  const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
-  const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
+  const loyaltyProgramAddress = await loyaltyProgramFactory.instance.getLoyaltyProgramPerIndex(0);
+  const loyaltyProgram = await ethers.getContractAt("LoyaltyProgram", loyaltyProgramAddress);
   const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
 
   return {
     adminRegistry,
     subscriptions,
-    meedProgramFactory,
+    storage,
+    loyaltyProgramFactory,
     redeemableFactory,
     nonExpirableFactory,
     collectiblesFactory,
     bundlesFactory,
-    meedProgram,
+    loyaltyProgram,
     expirationDate,
     owner,
     user1,

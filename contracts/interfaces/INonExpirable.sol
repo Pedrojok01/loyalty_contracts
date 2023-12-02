@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 /**
  * @title Interface for NonExpirable.sol contract;
  * @author @Pedrojok01
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  */
 
 interface INonExpirable {

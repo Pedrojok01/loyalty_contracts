@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 // import "hardhat/console.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -11,7 +11,7 @@ import {Credits} from "../utils/Credits.sol";
 /**
  * @title Subscription
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Main Payment controller in charge of handling subscriptions and features access;
  *
  * Based on EIP: ERC5643
@@ -70,6 +70,7 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
   mapping(Plan => uint256) public fees; // Map plan to price
   mapping(address => uint40) private _tokenOfOwner; // Map user to tokenId
   mapping(address => Subscriber) private subscribers; // Map user to subscriber
+  mapping(Plan => uint256) public promoLimits; // track promotion limits per subscription plan
 
   /*///////////////////////////////////////////////////////////////////////////////
                                 MODIFIERS / CONSTRUCTOR
@@ -84,8 +85,9 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
     string memory name_,
     string memory symbol_,
     string[4] memory uris_,
-    address adminRegistryAddress
-  ) ERC721(name_, symbol_) Credits(adminRegistryAddress) {
+    address adminRegistryAddress,
+    address owner_
+  ) ERC721(name_, symbol_) Credits(adminRegistryAddress, owner_) {
     require(uris_.length == 4, "Subscriptions: Invalid URIs length");
     _initialize();
     baseURIs = uris_;
@@ -113,7 +115,7 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
   }
 
   /**
-   * @dev Subscribe to Meed Rewards and emit a subscription NFT;
+   * @dev Subscribe to Loyalty Rewards and emit a subscription NFT;
    * @param plan Chosen plan of the subscription (Basic, Pro, Enterprise)
    * @param duration Chosen duration of the subscription:
    *  - false = monthly (30 days);
@@ -219,8 +221,9 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
 
     // Refund excess payment
     if (msg.value > plan.price) {
-      (bool success, ) = _msgSender().call{value: msg.value - plan.price}("");
-      require(success, "Subscriptions: Failed to refund excess payment");
+      uint256 excessAmount = msg.value - plan.price;
+      (bool success, ) = _msgSender().call{value: excessAmount}("");
+      require(success, "Subscriptions: Excess payment refund failed");
     }
   }
 
@@ -264,6 +267,10 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
     }
   }
 
+  function getCurrentPromotionLimit(address _owner) public view returns (uint256) {
+    return promoLimits[Plan(getSubscriberPlan(_owner))];
+  }
+
   /**
    * @dev Returns the price of a subscription, based on the plan and duration
    * @param plan the chosen plan of the subscription (Basic, Pro, Enterprise)
@@ -286,9 +293,9 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
    * @param tokenId The id of the subscription NFT
    */
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
-    if (!_exists(tokenId)) revert Subscriptions__NoSubscriptionFound(tokenId);
+    address _owner = ownerOf(tokenId);
 
-    Subscriber memory subscriber = subscribers[ownerOf(tokenId)];
+    Subscriber memory subscriber = subscribers[_owner];
     if (subscriber.expiration < block.timestamp || subscriber.plan == Plan.FREE) {
       return baseURIs[0];
     } else if (subscriber.plan == Plan.BASIC) {
@@ -316,7 +323,7 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
    * @param tokenId The id of the subscription
    */
   function isRenewable(uint256 tokenId) external view returns (bool) {
-    if (_exists(tokenId)) return true;
+    if (_ownerOf(tokenId) != address(0)) return true;
     return false;
   }
 
@@ -332,7 +339,7 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
     uint256 tokenId,
     Plan plan
   ) public view returns (uint256, uint256) {
-    if (tokenId == 0 || !_exists(tokenId)) revert Subscriptions__NoSubscriptionFound(tokenId);
+    if (tokenId == 0) revert Subscriptions__NoSubscriptionFound(tokenId);
 
     address _owner = ownerOf(tokenId);
     Subscriber memory temp = subscribers[_owner];
@@ -417,6 +424,11 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
     fees[Plan.BASIC] = 0.05 ether;
     fees[Plan.PRO] = 0.1 ether;
     fees[Plan.ENTERPRISE] = 0.5 ether;
+
+    promoLimits[Plan.FREE] = 1;
+    promoLimits[Plan.BASIC] = 10;
+    promoLimits[Plan.PRO] = 25;
+    promoLimits[Plan.ENTERPRISE] = 100;
   }
 
   /**

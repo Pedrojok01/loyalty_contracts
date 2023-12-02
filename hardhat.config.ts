@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import "@nomicfoundation/hardhat-toolbox";
-import "@nomiclabs/hardhat-etherscan";
+// import "@nomiclabs/hardhat-etherscan";
 import { HardhatUserConfig } from "hardhat/config";
 import "hardhat-contract-sizer";
 
@@ -10,7 +10,7 @@ const privateKey: string | undefined =
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.19",
+    version: "0.8.20",
     settings: {
       optimizer: {
         enabled: true,
@@ -30,6 +30,16 @@ const config: HardhatUserConfig = {
       url: `${process.env.API_NODE_POLYGON_MUMBAI}`,
       accounts: privateKey !== undefined ? [privateKey] : [],
       chainId: 80001,
+    },
+    zkEVM: {
+      url: `${process.env.API_NODE_POLYGON_ZKEVM}`,
+      accounts: privateKey !== undefined ? [privateKey] : [],
+      chainId: 1101,
+    },
+    zkEVM_test: {
+      url: `${process.env.API_NODE_POLYGON_ZKEVM_TEST}`,
+      accounts: privateKey !== undefined ? [privateKey] : [],
+      chainId: 1442,
     },
   },
   gasReporter: {

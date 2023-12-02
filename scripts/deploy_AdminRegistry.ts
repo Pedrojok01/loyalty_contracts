@@ -5,7 +5,7 @@ import { ADMIN_ADDRESS } from "./constants";
 async function main() {
   const AdminRegistry = await ethers.getContractFactory("AdminRegistry");
   const adminRegistry = await AdminRegistry.deploy(ADMIN_ADDRESS);
-  await adminRegistry.deployed();
+  await adminRegistry.waitForDeployment();
 
   console.log("\n");
   console.log("AdminRegistry deployed to: ", adminRegistry.address);
@@ -15,8 +15,8 @@ async function main() {
   const abiFile = JSON.parse(
     fs.readFileSync(
       "./artifacts/contracts/subscriptions/AdminRegistry.sol/AdminRegistry.json",
-      "utf8"
-    )
+      "utf8",
+    ),
   );
   const abi = JSON.stringify(abiFile.abi);
 

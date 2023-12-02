@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Errors} from "../utils/Errors.sol";
@@ -7,7 +7,7 @@ import {Errors} from "../utils/Errors.sol";
 /**
  * @title AdminRegistry;
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Contract module which provides a basic access control mechanism, where
  * there is an account (an admin) that can be granted exclusive access to
  * specific functions.
@@ -30,7 +30,7 @@ import {Errors} from "../utils/Errors.sol";
 
 contract AdminRegistry is Context, Errors {
   address private _admin;
-  address private _meedProgramFactory = address(0);
+  address private _loyaltyProgramFactory = address(0);
 
   struct UserStatus {
     bool exists;
@@ -40,7 +40,7 @@ contract AdminRegistry is Context, Errors {
   mapping(address => UserStatus) private _userStatuses;
 
   event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
-  event MeedFactoryAddressSet(address indexed oldFactory, address indexed newFactory);
+  event LoyaltyFactoryAddressSet(address indexed oldFactory, address indexed newFactory);
   event UserOptOutStatusChanged(address indexed user, bool optedOut);
 
   constructor(address newAdmin) {
@@ -63,8 +63,8 @@ contract AdminRegistry is Context, Errors {
     _;
   }
 
-  function registerOwner(address newMeedOwner) external onlyAdminOrFactory {
-    _userStatuses[newMeedOwner] = UserStatus({exists: true, optedOut: false});
+  function registerOwner(address newLoyaltyOwner) external onlyAdminOrFactory {
+    _userStatuses[newLoyaltyOwner] = UserStatus({exists: true, optedOut: false});
   }
 
   /**
@@ -106,7 +106,7 @@ contract AdminRegistry is Context, Errors {
   }
 
   /**
-   * @dev Returns true is a user exists (is owner of a MeedProgram).
+   * @dev Returns true is a user exists (is owner of a LoyaltyProgram).
    */
   function isExistingUser(address account) public view returns (bool) {
     return _userStatuses[account].exists;
@@ -120,14 +120,14 @@ contract AdminRegistry is Context, Errors {
   }
 
   /**
-   * @dev Allows to set the MeedProgramFactory address used in the modifer.
+   * @dev Allows to set the LoyaltyProgramFactory address used in the modifer.
    */
-  function setMeedFactoryAddress(address newFactory) external onlyAdmin {
+  function setLoyaltyFactoryAddress(address newFactory) external onlyAdmin {
     if (newFactory == address(0)) {
       revert AdminRegistry__AddressZero();
     }
-    address oldFactory = _meedProgramFactory;
-    _meedProgramFactory = newFactory;
+    address oldFactory = _loyaltyProgramFactory;
+    _loyaltyProgramFactory = newFactory;
     emit AdminTransferred(oldFactory, newFactory);
   }
 
@@ -141,10 +141,10 @@ contract AdminRegistry is Context, Errors {
   }
 
   /**
-   * @dev Throws if the sender is not the admin or the MeedProgram factory.
+   * @dev Throws if the sender is not the admin or the LoyaltyProgram factory.
    */
   function _checkAdminOrFactory() private view {
-    if (admin() != _msgSender() && _meedProgramFactory != _msgSender()) {
+    if (admin() != _msgSender() && _loyaltyProgramFactory != _msgSender()) {
       revert AdminRegistry__NotAuthorized();
     }
   }

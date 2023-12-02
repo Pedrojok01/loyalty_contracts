@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 /**
- * @title Interface for MeedProgram.sol contract;
+ * @title Interface for LoyaltyProgram.sol contract;
  * @author @Pedrojok01
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Allows the factory to communicate with each game;
  */
 

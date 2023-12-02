@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -9,13 +9,13 @@ import {Adminable} from "../utils/Adminable.sol";
 import {Activation} from "../utils/Activation.sol";
 import {INonExpirable} from "../interfaces/INonExpirable.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
-import {MeedProgram} from "../meedProgram/MeedProgram.sol";
+import {LoyaltyProgram} from "../loyaltyProgram/LoyaltyProgram.sol";
 import {ICampaign} from "../interfaces/ICampaign.sol";
 
 /**
  * @titleNonExpirable
  * @author Pedrojok01
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev ERC721 time limited NFT | Auto-burn when used:
  *  - Can either be airdrop to a specified membership level, or
  *  - Minted upon condition.
@@ -39,7 +39,7 @@ contract NonExpirable is ERC721, INonExpirable, ICampaign, Adminable, Activation
     ///////////////////////////////////////////////////////////////////////////////*/
 
   string private _baseURIextended;
-  MeedProgram private immutable meedProgram;
+  LoyaltyProgram private immutable loyaltyProgram;
   uint40 private _tokenIdCounter;
 
   struct Ticket {
@@ -56,13 +56,12 @@ contract NonExpirable is ERC721, INonExpirable, ICampaign, Adminable, Activation
     string memory _uri,
     address _owner,
     uint256 _data,
-    address _meedProgram,
-    address _subscriptionAddress,
-    address adminRegistryAddress
-  ) ERC721(_name, _symbol) Adminable(adminRegistryAddress, _subscriptionAddress) {
+    address _loyaltyProgram,
+    address _storageAddress
+  ) ERC721(_name, _symbol) Adminable(_owner, _storageAddress) {
     _baseURIextended = _uri;
-    meedProgram = MeedProgram(_meedProgram);
-    transferOwnership(_owner);
+    loyaltyProgram = LoyaltyProgram(_loyaltyProgram);
+    // transferOwnership(_owner);
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -75,7 +74,7 @@ contract NonExpirable is ERC721, INonExpirable, ICampaign, Adminable, Activation
    * @param lvlMin Level required to mint the NFT (set to 0 for no level requirement);
    */
   function safeMint(address to, uint256 lvlMin) public onlyOwnerOrAdmin onlyProOrEnterprise {
-    uint8 currentLevel = meedProgram.getMemberLevel(to);
+    uint8 currentLevel = loyaltyProgram.getMemberLevel(to);
     if (currentLevel == 0) revert NonExpirable__NonExistantUser();
     if (currentLevel < uint8(lvlMin)) revert NonExpirable__InsufficientLevel();
 
@@ -155,8 +154,7 @@ contract NonExpirable is ERC721, INonExpirable, ICampaign, Adminable, Activation
     ///////////////////////////////////////////////////////////////////////////////*/
 
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
-    _requireMinted(tokenId);
-    return _baseURI();
+    if (ownerOf(tokenId) != address(0)) return _baseURI();
   }
 
   /**

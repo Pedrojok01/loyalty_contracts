@@ -6,7 +6,7 @@ import { adminRegistryAddress, subscriptionAddress } from "./constants";
 async function main() {
   const RedeemCodeLib = await ethers.getContractFactory("RedeemCodeLib");
   const redeemCodeLib = await RedeemCodeLib.deploy();
-  await redeemCodeLib.deployed();
+  await redeemCodeLib.waitForDeployment();
 
   const RedeemableFactory = await ethers.getContractFactory("RedeemableFactory", {
     libraries: {
@@ -15,9 +15,9 @@ async function main() {
   });
   const redeemableFactory = await RedeemableFactory.deploy(
     subscriptionAddress,
-    adminRegistryAddress
+    adminRegistryAddress,
   );
-  await redeemableFactory.deployed();
+  await redeemableFactory.waitForDeployment();
 
   console.log("\n");
   console.log("RedeemableFactory deployed to: ", redeemableFactory.address);
@@ -26,9 +26,9 @@ async function main() {
   // Get Staking Contract ABI
   const abiFile = JSON.parse(
     fs.readFileSync(
-      "./artifacts/contracts/promotions/RedeemableFactory.sol/RedeemableFactory.json",
-      "utf8"
-    )
+      "./artifacts/contracts/campaigns/RedeemableFactory.sol/RedeemableFactory.json",
+      "utf8",
+    ),
   );
   const abi = JSON.stringify(abiFile.abi);
 

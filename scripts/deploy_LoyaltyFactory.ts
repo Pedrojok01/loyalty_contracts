@@ -1,6 +1,7 @@
 import hre, { ethers } from "hardhat";
 import fs from "fs";
 import {
+  ADMIN_ADDRESS,
   adminRegistryAddress,
   nonExpirableFactoryAddress,
   redeemableFactoryAddress,
@@ -8,40 +9,41 @@ import {
 } from "./constants";
 
 async function main() {
-  const MeedProgramFactory = await ethers.getContractFactory("MeedProgramFactory");
-  const meedProgramFactory = await MeedProgramFactory.deploy(
+  const LoyaltyProgramFactory = await ethers.getContractFactory("LoyaltyProgramFactory");
+  const loyaltyProgramFactory = await LoyaltyProgramFactory.deploy(
     subscriptionAddress,
     adminRegistryAddress,
-    [redeemableFactoryAddress]
+    [redeemableFactoryAddress],
+    ADMIN_ADDRESS,
   );
-  await meedProgramFactory.deployed();
+  await loyaltyProgramFactory.waitForDeployment();
 
   console.log("\n");
-  console.log("MeedProgramFactory deployed to: ", meedProgramFactory.address);
+  console.log("LoyaltyProgramFactory deployed to: ", loyaltyProgramFactory.address);
   console.log("\n");
 
   // Get Staking Contract ABI
   const abiFile = JSON.parse(
     fs.readFileSync(
-      "./artifacts/contracts/meedProgram/MeedProgramFactory.sol/MeedProgramFactory.json",
-      "utf8"
-    )
+      "./artifacts/contracts/loyaltyProgram/LoyaltyProgramFactory.sol/LoyaltyProgramFactory.json",
+      "utf8",
+    ),
   );
   const abi = JSON.stringify(abiFile.abi);
 
-  console.log("MeedProgramFactory ABI:");
+  console.log("LoyaltyProgramFactory ABI:");
   console.log("\n");
   console.log(abi);
   console.log("\n");
 
   /** WAITING:
    ************/
-  await meedProgramFactory.deployTransaction.wait(5);
+  await loyaltyProgramFactory.deployTransaction.wait(5);
 
   /** VERIFICATION:
    *****************/
   // await hre.run("verify:verify", {
-  //   address: meedProgramFactory.address,
+  //   address: loyaltyProgramFactory.address,
   //   constructorArguments: [],
   // });
 }

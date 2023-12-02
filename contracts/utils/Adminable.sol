@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 // import "hardhat/console.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
@@ -7,11 +7,12 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AdminRegistry} from "../subscriptions/AdminRegistry.sol";
 import {Errors} from "./Errors.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
+import {IStorage} from "../interfaces/IStorage.sol";
 
 /**
  * @title Adminable;
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Contract module which provides an access control mechanism for
  * either the owner or the admin.
  *
@@ -22,9 +23,10 @@ contract Adminable is Ownable, SubscriberChecks {
   AdminRegistry private _adminRegistry;
 
   constructor(
-    address adminRegistry_,
-    address subscriptionsAddress_
-  ) SubscriberChecks(subscriptionsAddress_) {
+    address owner_,
+    address _storageAddress
+  ) SubscriberChecks(IStorage(_storageAddress).getSubscriptionControl()) Ownable(owner_) {
+    address adminRegistry_ = IStorage(_storageAddress).getAdminRegistry();
     require(adminRegistry_ != address(0), "Adminable: address zero");
     _adminRegistry = AdminRegistry(adminRegistry_);
   }

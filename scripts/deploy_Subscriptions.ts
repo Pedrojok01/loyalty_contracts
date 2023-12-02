@@ -15,9 +15,10 @@ async function main() {
     subscriptions_name,
     subscriptions_symbol,
     subscriptions_uris,
-    adminRegistryAddress
+    adminRegistryAddress,
+    ADMIN_ADDRESS,
   );
-  await subscriptions.deployed();
+  await subscriptions.waitForDeployment();
 
   console.log("\n");
   console.log("Subscriptions deployed to: ", subscriptions.address);
@@ -27,8 +28,8 @@ async function main() {
   const abiFile = JSON.parse(
     fs.readFileSync(
       "./artifacts/contracts/subscriptions/Subscriptions.sol/Subscriptions.json",
-      "utf8"
-    )
+      "utf8",
+    ),
   );
   const abi = JSON.stringify(abiFile.abi);
 

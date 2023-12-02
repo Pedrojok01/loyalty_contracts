@@ -6,7 +6,7 @@ import { adminRegistryAddress, subscriptionAddress } from "./constants";
 async function main() {
   const BundlesFactory = await ethers.getContractFactory("BundlesFactory");
   const bundlesFactory = await BundlesFactory.deploy(subscriptionAddress, adminRegistryAddress);
-  await bundlesFactory.deployed();
+  await bundlesFactory.waitForDeployment();
 
   console.log("\n");
   console.log("BundlesFactory deployed to: ", bundlesFactory.address);
@@ -15,9 +15,9 @@ async function main() {
   // Get Staking Contract ABI
   const abiFile = JSON.parse(
     fs.readFileSync(
-      "./artifacts/contracts/promotions/BundlesFactory.sol/BundlesFactory.json",
-      "utf8"
-    )
+      "./artifacts/contracts/campaigns/BundlesFactory.sol/BundlesFactory.json",
+      "utf8",
+    ),
   );
   const abi = JSON.stringify(abiFile.abi);
 

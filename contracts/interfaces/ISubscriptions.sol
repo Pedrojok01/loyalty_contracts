@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 interface ISubscriptions {
   enum Plan {
@@ -30,7 +30,7 @@ interface ISubscriptions {
   );
 
   /**
-   * @dev Subscribe to Meed Rewards and emit a subscription NFT;
+   * @dev Subscribe to Loyalty Rewards and emit a subscription NFT;
    * @param plan Chosen plan of the subscription (Basic, Pro, Enterprise)
    * @param duration Chosen duration of the subscription:
    *  - false = monthly (30 days);

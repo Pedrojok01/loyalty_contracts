@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: CC0-1.0
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 // import "hardhat/console.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
@@ -8,7 +8,7 @@ import {Errors} from "../utils/Errors.sol";
 /**
  * @title SubscriberChecks
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Provides modifiers to valid the plan of a subscriber.
  */
 
@@ -36,7 +36,7 @@ contract SubscriberChecks is Context, Errors {
 
   /**
    * @dev Return the subscription plan of a subscriber.
-   * @param subscriber Address of the meedProgram owner
+   * @param subscriber Address of the loyaltyProgram owner
    */
   function _getSubscriberPlan(address subscriber) internal returns (uint) {
     (bool success, bytes memory data) = SUBSCRIPTIONS_CONTRACT.call(
@@ -52,7 +52,7 @@ contract SubscriberChecks is Context, Errors {
 
   /**
    * @dev Throws if the sender is not a subscriber.
-   * @param subscriber Address of the meedProgram owner
+   * @param subscriber Address of the loyaltyProgram owner
    */
   function _onlySubscribers(address subscriber) internal {
     (bool success, bytes memory result) = SUBSCRIPTIONS_CONTRACT.call(
@@ -65,7 +65,7 @@ contract SubscriberChecks is Context, Errors {
 
   /**
    * @dev Throws if the sender is not a Pro or Enterprise subscriber.
-   * @param subscriber Address of the meedProgram owner
+   * @param subscriber Address of the loyaltyProgram owner
    */
   function _onlyProOrEnterprise(address subscriber) internal {
     (bool success, bytes memory result) = SUBSCRIPTIONS_CONTRACT.call(
@@ -78,7 +78,7 @@ contract SubscriberChecks is Context, Errors {
 
   /**
    * @dev Throws if the sender is not an Enterprise subscriber.
-   * @param subscriber Address of the meedProgram owner
+   * @param subscriber Address of the loyaltyProgram owner
    */
   function _onlyEnterprise(address subscriber) internal {
     (bool success, bytes memory result) = SUBSCRIPTIONS_CONTRACT.call(

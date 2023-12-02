@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 // import "hardhat/console.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
@@ -8,13 +8,14 @@ import {IRedeemable} from "../interfaces/IRedeemable.sol";
 import {ICampaign} from "../interfaces/ICampaign.sol";
 import {TimeLimited} from "../utils/TimeLimited.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
-import {MeedProgram} from "../meedProgram/MeedProgram.sol";
+import {LoyaltyProgram} from "../loyaltyProgram/LoyaltyProgram.sol";
 import {RedeemCodeLib} from "../library/RedeemCodeLib.sol";
+import {IStorage} from "../interfaces/IStorage.sol";
 
 /**
  * @title Redeemable
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Reedemable are NFTs that can be redeemed for a product or a discount;
  *  - The redeemanle type is defined by its id
  *  - productId (for freebies) or currency (for fiat discount) are now added to metadata ans store in IPFS;
@@ -54,7 +55,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   address private immutable SUBSCRIPTIONS_CONTRACT;
-  MeedProgram private immutable meedProgram;
+  LoyaltyProgram private immutable loyaltyProgram;
   RedeemCodeLib.RedeemCodeStorage internal redeemCodeStorage;
 
   enum RedeemableType {
@@ -79,15 +80,17 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
     address _owner,
     uint256 _startDate,
     uint256 _endDate,
-    address _meedProgram,
-    address subscriptionsAddress,
-    address adminRegistryAddress
-  ) ERC1155(_uri) TimeLimited(_startDate, _endDate, subscriptionsAddress, adminRegistryAddress) {
+    address _loyaltyProgram,
+    address _storageAddress
+  )
+    // address subscriptionsAddress,
+    ERC1155(_uri)
+    TimeLimited(_startDate, _endDate, _storageAddress, _owner)
+  {
     require(_endDate == 0 || _endDate > block.timestamp, "Redeemable: invalid date");
     _setURI(_uri);
-    SUBSCRIPTIONS_CONTRACT = subscriptionsAddress;
-    meedProgram = MeedProgram(_meedProgram);
-    transferOwnership(_owner);
+    SUBSCRIPTIONS_CONTRACT = IStorage(_storageAddress).getSubscriptionControl();
+    loyaltyProgram = LoyaltyProgram(_loyaltyProgram);
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -114,7 +117,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
     @param to Address which will receive the limited NFTs;
     */
   function autoMint(uint256 id, address to) external onlyOngoing onlyActive {
-    if (_msgSender() != address(meedProgram)) revert Redeemable__NotCalledFromContract();
+    if (_msgSender() != address(loyaltyProgram)) revert Redeemable__NotCalledFromContract();
     _onlySubscribers(owner());
     _mintRedeemable(id, to);
   }
@@ -248,7 +251,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
   /// @dev Common function to mint a Redeemable NFT;
   function _mintRedeemable(uint256 id, address to) private {
     if (!_isValidId(id)) revert Redeemable__WrongId();
-    uint8 currentLevel = meedProgram.getMemberLevel(to);
+    uint8 currentLevel = loyaltyProgram.getMemberLevel(to);
     if (currentLevel == 0) revert Redeemable__NonExistantUser();
 
     redeemableNFTs[id].circulatingSupply++;

@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 // import "hardhat/console.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
 import {TimeLimited} from "../utils/TimeLimited.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
-import {MeedProgram} from "../meedProgram/MeedProgram.sol";
+import {LoyaltyProgram} from "../loyaltyProgram/LoyaltyProgram.sol";
 import {ICampaign} from "../interfaces/ICampaign.sol";
 
 /**
  * @title Collectibles
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Collectibles are NFTs can be collected to win a reward.;
  *  - The whole collection must be collected for the reward to be unlocked;
  *  - The reward is decided by the brands, can be another NFT like super discount or free product;
@@ -20,7 +20,7 @@ import {ICampaign} from "../interfaces/ICampaign.sol";
  */
 
 contract Collectibles is ERC1155, ICampaign, TimeLimited {
-  MeedProgram private immutable meedProgram;
+  LoyaltyProgram private immutable loyaltyProgram;
   uint256 private constant MAX_IDS = 64;
   uint40 private _collectibleCounter;
 
@@ -31,13 +31,9 @@ contract Collectibles is ERC1155, ICampaign, TimeLimited {
     address _owner,
     uint256 _startDate,
     uint256 _expirationDate,
-    address _meedProgram,
-    address _subscriptionAddress,
-    address adminRegistryAddress
-  )
-    ERC1155("")
-    TimeLimited(_startDate, _expirationDate, _subscriptionAddress, adminRegistryAddress)
-  {
+    address _loyaltyProgram,
+    address _storageAddress
+  ) ERC1155("") TimeLimited(_startDate, _expirationDate, _storageAddress, _owner) {
     require(uris.length <= MAX_IDS, "CollectibleNFT: Too many URIs.");
     require(
       _expirationDate == 0 || _expirationDate > block.timestamp,
@@ -46,8 +42,8 @@ contract Collectibles is ERC1155, ICampaign, TimeLimited {
     for (uint256 i = 0; i < uris.length; i++) {
       _uris[i] = uris[i];
     }
-    meedProgram = MeedProgram(_meedProgram);
-    transferOwnership(_owner);
+    loyaltyProgram = LoyaltyProgram(_loyaltyProgram);
+    // transferOwnership(_owner);
   }
 
   function uri(uint256 tokenId) public view override returns (string memory) {
@@ -70,7 +66,7 @@ contract Collectibles is ERC1155, ICampaign, TimeLimited {
     @param to Address which will receive the limited NFTs;
     */
   function autoMint(uint256 id, address to) external onlyOngoing onlyActive {
-    if (_msgSender() != address(meedProgram)) revert Collectibles__NotCalledFromContract();
+    if (_msgSender() != address(loyaltyProgram)) revert Collectibles__NotCalledFromContract();
     _onlySubscribers(owner());
 
     if (id >= MAX_IDS) revert Collectibles__InvalidTokenId();

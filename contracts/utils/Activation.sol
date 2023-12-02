@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 // import "hardhat/console.sol";
 import {Errors} from "../utils/Errors.sol";
@@ -7,7 +7,7 @@ import {Errors} from "../utils/Errors.sol";
 /**
  * @title Activation
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Provides a simple way to activate/desactivate a promotion;
  */
 

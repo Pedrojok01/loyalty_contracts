@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 /**
  * @title RedeemCodeLib
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Provides "random" redeem code getter and setter for all promotion's vouchers.
  *
  * using RedeemCodeLib for RedeemCodeLib.RedeemCodeStorage;

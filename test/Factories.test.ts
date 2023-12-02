@@ -6,33 +6,34 @@ import { ethers } from "hardhat";
 import {
   BundlesFactory,
   NonExpirableFactory,
-  MeedProgramFactory,
+  LoyaltyProgramFactory,
   RedeemableFactory,
   Subscriptions,
   CollectiblesFactory,
 } from "../typechain-types";
 import {
-  meedProgram_name,
-  meedProgram_symbol,
-  meedProgram_uri,
+  loyaltyProgram_name,
+  loyaltyProgram_symbol,
+  loyaltyProgram_uri,
   duration,
-  meedProgram_amounts,
+  loyaltyProgram_amounts,
   subscriptions_name,
   subscriptions_symbol,
   subscriptions_uris,
   promoType,
   TIER_TRACKER,
-} from "./constant";
-import { utils } from "ethers";
+} from "./helpers/constant";
 import { bytes16ToString } from "./helpers/utils";
 import { deploy } from "./helpers/deploy";
+import { deployCollectiblesFactory } from "./helpers/contractDeployment";
 
 describe("Promotions Factories Contract", function () {
   async function deployFixture() {
     const {
       adminRegistry,
       subscriptions,
-      meedProgramFactory,
+      storage,
+      loyaltyProgramFactory,
       redeemableFactory,
       nonExpirableFactory,
       collectiblesFactory,
@@ -46,7 +47,8 @@ describe("Promotions Factories Contract", function () {
     return {
       subscriptions,
       adminRegistry,
-      meedProgramFactory,
+      storage,
+      loyaltyProgramFactory,
       redeemableFactory,
       nonExpirableFactory,
       bundlesFactory,
@@ -61,130 +63,139 @@ describe("Promotions Factories Contract", function () {
 
   it("should initialise all factories contract correctly", async () => {
     const {
-      meedProgramFactory,
+      loyaltyProgramFactory,
       redeemableFactory,
       nonExpirableFactory,
       collectiblesFactory,
       bundlesFactory,
     } = await loadFixture(deployFixture);
 
-    expect(await meedProgramFactory.factories(0)).to.equal(redeemableFactory.address);
-    expect(await meedProgramFactory.factories(1)).to.equal(nonExpirableFactory.address);
-    expect(await meedProgramFactory.factories(2)).to.equal(collectiblesFactory.address);
-    expect(await meedProgramFactory.factories(3)).to.equal(bundlesFactory.address);
+    expect(await loyaltyProgramFactory.instance.factories(0)).to.equal(redeemableFactory.address);
+    expect(await loyaltyProgramFactory.instance.factories(1)).to.equal(nonExpirableFactory.address);
+    expect(await loyaltyProgramFactory.instance.factories(2)).to.equal(collectiblesFactory.address);
+    expect(await loyaltyProgramFactory.instance.factories(3)).to.equal(bundlesFactory.address);
   });
 
   /*///////////////////////////////////////////////////////////////////////////////
-                                CREATE NEW MEED PROGRAM
+                                CREATE NEW LOYALTY PROGRAM
     ///////////////////////////////////////////////////////////////////////////////*/
 
-  it("should create a new Meed Program and store it correctly", async () => {
-    const { meedProgramFactory, owner } = await loadFixture(deployFixture);
+  it("should create a new Loyalty Program and store it correctly", async () => {
+    const { loyaltyProgramFactory, owner } = await loadFixture(deployFixture);
 
-    await meedProgramFactory.createNewMeedProgram(
-      meedProgram_name,
-      meedProgram_symbol,
-      meedProgram_uri,
+    await loyaltyProgramFactory.instance.createNewLoyaltyProgram(
+      loyaltyProgram_name,
+      loyaltyProgram_symbol,
+      loyaltyProgram_uri,
       TIER_TRACKER.total_amount,
-      meedProgram_amounts,
-      utils.formatBytes32String("food"),
-      utils.formatBytes32String("HK")
+      loyaltyProgram_amounts,
+      ethers.encodeBytes32String("food"),
+      ethers.encodeBytes32String("HK"),
     );
 
     // Total amount of programs should be 2 (1 default + 1 created)
-    let totalMeedPrograms = await meedProgramFactory.getTotalMeedPrograms();
-    expect(Number(totalMeedPrograms)).to.equal(2);
+    let totalLoyaltyPrograms = await loyaltyProgramFactory.instance.getTotalLoyaltyPrograms();
+    expect(Number(totalLoyaltyPrograms)).to.equal(2);
 
-    const receipt = await meedProgramFactory.createNewMeedProgram(
+    const receipt = await loyaltyProgramFactory.instance.createNewLoyaltyProgram(
       "new_name_II",
-      meedProgram_symbol,
-      meedProgram_uri,
+      loyaltyProgram_symbol,
+      loyaltyProgram_uri,
       TIER_TRACKER.purchase_times,
-      meedProgram_amounts,
-      utils.formatBytes32String("shoes"),
-      utils.formatBytes32String("BKK")
+      loyaltyProgram_amounts,
+      ethers.encodeBytes32String("shoes"),
+      ethers.encodeBytes32String("BKK"),
     );
 
     await expect(receipt)
-      .to.emit(meedProgramFactory, "NewMeedProgramCreated")
+      .to.emit(loyaltyProgramFactory.instance, "NewLoyaltyProgramCreated")
       .withArgs(owner.address, anyValue, 2, "new_name_II");
 
     // Total amount of programs should be 3
-    totalMeedPrograms = await meedProgramFactory.getTotalMeedPrograms();
-    expect(Number(totalMeedPrograms)).to.equal(3);
+    totalLoyaltyPrograms = await loyaltyProgramFactory.instance.getTotalLoyaltyPrograms();
+    expect(Number(totalLoyaltyPrograms)).to.equal(3);
 
     // Address of program 1 should be the same as the address of the event
-    const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
-    const meedIds = await meedProgramFactory.getMeedIDPerOwner(owner.address);
-    const meedProgram = await meedProgramFactory.getMeedAddressPerId(meedIds[0]);
-    expect(meedProgram).to.equal(meedProgramAddress);
+    const loyaltyProgramAddress = await loyaltyProgramFactory.instance.getLoyaltyProgramPerIndex(0);
+    const loyaltyIds = await loyaltyProgramFactory.instance.getLoyaltyIDPerOwner(owner.address);
+    const loyaltyProgram = await loyaltyProgramFactory.instance.getLoyaltyAddressPerId(
+      loyaltyIds[0],
+    );
+    expect(loyaltyProgram).to.equal(loyaltyProgramAddress);
 
-    // Check that the meed program's name return the correct id:
-    expect(await meedProgramFactory.getMeedIDPerName(meedProgram_name)).to.equal(1);
+    // Check that the loyalty program's name return the correct id:
+    expect(await loyaltyProgramFactory.instance.getLoyaltyIDPerName(loyaltyProgram_name)).to.equal(
+      1,
+    );
   });
 
   it("shouldn't be possible to create 2 programs with the same name", async () => {
-    const { meedProgramFactory } = await loadFixture(deployFixture);
+    const { loyaltyProgramFactory } = await loadFixture(deployFixture);
 
     // Program at array 0 (won't revert since array 0 bug)
-    await meedProgramFactory.createNewMeedProgram(
-      meedProgram_name,
-      meedProgram_symbol,
-      meedProgram_uri,
+    await loyaltyProgramFactory.instance.createNewLoyaltyProgram(
+      loyaltyProgram_name,
+      loyaltyProgram_symbol,
+      loyaltyProgram_uri,
       TIER_TRACKER.total_amount,
-      meedProgram_amounts,
-      utils.formatBytes32String("food"),
-      utils.formatBytes32String("HK")
+      loyaltyProgram_amounts,
+      ethers.encodeBytes32String("food"),
+      ethers.encodeBytes32String("HK"),
     );
 
-    const programAddress_0 = await meedProgramFactory.getMeedProgramPerIndex(0);
-    const programId_0 = await meedProgramFactory.getMeedIDPerAddress(programAddress_0);
+    const programAddress_0 = await loyaltyProgramFactory.instance.getLoyaltyProgramPerIndex(0);
+    const programId_0 =
+      await loyaltyProgramFactory.instance.getLoyaltyIDPerAddress(programAddress_0);
     expect(programId_0).to.equal(0);
 
     // Need to create at least 2 program for the name check to work:
-    await meedProgramFactory.createNewMeedProgram(
+    await loyaltyProgramFactory.instance.createNewLoyaltyProgram(
       "new_name_II",
-      meedProgram_symbol,
-      meedProgram_uri,
+      loyaltyProgram_symbol,
+      loyaltyProgram_uri,
       TIER_TRACKER.total_amount,
-      meedProgram_amounts,
-      utils.formatBytes32String("food"),
-      utils.formatBytes32String("HK")
+      loyaltyProgram_amounts,
+      ethers.encodeBytes32String("food"),
+      ethers.encodeBytes32String("HK"),
     );
 
-    const programAddress_1 = await meedProgramFactory.getMeedProgramPerIndex(1);
+    const programAddress_1 = await loyaltyProgramFactory.instance.getLoyaltyProgramPerIndex(1);
 
-    const programId_1 = await meedProgramFactory.getMeedIDPerAddress(programAddress_1);
+    const programId_1 =
+      await loyaltyProgramFactory.instance.getLoyaltyIDPerAddress(programAddress_1);
     expect(programId_1).to.equal(1);
 
     // revert if same name
     await expect(
-      meedProgramFactory.createNewMeedProgram(
+      loyaltyProgramFactory.instance.createNewLoyaltyProgram(
         "new_name_II",
-        meedProgram_symbol,
-        meedProgram_uri,
+        loyaltyProgram_symbol,
+        loyaltyProgram_uri,
         TIER_TRACKER.total_amount,
-        meedProgram_amounts,
-        utils.formatBytes32String("food"),
-        utils.formatBytes32String("HK")
-      )
-    ).to.be.revertedWithCustomError(meedProgramFactory, "MeedProgramFactory_NameAlreadyTaken");
+        loyaltyProgram_amounts,
+        ethers.encodeBytes32String("food"),
+        ethers.encodeBytes32String("HK"),
+      ),
+    ).to.be.revertedWithCustomError(
+      loyaltyProgramFactory.instance,
+      "LoyaltyProgramFactory_NameAlreadyTaken",
+    );
   });
 
   it("should add the program the the Brands struct properly", async () => {
-    const { meedProgramFactory, owner } = await loadFixture(deployFixture);
+    const { loyaltyProgramFactory, owner } = await loadFixture(deployFixture);
 
-    await meedProgramFactory.createNewMeedProgram(
-      meedProgram_name,
-      meedProgram_symbol,
-      meedProgram_uri,
+    await loyaltyProgramFactory.instance.createNewLoyaltyProgram(
+      loyaltyProgram_name,
+      loyaltyProgram_symbol,
+      loyaltyProgram_uri,
       TIER_TRACKER.total_amount,
-      meedProgram_amounts,
-      utils.formatBytes32String("food"),
-      utils.formatBytes32String("HK")
+      loyaltyProgram_amounts,
+      ethers.encodeBytes32String("food"),
+      ethers.encodeBytes32String("HK"),
     );
 
-    const brandDetails = await meedProgramFactory.getBrandDetails(0);
+    const brandDetails = await loyaltyProgramFactory.instance.getBrandDetails(0);
 
     expect(bytes16ToString(brandDetails.productType)).to.equal("food");
     expect(bytes16ToString(brandDetails.location)).to.equal("HK");
@@ -196,52 +207,65 @@ describe("Promotions Factories Contract", function () {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   it("should be possible to blacklist a program", async () => {
-    const { meedProgramFactory, owner, user1, admin } = await loadFixture(deployFixture);
+    const { loyaltyProgramFactory, user1 } = await loadFixture(deployFixture);
 
-    await meedProgramFactory.createNewMeedProgram(
-      meedProgram_name,
-      meedProgram_symbol,
-      meedProgram_uri,
+    await loyaltyProgramFactory.instance.createNewLoyaltyProgram(
+      loyaltyProgram_name,
+      loyaltyProgram_symbol,
+      loyaltyProgram_uri,
       TIER_TRACKER.total_amount,
-      meedProgram_amounts,
-      utils.formatBytes32String("food"),
-      utils.formatBytes32String("HK")
+      loyaltyProgram_amounts,
+      ethers.encodeBytes32String("food"),
+      ethers.encodeBytes32String("HK"),
     );
 
-    const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
-    const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
+    const loyaltyProgramAddress = await loyaltyProgramFactory.instance.getLoyaltyProgramPerIndex(0);
+    const loyaltyProgram = await ethers.getContractAt("LoyaltyProgram", loyaltyProgramAddress);
 
-    expect(await meedProgramFactory.isBlacklisted(meedProgram.address)).to.equal(false);
+    expect(await loyaltyProgramFactory.instance.isBlacklisted(loyaltyProgramAddress)).to.equal(
+      false,
+    );
 
     await expect(
-      meedProgramFactory.connect(user1).blacklistContract(meedProgram.address)
-    ).to.be.revertedWith("Ownable: caller is not the owner");
+      loyaltyProgramFactory.instance.connect(user1).blacklistContract(loyaltyProgramAddress),
+    ).to.be.revertedWithCustomError(loyaltyProgramFactory.instance, "OwnableUnauthorizedAccount");
 
-    const receipt = await meedProgramFactory.blacklistContract(meedProgram.address);
+    const receipt = await loyaltyProgramFactory.instance.blacklistContract(loyaltyProgramAddress);
     await expect(receipt)
-      .to.emit(meedProgramFactory, "AddedToBlacklist")
-      .withArgs(meedProgram.address);
+      .to.emit(loyaltyProgramFactory.instance, "AddedToBlacklist")
+      .withArgs(loyaltyProgramAddress);
 
-    expect(await meedProgramFactory.isBlacklisted(meedProgram.address)).to.equal(true);
-
-    await expect(
-      meedProgramFactory.blacklistContract(meedProgram.address)
-    ).to.be.revertedWithCustomError(meedProgramFactory, "MeedProgramFactory_AlreadyBlacklisted");
+    expect(await loyaltyProgramFactory.instance.isBlacklisted(loyaltyProgramAddress)).to.equal(
+      true,
+    );
 
     await expect(
-      meedProgramFactory.connect(user1).unblacklistContract(meedProgram.address)
-    ).to.be.revertedWith("Ownable: caller is not the owner");
+      loyaltyProgramFactory.instance.blacklistContract(loyaltyProgramAddress),
+    ).to.be.revertedWithCustomError(
+      loyaltyProgramFactory.instance,
+      "LoyaltyProgramFactory_AlreadyBlacklisted",
+    );
 
-    const receipt2 = await meedProgramFactory.unblacklistContract(meedProgram.address);
+    await expect(
+      loyaltyProgramFactory.instance.connect(user1).unblacklistContract(loyaltyProgramAddress),
+    ).to.be.revertedWithCustomError(loyaltyProgramFactory.instance, "OwnableUnauthorizedAccount");
+
+    const receipt2 =
+      await loyaltyProgramFactory.instance.unblacklistContract(loyaltyProgramAddress);
     await expect(receipt2)
-      .to.emit(meedProgramFactory, "RemovedFromblacklist")
-      .withArgs(meedProgram.address);
+      .to.emit(loyaltyProgramFactory.instance, "RemovedFromblacklist")
+      .withArgs(loyaltyProgramAddress);
 
-    expect(await meedProgramFactory.isBlacklisted(meedProgram.address)).to.equal(false);
+    expect(await loyaltyProgramFactory.instance.isBlacklisted(loyaltyProgramAddress)).to.equal(
+      false,
+    );
 
     await expect(
-      meedProgramFactory.unblacklistContract(meedProgram.address)
-    ).to.be.revertedWithCustomError(meedProgramFactory, "MeedProgramFactory_NotBlacklisted");
+      loyaltyProgramFactory.instance.unblacklistContract(loyaltyProgramAddress),
+    ).to.be.revertedWithCustomError(
+      loyaltyProgramFactory.instance,
+      "LoyaltyProgramFactory_NotBlacklisted",
+    );
   });
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -249,39 +273,39 @@ describe("Promotions Factories Contract", function () {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   it("should be possible to create new redeemable promo via the factory", async () => {
-    const { meedProgramFactory, redeemableFactory, owner } = await loadFixture(deployFixture);
+    const { loyaltyProgramFactory, redeemableFactory, owner } = await loadFixture(deployFixture);
 
-    // 1. Create a new Meed Program
-    await meedProgramFactory.createNewMeedProgram(
-      meedProgram_name,
-      meedProgram_symbol,
-      meedProgram_uri,
+    // 1. Create a new Loyalty Program
+    await loyaltyProgramFactory.instance.createNewLoyaltyProgram(
+      loyaltyProgram_name,
+      loyaltyProgram_symbol,
+      loyaltyProgram_uri,
       TIER_TRACKER.total_amount,
-      meedProgram_amounts,
-      utils.formatBytes32String("food"),
-      utils.formatBytes32String("HK")
+      loyaltyProgram_amounts,
+      ethers.encodeBytes32String("food"),
+      ethers.encodeBytes32String("HK"),
     );
 
-    const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
+    const loyaltyProgramAddress = await loyaltyProgramFactory.instance.getLoyaltyProgramPerIndex(0);
 
     // 2. Create a new promo via the redeemable factory
     const startDate = Math.floor(Date.now() / 1000).toString();
     const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
-    const receipt = await redeemableFactory.createNewPromotion(
+    const receipt = await redeemableFactory.instance.createNewPromotion(
       "ipfs://uri",
       startDate,
       expirationDate,
-      meedProgramAddress,
-      promoType.freeProducts
+      loyaltyProgramAddress,
+      promoType.freeProducts,
     );
     await expect(receipt)
-      .to.emit(redeemableFactory, "NewPromotionCreated")
+      .to.emit(redeemableFactory.instance, "NewPromotionCreated")
       .withArgs(owner.address, anyValue);
 
-    const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
+    const loyaltyProgram = await ethers.getContractAt("LoyaltyProgram", loyaltyProgramAddress);
 
     // Check the new state  (1 promo)
-    const allPromos = await meedProgram.getAllPromotions();
+    const allPromos = await loyaltyProgram.getAllPromotions();
     expect(allPromos.length).to.equal(1);
   });
 
@@ -290,39 +314,39 @@ describe("Promotions Factories Contract", function () {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   it("should be possible to create newNonExpirable promo via the factory", async () => {
-    const { meedProgramFactory, nonExpirableFactory, owner } = await loadFixture(deployFixture);
+    const { loyaltyProgramFactory, nonExpirableFactory, owner } = await loadFixture(deployFixture);
 
-    // 1. Create a new Meed Program
-    await meedProgramFactory.createNewMeedProgram(
-      meedProgram_name,
-      meedProgram_symbol,
-      meedProgram_uri,
+    // 1. Create a new Loyalty Program
+    await loyaltyProgramFactory.instance.createNewLoyaltyProgram(
+      loyaltyProgram_name,
+      loyaltyProgram_symbol,
+      loyaltyProgram_uri,
       TIER_TRACKER.total_amount,
-      meedProgram_amounts,
-      utils.formatBytes32String("food"),
-      utils.formatBytes32String("HK")
+      loyaltyProgram_amounts,
+      ethers.encodeBytes32String("food"),
+      ethers.encodeBytes32String("HK"),
     );
 
-    const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
+    const loyaltyProgramAddress = await loyaltyProgramFactory.instance.getLoyaltyProgramPerIndex(0);
 
     // 2. Create a new promo via the redeemable factory
     const unkownData = 0;
-    const receipt = await nonExpirableFactory.createNewPromotion(
+    const receipt = await nonExpirableFactory.instance.createNewPromotion(
       "SuperPromo",
       "SUP",
       "ipfs://uri",
-      meedProgramAddress,
+      loyaltyProgramAddress,
       unkownData,
-      promoType.vipPass
+      promoType.vipPass,
     );
     await expect(receipt)
-      .to.emit(nonExpirableFactory, "NewPromotionCreated")
+      .to.emit(nonExpirableFactory.instance, "NewPromotionCreated")
       .withArgs(owner.address, anyValue, "SuperPromo");
 
-    const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
+    const loyaltyProgram = await ethers.getContractAt("LoyaltyProgram", loyaltyProgramAddress);
 
     // Check the new state  (1 promo)
-    const allPromos = await meedProgram.getAllPromotions();
+    const allPromos = await loyaltyProgram.getAllPromotions();
     expect(allPromos.length).to.equal(1);
   });
 
@@ -331,28 +355,28 @@ describe("Promotions Factories Contract", function () {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   it("should be possible to create new collectibles promo via the factory", async () => {
-    const { meedProgramFactory, collectiblesFactory, owner } = await loadFixture(deployFixture);
+    const { loyaltyProgramFactory, collectiblesFactory, owner } = await loadFixture(deployFixture);
 
-    const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
+    const loyaltyProgramAddress = await loyaltyProgramFactory.instance.getLoyaltyProgramPerIndex(0);
 
     // 2. Create a new promo via the redeemable factory
     const startDate = Math.floor(Date.now() / 1000).toString();
     const expirationDate = (Math.floor(Date.now() / 1000) + duration.year).toString();
-    const receipt = await collectiblesFactory.createNewPromotion(
+    const receipt = await collectiblesFactory.instance.createNewPromotion(
       subscriptions_uris, // array of uris
       startDate,
       expirationDate,
-      meedProgramAddress,
-      promoType.stamps
+      loyaltyProgramAddress,
+      promoType.stamps,
     );
     await expect(receipt)
-      .to.emit(collectiblesFactory, "NewPromotionCreated")
+      .to.emit(collectiblesFactory.instance, "NewPromotionCreated")
       .withArgs(owner.address, anyValue);
 
-    const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
+    const loyaltyProgram = await ethers.getContractAt("LoyaltyProgram", loyaltyProgramAddress);
 
     // Check the new state  (1 promo)
-    const allPromos = await meedProgram.getAllPromotions();
+    const allPromos = await loyaltyProgram.getAllPromotions();
     expect(allPromos.length).to.equal(1);
   });
 
@@ -361,20 +385,20 @@ describe("Promotions Factories Contract", function () {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   it("should be possible to create new bundles promo via the factory", async () => {
-    const { meedProgramFactory, bundlesFactory, owner } = await loadFixture(deployFixture);
+    const { loyaltyProgramFactory, bundlesFactory, owner } = await loadFixture(deployFixture);
 
-    // 1. Create a new Meed Program
-    await meedProgramFactory.createNewMeedProgram(
-      meedProgram_name,
-      meedProgram_symbol,
-      meedProgram_uri,
+    // 1. Create a new Loyalty Program
+    await loyaltyProgramFactory.instance.createNewLoyaltyProgram(
+      loyaltyProgram_name,
+      loyaltyProgram_symbol,
+      loyaltyProgram_uri,
       TIER_TRACKER.total_amount,
-      meedProgram_amounts,
-      utils.formatBytes32String("food"),
-      utils.formatBytes32String("HK")
+      loyaltyProgram_amounts,
+      ethers.encodeBytes32String("food"),
+      ethers.encodeBytes32String("HK"),
     );
 
-    const meedProgramAddress = await meedProgramFactory.getMeedProgramPerIndex(0);
+    const loyaltyProgramAddress = await loyaltyProgramFactory.instance.getLoyaltyProgramPerIndex(0);
 
     // 2. Create a new promo via the redeemable factory
     const startDate = Math.floor(Date.now() / 1000).toString();
@@ -382,36 +406,36 @@ describe("Promotions Factories Contract", function () {
 
     // revert if wrong type
     await expect(
-      bundlesFactory.createNewPromotion(
+      bundlesFactory.instance.createNewPromotion(
         "SuperPromo",
         "SUP",
         "ipfs://uri",
-        meedProgramAddress,
+        loyaltyProgramAddress,
         startDate,
         expirationDate,
         10_000,
-        promoType.freeProducts
-      )
-    ).to.be.revertedWithCustomError(bundlesFactory, "BundlesFactory_TypeNotSupported");
+        promoType.freeProducts,
+      ),
+    ).to.be.revertedWithCustomError(bundlesFactory.instance, "BundlesFactory_TypeNotSupported");
 
-    const receipt = await bundlesFactory.createNewPromotion(
+    const receipt = await bundlesFactory.instance.createNewPromotion(
       "SuperPromo",
       "SUP",
       "ipfs://uri",
-      meedProgramAddress,
+      loyaltyProgramAddress,
       startDate,
       expirationDate,
       10_000,
-      promoType.packs
+      promoType.packs,
     );
     await expect(receipt)
-      .to.emit(bundlesFactory, "NewPromotionCreated")
+      .to.emit(bundlesFactory.instance, "NewPromotionCreated")
       .withArgs(owner.address, anyValue, "SuperPromo");
 
-    const meedProgram = await ethers.getContractAt("MeedProgram", meedProgramAddress);
+    const loyaltyProgram = await ethers.getContractAt("LoyaltyProgram", loyaltyProgramAddress);
 
     // Check the new state  (1 promo)
-    const allPromos = await meedProgram.getAllPromotions();
+    const allPromos = await loyaltyProgram.getAllPromotions();
     expect(allPromos.length).to.equal(1);
   });
 
@@ -420,92 +444,95 @@ describe("Promotions Factories Contract", function () {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   it("should be possible to add a new factory", async () => {
-    const { adminRegistry, subscriptions, meedProgramFactory, user1 } = await loadFixture(
-      deployFixture
-    );
+    const { storage, loyaltyProgramFactory, user1 } = await loadFixture(deployFixture);
 
-    const CollectibleFactory = await ethers.getContractFactory("CollectiblesFactory");
-    const collectibleFactory: CollectiblesFactory = await CollectibleFactory.deploy(
-      subscriptions.address,
-      adminRegistry.address
+    const CollectiblesFactory = await ethers.getContractFactory("CollectiblesFactory");
+    const collectiblesFactory: CollectiblesFactory = await CollectiblesFactory.deploy(
+      storage.address,
     );
-    await collectibleFactory.deployed();
+    await collectiblesFactory.waitForDeployment();
 
     // revert if not owner
     await expect(
-      meedProgramFactory.connect(user1).addFactory(collectibleFactory.address)
-    ).to.be.revertedWith("Ownable: caller is not the owner");
+      loyaltyProgramFactory.instance
+        .connect(user1)
+        .addFactory(await collectiblesFactory.getAddress()),
+    ).to.be.revertedWithCustomError(loyaltyProgramFactory.instance, "OwnableUnauthorizedAccount");
 
-    const receipt = await meedProgramFactory.addFactory(collectibleFactory.address);
+    const receipt = await loyaltyProgramFactory.instance.addFactory(
+      await collectiblesFactory.getAddress(),
+    );
     await expect(receipt)
-      .to.emit(meedProgramFactory, "NewFactoryAdded")
-      .withArgs(collectibleFactory.address);
+      .to.emit(loyaltyProgramFactory.instance, "NewFactoryAdded")
+      .withArgs(await collectiblesFactory.getAddress());
   });
 
   it("should be possible to update an existing factory", async () => {
-    const { adminRegistry, subscriptions, meedProgramFactory, user1 } = await loadFixture(
-      deployFixture
-    );
+    const { storage, loyaltyProgramFactory, user1 } = await loadFixture(deployFixture);
 
     // 1. Deploy the new factory to be added
-    const CollectiblesFactory = await ethers.getContractFactory("CollectiblesFactory");
-    const collectiblesFactory: CollectiblesFactory = await CollectiblesFactory.deploy(
-      subscriptions.address,
-      adminRegistry.address
-    );
-    await collectiblesFactory.deployed();
+    const collectiblesFactory = await deployCollectiblesFactory(storage.address);
 
     // 2. Add the new factory and get its factory ID
-    await meedProgramFactory.addFactory(collectiblesFactory.address);
+    await loyaltyProgramFactory.instance.addFactory(collectiblesFactory.address);
 
-    const index = await meedProgramFactory.getFactoryId(collectiblesFactory.address);
+    const index = await loyaltyProgramFactory.instance.getFactoryId(collectiblesFactory.address);
     expect(index).to.equal(4);
 
     // 3. Update the factory
     const indexToReplace = 2;
-    const oldFactoryAddress = await meedProgramFactory.getFactoryAddress(indexToReplace);
+    const oldFactoryAddress =
+      await loyaltyProgramFactory.instance.getFactoryAddress(indexToReplace);
 
     // Revert if not owner
     await expect(
-      meedProgramFactory.connect(user1).updateFactory(indexToReplace, collectiblesFactory.address)
-    ).to.be.revertedWith("Ownable: caller is not the owner");
+      loyaltyProgramFactory.instance
+        .connect(user1)
+        .updateFactory(indexToReplace, collectiblesFactory.address),
+    ).to.be.revertedWithCustomError(loyaltyProgramFactory.instance, "OwnableUnauthorizedAccount");
 
     // Revert if wrong index
     const wrongIndex = 5;
     await expect(
-      meedProgramFactory.updateFactory(wrongIndex, collectiblesFactory.address)
-    ).to.be.revertedWithCustomError(meedProgramFactory, "MeedProgramFactory_InvalidIndex");
+      loyaltyProgramFactory.instance.updateFactory(wrongIndex, collectiblesFactory.address),
+    ).to.be.revertedWithCustomError(
+      loyaltyProgramFactory.instance,
+      "LoyaltyProgramFactory_InvalidIndex",
+    );
 
-    const receipt = await meedProgramFactory.updateFactory(
+    const receipt = await loyaltyProgramFactory.instance.updateFactory(
       indexToReplace,
-      collectiblesFactory.address
+      collectiblesFactory.address,
     );
     await expect(receipt)
-      .to.emit(meedProgramFactory, "FactoryUpdatedAdded")
+      .to.emit(loyaltyProgramFactory.instance, "FactoryUpdatedAdded")
       .withArgs(oldFactoryAddress, collectiblesFactory.address);
   });
 
   it("should be possible to delete an existing factory", async () => {
-    const { meedProgramFactory, user1 } = await loadFixture(deployFixture);
+    const { loyaltyProgramFactory, user1 } = await loadFixture(deployFixture);
 
     const indexToDelete = 1;
-    const factoryAddressToDelete = await meedProgramFactory.getFactoryAddress(indexToDelete);
+    const factoryAddressToDelete =
+      await loyaltyProgramFactory.instance.getFactoryAddress(indexToDelete);
 
     // Revert if not owner
-    await expect(meedProgramFactory.connect(user1).removeFactory(indexToDelete)).to.be.revertedWith(
-      "Ownable: caller is not the owner"
-    );
+    await expect(
+      loyaltyProgramFactory.instance.connect(user1).removeFactory(indexToDelete),
+    ).to.be.revertedWithCustomError(loyaltyProgramFactory.instance, "OwnableUnauthorizedAccount");
 
     // Revert if wrong index
     const wrongIndex = 5;
-    await expect(meedProgramFactory.removeFactory(wrongIndex)).to.be.revertedWithCustomError(
-      meedProgramFactory,
-      "MeedProgramFactory_InvalidIndex"
+    await expect(
+      loyaltyProgramFactory.instance.removeFactory(wrongIndex),
+    ).to.be.revertedWithCustomError(
+      loyaltyProgramFactory.instance,
+      "LoyaltyProgramFactory_InvalidIndex",
     );
 
-    const receipt = await meedProgramFactory.removeFactory(indexToDelete);
+    const receipt = await loyaltyProgramFactory.instance.removeFactory(indexToDelete);
     await expect(receipt)
-      .to.emit(meedProgramFactory, "FactoryDeleted")
+      .to.emit(loyaltyProgramFactory.instance, "FactoryDeleted")
       .withArgs(factoryAddressToDelete, indexToDelete);
   });
 });

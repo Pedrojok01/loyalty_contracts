@@ -7,12 +7,12 @@ License text copyright (c) 2017 MariaDB Corporation Ab, All Rights Reserved.
 
 Parameters
 
-Licensor: SuperUltra
+Licensor: Pedrojok01
 
-Licensed Work: SuperUltra - Loyal-T
-The Licensed Work is (c) 2023 SuperUltra
+Licensed Work: Pedrojok01 - Loyalty
+The Licensed Work is (c) 2023 Pedrojok01 - Loyalty
 
-Change Date: The earlier of 2025-06-06
+Change Date: The earlier of 2026-01-01
 
 Change License: GNU General Public License v2.0 or later
 

@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 
 import {PromoLib} from "../library/PromoLib.sol";
-import {IMeedProgram} from "../interfaces/IMeedProgram.sol";
+import {ILoyaltyProgram} from "../interfaces/ILoyaltyProgram.sol";
 import {Errors} from "../utils/Errors.sol";
 
-import {Collectibles} from "../promotions/Collectibles.sol";
+import {Collectibles} from "../campaigns/Collectibles.sol";
 
 /**
  * @title CollectiblesFactory
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Contracts factory to deploy a Collectibles type promotion (ERC1155);
  *  - Allows brands to deploy a Collectibles campaign (Discount vouchers, Freebies, etc);
  *  - Deployer will receive NFT id 0, proving its ownership.
@@ -21,12 +21,12 @@ import {Collectibles} from "../promotions/Collectibles.sol";
 contract CollectiblesFactory is Context, Errors {
   using PromoLib for PromoLib.Promotion;
 
-  address private immutable CONTROL_ADDRESS; // Subscriptions contract address
-  address private _adminRegistry;
+  // address private immutable CONTROL_ADDRESS; // Subscriptions contract address
+  // address private _adminRegistry;
+  address private _storage;
 
-  constructor(address _controlAddress, address adminRegistryAddress) {
-    CONTROL_ADDRESS = _controlAddress;
-    _adminRegistry = adminRegistryAddress;
+  constructor(address storage_) {
+    _storage = storage_;
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -38,7 +38,7 @@ contract CollectiblesFactory is Context, Errors {
    * @param uri  URI of the promotions(user input).
    * @param startDate Date which mark the start of the promo;
    * @param endDate Date which mark the end of the promo;
-   * @param meedProgram  MeedProgram address (user input).
+   * @param loyaltyProgram  LoyaltyProgram address (user input).
    * @param _type  Type of the promotions to be created (user input).
    * - 4 = Stamps
    * - 5 = Paninis
@@ -48,25 +48,17 @@ contract CollectiblesFactory is Context, Errors {
     string[] memory uri,
     uint256 startDate,
     uint256 endDate,
-    address meedProgram,
+    address loyaltyProgram,
     PromoLib.PromotionsType _type
   ) external returns (address newPromotion) {
     if (_type != PromoLib.PromotionsType.Stamps && _type != PromoLib.PromotionsType.Paninis)
       revert CollectiblesFactory_TypeNotSupported();
 
     newPromotion = address(
-      new Collectibles(
-        uri,
-        _msgSender(),
-        startDate,
-        endDate,
-        meedProgram,
-        CONTROL_ADDRESS,
-        _adminRegistry
-      )
+      new Collectibles(uri, _msgSender(), startDate, endDate, loyaltyProgram, _storage)
     );
 
-    IMeedProgram program = IMeedProgram(meedProgram);
+    ILoyaltyProgram program = ILoyaltyProgram(loyaltyProgram);
     program.addPromotion(newPromotion, _type, uint128(startDate), uint128(endDate));
 
     emit NewPromotionCreated(_msgSender(), newPromotion);

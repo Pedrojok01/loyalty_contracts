@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 // import "hardhat/console.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -9,7 +9,7 @@ import {Errors} from "../utils/Errors.sol";
 /**
  * @title Credits;
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Contract module which provides an access control mechanism based
  * on credits to limit the use of the admin mode.
  *
@@ -38,7 +38,7 @@ contract Credits is Ownable, Errors {
   event CreditsAdded(address indexed user, uint256 totalCredits);
   event CreditsDeducted(address indexed user, uint256 totalCredits);
 
-  constructor(address adminRegistryAddress) {
+  constructor(address adminRegistryAddress, address owner_) Ownable(owner_) {
     ADMIN_REGISTRY_CONTRACT = adminRegistryAddress;
     _initializeCreditsPlan();
   }

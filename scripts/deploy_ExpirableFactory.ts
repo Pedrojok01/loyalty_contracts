@@ -7,9 +7,9 @@ async function main() {
   const NonExpirableFactory = await ethers.getContractFactory("NonExpirableFactory");
   const nonExpirableFactory = await NonExpirableFactory.deploy(
     subscriptionAddress,
-    adminRegistryAddress
+    adminRegistryAddress,
   );
-  await nonExpirableFactory.deployed();
+  await nonExpirableFactory.waitForDeployment();
 
   console.log("\n");
   console.log("ExpirableFactory deployed to: ", nonExpirableFactory.address);
@@ -18,9 +18,9 @@ async function main() {
   // Get Staking Contract ABI
   const abiFile = JSON.parse(
     fs.readFileSync(
-      "./artifacts/contracts/promotions/NonExpirableFactory.sol/NonExpirableFactory.json",
-      "utf8"
-    )
+      "./artifacts/contracts/campaigns/NonExpirableFactory.sol/NonExpirableFactory.json",
+      "utf8",
+    ),
   );
   const abi = JSON.stringify(abiFile.abi);
 

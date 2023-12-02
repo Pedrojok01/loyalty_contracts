@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 /**
  * @title PromoLib
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Provides safe getter and setter for promotion status and type.
  *
  * Include with `using PromoLib for PromoLib.Promotion;`
@@ -33,7 +33,7 @@ library PromoLib {
   struct Data {
     mapping(address => Promotion) promotion; // Allows to get a promotion by its address
     mapping(address => uint256) promotionIndex; // Keet track of the index of the promotion in the array
-    Promotion[] promotions; // Array of all the promotions per MeedProgram
+    Promotion[] promotions; // Array of all the promotions per LoyaltyProgram
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -41,7 +41,7 @@ library PromoLib {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   /**
-   * @dev Add a new promotion to the array of promotions within the MeedProgram
+   * @dev Add a new promotion to the array of promotions within the LoyaltyProgram
    * @param _promotion  The address of the promotion
    * @param _type  The type of the promotion
    */

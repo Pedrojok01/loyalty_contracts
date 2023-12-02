@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import {Activation} from "../utils/Activation.sol";
 import {Adminable} from "../utils/Adminable.sol";
+import {IStorage} from "../interfaces/IStorage.sol";
 
 /**
  * @title TimeLimited
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Add a time limit mechanism to a contract, can be used with Activation;
  */
 
@@ -19,11 +20,11 @@ contract TimeLimited is Activation, Adminable {
   constructor(
     uint256 _startDate,
     uint256 _endDate,
-    address subscriptionsAddress,
-    address adminRegistryAddress
-  ) Adminable(adminRegistryAddress, subscriptionsAddress) {
+    address _storageAddress,
+    address owner_
+  ) Adminable(owner_, _storageAddress) {
     require(endDate == 0 || _startDate < _endDate, "TimeLimited: invalid date");
-    SUBSCRIPTIONS_CONTRACT = subscriptionsAddress;
+    SUBSCRIPTIONS_CONTRACT = IStorage(_storageAddress).getSubscriptionControl();
     startDate = uint128(_startDate);
     endDate = uint128(_endDate);
   }

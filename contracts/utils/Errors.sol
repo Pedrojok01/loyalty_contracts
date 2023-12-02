@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 /**
  * @title Errors
  * @author Pierre Estrabaud (@Pedrojok01)
- * @notice Part of the Meed Loyalty Platform
+ * @notice Part of the Loyalty Platform
  * @dev Stores all the errors used in the contracts:
  * - saves gas;
  * - makes the code more readable;
@@ -12,21 +12,20 @@ pragma solidity ^0.8.19;
  */
 
 contract Errors {
-  // MeedProgram
-  error MeedProgram_AlreadyMember();
-  error MeedProgram_InvalidPromotionType();
-  error MeedProgram_TokenDoesNotExist();
-  error MeedProgram_AmountVolumeIsZero();
-  error MeedProgram__AuthorizedFactoryOnly();
-  error MeedProgram__PromotionLimitReached();
-  error MeedProgram__LevelOutOfRange();
+  // LoyaltyProgram
+  error LoyaltyProgram_AlreadyMember();
+  error LoyaltyProgram_InvalidPromotionType();
+  error LoyaltyProgram_AmountVolumeIsZero();
+  error LoyaltyProgram__AuthorizedFactoryOnly();
+  error LoyaltyProgram__PromotionLimitReached();
+  error LoyaltyProgram__LevelOutOfRange();
 
-  // MeedProgramFactory
-  error MeedProgramFactory_AlreadyExists();
-  error MeedProgramFactory_NameAlreadyTaken();
-  error MeedProgramFactory_InvalidIndex();
-  error MeedProgramFactory_AlreadyBlacklisted();
-  error MeedProgramFactory_NotBlacklisted();
+  // LoyaltyProgramFactory
+  error LoyaltyProgramFactory_AlreadyExists();
+  error LoyaltyProgramFactory_NameAlreadyTaken();
+  error LoyaltyProgramFactory_InvalidIndex();
+  error LoyaltyProgramFactory_AlreadyBlacklisted();
+  error LoyaltyProgramFactory_NotBlacklisted();
 
   // RedeemableFactory
   error RedeemableFactory_TypeNotSupported();
@@ -49,7 +48,6 @@ contract Errors {
   error Bundles__CantSendZeroAmount();
   error Bundles__ValuesDontMatch();
   error Bundles__TokenNotOwned();
-  error Bundles__TokenURIQueryForNonexistentToken();
   error Bundles__TokenIdDoesntMatch();
 
   // Redeemable

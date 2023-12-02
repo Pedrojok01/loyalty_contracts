@@ -1,6 +1,5 @@
-import { formatNumber } from "./helpers/utils";
-import { PromiseOrValue } from "../typechain-types/common";
-import { BigNumberish, utils } from "ethers";
+import { formatNumber } from "./utils";
+import { BigNumberish, ethers } from "ethers";
 
 export const plan = {
   free: 0,
@@ -20,22 +19,22 @@ export const topUpFormula = {
   small: {
     id: 0,
     credits: 500,
-    price: utils.parseEther("0.02"),
+    price: ethers.parseEther("0.02"),
   },
   medium: {
     id: 1,
     credits: 5000,
-    price: utils.parseEther("0.15"),
+    price: ethers.parseEther("0.15"),
   },
   big: {
     id: 2,
     credits: 25_000,
-    price: utils.parseEther("0.5"),
+    price: ethers.parseEther("0.5"),
   },
   huge: {
     id: 3,
     credits: 100_000,
-    price: utils.parseEther("1.5"),
+    price: ethers.parseEther("1.5"),
   },
 };
 
@@ -62,9 +61,9 @@ export const voucher_type = {
 };
 
 export const pricePerPlan = {
-  basic: utils.parseEther("0.05"),
-  pro: utils.parseEther("0.1"),
-  enterprise: utils.parseEther("0.5"),
+  basic: ethers.parseEther("0.05"),
+  pro: ethers.parseEther("0.1"),
+  enterprise: ethers.parseEther("0.5"),
 };
 
 export const TIER_TRACKER = {
@@ -83,25 +82,20 @@ export const public_mint_price = formatNumber(0.1);
 export const subscriptionAddress = "";
 
 // For Subscriptions NFTs
-export const subscriptions_name = "Meed Program Owner";
+export const subscriptions_name = "Loyalty Program Owner";
 export const subscriptions_symbol = "MPO";
-export const subscriptions_uris: [
-  PromiseOrValue<string>,
-  PromiseOrValue<string>,
-  PromiseOrValue<string>,
-  PromiseOrValue<string>
-] = ["0", "1", "2", "3"];
+export const subscriptions_uris: [string, string, string, string] = ["0", "1", "2", "3"];
 
-// For MeedProgram NFTs
-export const meedProgram_name = "Meed Program";
-export const meedProgram_symbol = "MP";
-export const meedProgram_uri: PromiseOrValue<string> = "ipfs://Qm.../";
-export const meedProgram_amounts: [
-  PromiseOrValue<BigNumberish>,
-  PromiseOrValue<BigNumberish>,
-  PromiseOrValue<BigNumberish>,
-  PromiseOrValue<BigNumberish>
-] = [100, 500, 1000, 10_000];
+// For LoyaltyProgram NFTs
+export const loyaltyProgram_name = "Loyalty Program";
+export const loyaltyProgram_symbol = "MP";
+export const loyaltyProgram_uri: string = "ipfs://Qm.../";
+export const loyaltyProgram_amounts: [BigNumberish, BigNumberish, BigNumberish, BigNumberish] = [
+  100n,
+  500n,
+  1000n,
+  10_000n,
+];
 
 export const auto_rewards = [
   {

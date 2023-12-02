@@ -2,7 +2,7 @@ require("@nomicfoundation/hardhat-chai-matchers");
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 
-import { pricePerPlan, plan, promoType } from "./constant";
+import { pricePerPlan, plan, promoType } from "./helpers/constant";
 import { deploy } from "./helpers/deploy";
 import { ethers } from "hardhat";
 
@@ -11,9 +11,9 @@ describe("NonExpirable Promotion Contract", function () {
     const {
       adminRegistry,
       subscriptions,
-      meedProgramFactory,
+      loyaltyProgramFactory,
       nonExpirableFactory,
-      meedProgram,
+      loyaltyProgram,
       expirationDate,
       owner,
       user1,
@@ -24,17 +24,18 @@ describe("NonExpirable Promotion Contract", function () {
 
     // Create a new promo via the nonExpirable factory
     const unkownData = 0;
-    await nonExpirableFactory.createNewPromotion(
+    const loyaltyProgramAddress = await loyaltyProgram.getAddress();
+    await nonExpirableFactory.instance.createNewPromotion(
       "NonExpirable",
       "EXP",
       "ipfs://uri",
-      meedProgram.address,
+      loyaltyProgramAddress,
       unkownData,
-      promoType.badges
+      promoType.badges,
     );
 
     // Check the new state  (1 promo)
-    const allPromos = await meedProgram.getAllPromotions();
+    const allPromos = await loyaltyProgram.getAllPromotions();
     expect(allPromos.length).to.equal(1);
 
     const nonExpirable = await ethers.getContractAt("NonExpirable", allPromos[0].promotionAddress);
@@ -42,9 +43,9 @@ describe("NonExpirable Promotion Contract", function () {
     return {
       adminRegistry,
       subscriptions,
-      meedProgramFactory,
+      loyaltyProgramFactory,
       nonExpirableFactory,
-      meedProgram,
+      loyaltyProgram,
       nonExpirable,
       expirationDate,
       owner,
@@ -56,10 +57,10 @@ describe("NonExpirable Promotion Contract", function () {
   }
 
   it("should initialise all factories contract correctly", async () => {
-    const { meedProgramFactory, nonExpirableFactory, nonExpirable, owner, admin } =
+    const { loyaltyProgramFactory, nonExpirableFactory, nonExpirable, owner, admin } =
       await loadFixture(deployFixture);
 
-    expect(await meedProgramFactory.factories(1)).to.equal(nonExpirableFactory.address);
+    expect(await loyaltyProgramFactory.instance.factories(1)).to.equal(nonExpirableFactory.address);
     expect(await nonExpirable.name()).to.equal("NonExpirable");
     expect(await nonExpirable.symbol()).to.equal("EXP");
     expect(await nonExpirable.owner()).to.equal(owner.address);
@@ -71,7 +72,7 @@ describe("NonExpirable Promotion Contract", function () {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   it("should mint a new NFT", async () => {
-    const { subscriptions, meedProgram, nonExpirable, user1 } = await loadFixture(deployFixture);
+    const { subscriptions, loyaltyProgram, nonExpirable, user1 } = await loadFixture(deployFixture);
 
     const initialTokenId = 0;
     const lvlMin = 0;
@@ -79,21 +80,21 @@ describe("NonExpirable Promotion Contract", function () {
     // Should revert if not susbcribed
     await expect(nonExpirable.safeMint(user1.address, lvlMin)).to.be.revertedWithCustomError(
       nonExpirable,
-      "SubscriberChecks__PleaseSubscribeToProOrEnterpriseFirst"
+      "SubscriberChecks__PleaseSubscribeToProOrEnterpriseFirst",
     );
 
     // Subscribe owner, then try again
-    await subscriptions.subscribe(plan.pro, false, { value: pricePerPlan.pro });
+    await subscriptions.instance.subscribe(plan.pro, false, { value: pricePerPlan.pro });
 
     // Should revert if user doesn't exist yet
-    // (The user should have been added automatically to the Meed program anyway after a purchase)
+    // (The user should have been added automatically to the Loyalty program anyway after a purchase)
     await expect(nonExpirable.safeMint(user1.address, lvlMin)).to.be.revertedWithCustomError(
       nonExpirable,
-      "NonExpirable__NonExistantUser"
+      "NonExpirable__NonExistantUser",
     );
 
-    // Add user to the Meed program
-    await meedProgram.mint(user1.address);
+    // Add user to the Loyalty program
+    await loyaltyProgram.mint(user1.address);
     await nonExpirable.safeMint(user1.address, lvlMin);
 
     const ownerOfToken = await nonExpirable.ownerOf(initialTokenId);
@@ -101,34 +102,38 @@ describe("NonExpirable Promotion Contract", function () {
   });
 
   it("should mint a batch of NFTs", async () => {
-    const { subscriptions, meedProgram, nonExpirable, user1, user2, user3 } = await loadFixture(
-      deployFixture
-    );
+    const { subscriptions, loyaltyProgram, nonExpirable, user1, user2, user3 } =
+      await loadFixture(deployFixture);
 
     const to = [user1.address, user2.address, user3.address];
     const lvlMin = 1;
 
-    // Subscribe owner, then add redeeeemable NFTs, then add users to the Meed program
-    await subscriptions.subscribe(plan.basic, false, { value: pricePerPlan.basic });
-    await meedProgram.mint(user1.address);
-    await meedProgram.mint(user2.address);
-    await meedProgram.mint(user3.address);
+    // Subscribe owner, then add redeeeemable NFTs, then add users to the Loyalty program
+    await subscriptions.instance.subscribe(plan.basic, false, { value: pricePerPlan.basic });
+    await loyaltyProgram.mint(user1.address);
+    await loyaltyProgram.mint(user2.address);
+    await loyaltyProgram.mint(user3.address);
 
     // Try batch minting without plan requirement
     await expect(nonExpirable.connect(user1).batchMint(to, lvlMin)).to.be.revertedWithCustomError(
       nonExpirable,
-      "Adminable__NotAuthorized"
+      "Adminable__NotAuthorized",
     );
 
     await expect(nonExpirable.batchMint(to, lvlMin)).to.be.revertedWithCustomError(
       nonExpirable,
-      "SubscriberChecks__PleaseSubscribeToEnterpriseFirst"
+      "SubscriberChecks__PleaseSubscribeToEnterpriseFirst",
     );
 
     // Upgrade plan, then try again
     const tokenId = 1;
-    const [, toPayMore] = await subscriptions.getRemainingTimeAndPrice(tokenId, plan.enterprise);
-    await subscriptions.changeSubscriptionPlan(tokenId, plan.enterprise, { value: toPayMore });
+    const [, toPayMore] = await subscriptions.instance.getRemainingTimeAndPrice(
+      tokenId,
+      plan.enterprise,
+    );
+    await subscriptions.instance.changeSubscriptionPlan(tokenId, plan.enterprise, {
+      value: toPayMore,
+    });
     await nonExpirable.batchMint(to, lvlMin);
 
     const ownerOfToken1 = await nonExpirable.ownerOf(0);
@@ -142,20 +147,19 @@ describe("NonExpirable Promotion Contract", function () {
   });
 
   it("should consume a ticket", async () => {
-    const { subscriptions, meedProgram, nonExpirable, user1, user2 } = await loadFixture(
-      deployFixture
-    );
+    const { subscriptions, loyaltyProgram, nonExpirable, user1, user2 } =
+      await loadFixture(deployFixture);
 
     const tokenId_0 = 0;
     const tokenId_1 = 1;
     const lvlMin = 0;
 
-    // Subscribe, hen add users to the Meed program
-    await subscriptions.subscribe(plan.enterprise, true, {
-      value: pricePerPlan.enterprise.mul(10),
+    // Subscribe, hen add users to the Loyalty program
+    await subscriptions.instance.subscribe(plan.enterprise, true, {
+      value: pricePerPlan.enterprise * 10n,
     });
-    await meedProgram.mint(user1.address);
-    await meedProgram.mint(user2.address);
+    await loyaltyProgram.mint(user1.address);
+    await loyaltyProgram.mint(user2.address);
 
     await nonExpirable.safeMint(user1.address, lvlMin);
     await nonExpirable.safeMint(user2.address, lvlMin);
@@ -172,16 +176,16 @@ describe("NonExpirable Promotion Contract", function () {
   });
 
   it("should return tickets per address", async () => {
-    const { subscriptions, meedProgram, nonExpirable, user1 } = await loadFixture(deployFixture);
+    const { subscriptions, loyaltyProgram, nonExpirable, user1 } = await loadFixture(deployFixture);
 
     const tokenId_0 = 0;
     const lvlMin = 0;
 
-    // Subscribe, hen add user to the Meed program
-    await subscriptions.subscribe(plan.enterprise, true, {
-      value: pricePerPlan.enterprise.mul(10),
+    // Subscribe, hen add user to the Loyalty program
+    await subscriptions.instance.subscribe(plan.enterprise, true, {
+      value: pricePerPlan.enterprise * 10n,
     });
-    await meedProgram.mint(user1.address);
+    await loyaltyProgram.mint(user1.address);
 
     await nonExpirable.safeMint(user1.address, lvlMin);
 

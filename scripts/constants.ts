@@ -15,7 +15,7 @@ export const collectibleFactoryAddress = "";
 export const bundlesFactoryAddress = "";
 
 // For Subscriptions NFTs
-export const subscriptions_name = "Meed Program Owner";
+export const subscriptions_name = "Loyalty Program Owner";
 export const subscriptions_symbol = "MPO";
 export const subscriptions_uris: [
   PromiseOrValue<string>,
