@@ -6,7 +6,6 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {PromoLib} from "../library/PromoLib.sol";
 import {ILoyaltyProgram} from "../interfaces/ILoyaltyProgram.sol";
 import {Errors} from "../utils/Errors.sol";
-import {AdminRegistry} from "../subscriptions/AdminRegistry.sol";
 
 import {Redeemable} from "../campaigns/Redeemable.sol";
 

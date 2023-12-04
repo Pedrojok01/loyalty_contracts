@@ -7,7 +7,6 @@ import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {IRedeemable} from "../interfaces/IRedeemable.sol";
 import {ICampaign} from "../interfaces/ICampaign.sol";
 import {TimeLimited} from "../utils/TimeLimited.sol";
-import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 import {LoyaltyProgram} from "../loyaltyProgram/LoyaltyProgram.sol";
 import {RedeemCodeLib} from "../library/RedeemCodeLib.sol";
 import {IStorage} from "../interfaces/IStorage.sol";

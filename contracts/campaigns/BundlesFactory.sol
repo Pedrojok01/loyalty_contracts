@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 
 import {PromoLib} from "../library/PromoLib.sol";
-import {PromoDataLib} from "../library/PromoDataLib.sol";
+import {CampaignDataLib} from "../library/CampaignDataLib.sol";
 import {Errors} from "../utils/Errors.sol";
 import {ILoyaltyProgram} from "../interfaces/ILoyaltyProgram.sol";
 
@@ -22,7 +22,7 @@ import {Bundles} from "../campaigns/Bundles.sol";
 
 contract BundlesFactory is Context, Errors {
   using PromoLib for PromoLib.Promotion;
-  using PromoDataLib for PromoDataLib.BundlesPromoData;
+  using CampaignDataLib for CampaignDataLib.BundlesPromoData;
 
   // address private immutable CONTROL_ADDRESS; // Subscriptions contract address
   // address private _adminRegistry;
@@ -61,7 +61,7 @@ contract BundlesFactory is Context, Errors {
   ) external returns (address newPromotion) {
     if (_type != PromoLib.PromotionsType.Packs) revert BundlesFactory_TypeNotSupported();
 
-    PromoDataLib.BundlesPromoData memory data = PromoDataLib.BundlesPromoData({
+    CampaignDataLib.BundlesPromoData memory data = CampaignDataLib.BundlesPromoData({
       _startDate: startDate,
       _expirationDate: endDate,
       _maxLimit: maxLimit,

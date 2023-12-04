@@ -2,10 +2,8 @@
 pragma solidity ^0.8.20;
 
 // import "hardhat/console.sol";
-import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AdminRegistry} from "../subscriptions/AdminRegistry.sol";
-import {Errors} from "./Errors.sol";
 import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 import {IStorage} from "../interfaces/IStorage.sol";
 

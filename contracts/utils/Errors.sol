@@ -49,6 +49,7 @@ contract Errors {
   error Bundles__ValuesDontMatch();
   error Bundles__TokenNotOwned();
   error Bundles__TokenIdDoesntMatch();
+  error Bundles__QueryForNonExistantToken();
 
   // Redeemable
   error Redeemable__TokenNotRedeemable(uint256 id);

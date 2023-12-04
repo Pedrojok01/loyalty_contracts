@@ -8,7 +8,6 @@ import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/
 import {Adminable} from "../utils/Adminable.sol";
 import {Activation} from "../utils/Activation.sol";
 import {INonExpirable} from "../interfaces/INonExpirable.sol";
-import {SubscriberChecks} from "../subscriptions/SubscriberChecks.sol";
 import {LoyaltyProgram} from "../loyaltyProgram/LoyaltyProgram.sol";
 import {ICampaign} from "../interfaces/ICampaign.sol";
 
