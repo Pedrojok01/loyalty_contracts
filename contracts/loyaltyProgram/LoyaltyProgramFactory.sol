@@ -35,7 +35,7 @@ contract LoyaltyProgramFactory is Context, Errors, Ownable {
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
-  address private _storage;
+  address private immutable _STORAGE;
   // address private immutable CONTROL_ADDRESS; // Subscriptions contract address
   // address private _adminRegistry;
 
@@ -80,7 +80,7 @@ contract LoyaltyProgramFactory is Context, Errors, Ownable {
 
   // solhint-disable-next-line no-unused-vars
   constructor(address storage_, address[] memory _factories, address _owner) Ownable(_owner) {
-    _storage = storage_;
+    _STORAGE = storage_;
     factories = _factories;
 
     uint256 length = _factories.length;
@@ -309,9 +309,9 @@ contract LoyaltyProgramFactory is Context, Errors, Ownable {
   ) private returns (ILoyaltyProgram newLoyaltyProgram) {
     address _owner = _msgSender();
 
-    AdminRegistry(IStorage(_storage).getAdminRegistry()).registerOwner(_owner);
+    AdminRegistry(IStorage(_STORAGE).getAdminRegistry()).registerOwner(_owner);
     newLoyaltyProgram = ILoyaltyProgram(
-      new LoyaltyProgram(_name, _symbol, _uri, _tierTracker, _owner, amounts, _storage, factories)
+      new LoyaltyProgram(_name, _symbol, _uri, _tierTracker, _owner, amounts, _STORAGE, factories)
     );
 
     loyaltyIDPerOwner[_owner].push(_loyaltyId);

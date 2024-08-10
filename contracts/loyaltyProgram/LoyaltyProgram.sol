@@ -251,7 +251,7 @@ contract LoyaltyProgram is ILoyaltyProgram, ERC721, ERC721Enumerable, Adminable 
     }
     if (!status) {
       for (uint256 i = 0; i < totalPromotions; ) {
-        if (promoLib.promotions[i].active == false) {
+        if (!promoLib.promotions[i].active) {
           activePromotions[count] = promoLib.promotions[i];
           count++;
         }

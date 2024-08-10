@@ -53,7 +53,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
                                         STORAGE
     ///////////////////////////////////////////////////////////////////////////////*/
 
-  address private immutable SUBSCRIPTIONS_CONTRACT;
+  address private immutable SUBSCRIPTIONS_ADDRESS;
   LoyaltyProgram private immutable LOYALTY_PROGRAM;
   RedeemCodeLib.RedeemCodeStorage internal redeemCodeStorage;
 
@@ -90,7 +90,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
       revert Redeemable__InvalidDate();
     }
     _setURI(_uri);
-    SUBSCRIPTIONS_CONTRACT = IStorage(_storageAddress).getSubscriptionControl();
+    SUBSCRIPTIONS_ADDRESS = IStorage(_storageAddress).getSubscriptionControl();
     LOYALTY_PROGRAM = LoyaltyProgram(_loyaltyProgram);
   }
 

@@ -23,10 +23,10 @@ contract CollectiblesFactory is Context, Errors {
 
   // address private immutable CONTROL_ADDRESS; // Subscriptions contract address
   // address private _adminRegistry;
-  address private _storage;
+  address private immutable _STORAGE;
 
   constructor(address storage_) {
-    _storage = storage_;
+    _STORAGE = storage_;
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -55,7 +55,7 @@ contract CollectiblesFactory is Context, Errors {
       revert CollectiblesFactory__TypeNotSupported();
 
     newPromotion = address(
-      new Collectibles(uri, _msgSender(), startDate, endDate, loyaltyProgram, _storage)
+      new Collectibles(uri, _msgSender(), startDate, endDate, loyaltyProgram, _STORAGE)
     );
 
     ILoyaltyProgram program = ILoyaltyProgram(loyaltyProgram);

@@ -13,10 +13,10 @@ import {Errors} from "../utils/Errors.sol";
  */
 
 contract SubscriberChecks is Context, Errors {
-  address private immutable SUBSCRIPTIONS_CONTRACT;
+  address private immutable SUBSCRIPTIONS_ADDRESS;
 
   constructor(address _subscriptionsContract) {
-    SUBSCRIPTIONS_CONTRACT = _subscriptionsContract;
+    SUBSCRIPTIONS_ADDRESS = _subscriptionsContract;
   }
 
   modifier onlySubscribers() {
@@ -39,7 +39,7 @@ contract SubscriberChecks is Context, Errors {
    * @param subscriber Address of the loyaltyProgram owner
    */
   function _getSubscriberPlan(address subscriber) internal returns (uint256) {
-    (bool success, bytes memory data) = SUBSCRIPTIONS_CONTRACT.call(
+    (bool success, bytes memory data) = SUBSCRIPTIONS_ADDRESS.call(
       abi.encodeWithSignature("getSubscriberPlan(address)", subscriber)
     );
 
@@ -55,10 +55,10 @@ contract SubscriberChecks is Context, Errors {
    * @param subscriber Address of the loyaltyProgram owner
    */
   function _onlySubscribers(address subscriber) internal {
-    (bool success, bytes memory result) = SUBSCRIPTIONS_CONTRACT.call(
+    (bool success, bytes memory result) = SUBSCRIPTIONS_ADDRESS.call(
       abi.encodeWithSignature("isPaidSubscriber(address)", subscriber)
     );
-    if (!success || abi.decode(result, (bool)) == false) {
+    if (!success || !abi.decode(result, (bool))) {
       revert SubscriberChecks__PleaseSubscribeFirst();
     }
   }
@@ -68,10 +68,10 @@ contract SubscriberChecks is Context, Errors {
    * @param subscriber Address of the loyaltyProgram owner
    */
   function _onlyProOrEnterprise(address subscriber) internal {
-    (bool success, bytes memory result) = SUBSCRIPTIONS_CONTRACT.call(
+    (bool success, bytes memory result) = SUBSCRIPTIONS_ADDRESS.call(
       abi.encodeWithSignature("isProOrEnterprise(address)", subscriber)
     );
-    if (!success || abi.decode(result, (bool)) == false) {
+    if (!success || !abi.decode(result, (bool))) {
       revert SubscriberChecks__PleaseSubscribeToProOrEnterpriseFirst();
     }
   }
@@ -81,10 +81,10 @@ contract SubscriberChecks is Context, Errors {
    * @param subscriber Address of the loyaltyProgram owner
    */
   function _onlyEnterprise(address subscriber) internal {
-    (bool success, bytes memory result) = SUBSCRIPTIONS_CONTRACT.call(
+    (bool success, bytes memory result) = SUBSCRIPTIONS_ADDRESS.call(
       abi.encodeWithSignature("isEnterprise(address)", subscriber)
     );
-    if (!success || abi.decode(result, (bool)) == false) {
+    if (!success || !abi.decode(result, (bool))) {
       revert SubscriberChecks__PleaseSubscribeToEnterpriseFirst();
     }
   }

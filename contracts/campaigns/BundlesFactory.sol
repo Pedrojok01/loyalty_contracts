@@ -26,10 +26,10 @@ contract BundlesFactory is Context, Errors {
 
   // address private immutable CONTROL_ADDRESS; // Subscriptions contract address
   // address private _adminRegistry;
-  address private _storage;
+  address private immutable _STORAGE;
 
   constructor(address storage_) {
-    _storage = storage_;
+    _STORAGE = storage_;
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -69,7 +69,7 @@ contract BundlesFactory is Context, Errors {
       _owner: _msgSender()
     });
 
-    newPromotion = address(new Bundles(name, symbol, uri, data, _storage));
+    newPromotion = address(new Bundles(name, symbol, uri, data, _STORAGE));
 
     ILoyaltyProgram program = ILoyaltyProgram(loyaltyProgram);
     program.addPromotion(newPromotion, _type, uint128(startDate), uint128(endDate));

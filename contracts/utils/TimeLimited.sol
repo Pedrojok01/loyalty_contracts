@@ -13,7 +13,7 @@ import {IStorage} from "../interfaces/IStorage.sol";
  */
 
 contract TimeLimited is Activation, Adminable {
-  address private immutable SUBSCRIPTIONS_CONTRACT;
+  address private immutable SUBSCRIPTIONS_ADDRESS;
   uint128 private startDate;
   uint128 private endDate; // 0 = no expiration
 
@@ -28,7 +28,7 @@ contract TimeLimited is Activation, Adminable {
       revert TimeLimited__InvalidDate();
     }
 
-    SUBSCRIPTIONS_CONTRACT = IStorage(_storageAddress).getSubscriptionControl();
+    SUBSCRIPTIONS_ADDRESS = IStorage(_storageAddress).getSubscriptionControl();
     startDate = uint128(_startDate);
     endDate = uint128(_endDate);
   }
@@ -76,13 +76,13 @@ contract TimeLimited is Activation, Adminable {
 
   function _creditsCheck() internal {
     if (_msgSender() == admin()) {
-      (bool success, bytes memory result) = SUBSCRIPTIONS_CONTRACT.call(
+      (bool success, bytes memory result) = SUBSCRIPTIONS_ADDRESS.call(
         abi.encodeWithSignature("getUserCredits(address)", owner())
       );
       if (!success || abi.decode(result, (uint256)) < 1) {
         revert Credits__InsufficientCredits();
       } else {
-        (bool removalSuccess, ) = SUBSCRIPTIONS_CONTRACT.call(
+        (bool removalSuccess, ) = SUBSCRIPTIONS_ADDRESS.call(
           abi.encodeWithSignature("_autoRemoveUserCredits(address)", owner())
         );
         if (!removalSuccess) revert Credits__ErrorWhileRemovingCredit();
