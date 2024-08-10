@@ -44,7 +44,9 @@ contract AdminRegistry is Context, Errors {
   event UserOptOutStatusChanged(address indexed user, bool optedOut);
 
   constructor(address newAdmin) {
-    require(newAdmin != address(0), "AdminRegistry: address zero");
+    if (newAdmin == address(0)) {
+      revert AdminRegistry__AddressZero();
+    }
     _admin = newAdmin;
   }
 

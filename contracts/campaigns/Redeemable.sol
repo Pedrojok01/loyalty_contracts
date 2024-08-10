@@ -54,7 +54,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
     ///////////////////////////////////////////////////////////////////////////////*/
 
   address private immutable SUBSCRIPTIONS_CONTRACT;
-  LoyaltyProgram private immutable loyaltyProgram;
+  LoyaltyProgram private immutable LOYALTY_PROGRAM;
   RedeemCodeLib.RedeemCodeStorage internal redeemCodeStorage;
 
   enum RedeemableType {
@@ -86,10 +86,12 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
     ERC1155(_uri)
     TimeLimited(_startDate, _endDate, _storageAddress, _owner)
   {
-    require(_endDate == 0 || _endDate > block.timestamp, "Redeemable: invalid date");
+    if (_endDate != 0 && _endDate <= block.timestamp) {
+      revert Redeemable__InvalidDate();
+    }
     _setURI(_uri);
     SUBSCRIPTIONS_CONTRACT = IStorage(_storageAddress).getSubscriptionControl();
-    loyaltyProgram = LoyaltyProgram(_loyaltyProgram);
+    LOYALTY_PROGRAM = LoyaltyProgram(_loyaltyProgram);
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -116,7 +118,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
     @param to Address which will receive the limited NFTs;
     */
   function autoMint(uint256 id, address to) external onlyOngoing onlyActive {
-    if (_msgSender() != address(loyaltyProgram)) revert Redeemable__NotCalledFromContract();
+    if (_msgSender() != address(LOYALTY_PROGRAM)) revert Redeemable__NotCalledFromContract();
     _onlySubscribers(owner());
     _mintRedeemable(id, to);
   }
@@ -170,13 +172,14 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
   }
 
   function burn(address account, uint256 id, uint256 value) public {
-    require(
-      account == _msgSender() ||
-        isApprovedForAll(account, _msgSender()) ||
-        _msgSender() == owner() ||
-        _msgSender() == admin(),
-      "ERC1155: not owner or approved"
-    );
+    if (
+      account != _msgSender() &&
+      !isApprovedForAll(account, _msgSender()) &&
+      _msgSender() != owner() &&
+      _msgSender() != admin()
+    ) {
+      revert Redeemable__NotOwnerOrApproved();
+    }
 
     _burn(account, id, value);
   }
@@ -250,7 +253,7 @@ contract Redeemable is ERC1155, IRedeemable, ICampaign, TimeLimited {
   /// @dev Common function to mint a Redeemable NFT;
   function _mintRedeemable(uint256 id, address to) private {
     if (!_isValidId(id)) revert Redeemable__WrongId();
-    uint8 currentLevel = loyaltyProgram.getMemberLevel(to);
+    uint8 currentLevel = LOYALTY_PROGRAM.getMemberLevel(to);
     if (currentLevel == 0) revert Redeemable__NonExistantUser();
 
     redeemableNFTs[id].circulatingSupply++;

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
+// solhint-disable no-unused-vars
 pragma solidity ^0.8.20;
 
 // import "hardhat/console.sol";
@@ -86,8 +87,12 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
     string[4] memory uris_,
     address adminRegistryAddress,
     address owner_
-  ) ERC721(name_, symbol_) Credits(adminRegistryAddress, owner_) {
-    require(uris_.length == 4, "Subscriptions: Invalid URIs length");
+  )
+    // solhint-disable-next-line no-unused-vars
+    ERC721(name_, symbol_)
+    Credits(adminRegistryAddress, owner_)
+  {
+    if (uris_.length != 4) revert Subscriptions__InvalidURIsLength();
     _initialize();
     baseURIs = uris_;
   }
@@ -222,7 +227,7 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
     if (msg.value > plan.price) {
       uint256 excessAmount = msg.value - plan.price;
       (bool success, ) = _msgSender().call{value: excessAmount}("");
-      require(success, "Subscriptions: Excess payment refund failed");
+      if (!success) revert Subscriptions__ExcessPaymentRefundFailed();
     }
   }
 
@@ -331,13 +336,13 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
    * @dev Calculates the remaining time and cost difference of a subscription given the tokenId and plan
    * @param tokenId the id of the subscription NFT
    * @param plan the chosen plan of the subscription (Free, Basic, Pro, Enterprise)
-   * @return the remaining time left in the subscription
-   * @return the cost difference of the remaining subscription time
+   * @return remainingTime the remaining time left in the subscription
+   * @return cost the cost difference of the remaining subscription time
    */
   function getRemainingTimeAndPrice(
     uint256 tokenId,
     Plan plan
-  ) public view returns (uint256, uint256) {
+  ) public view returns (uint256 remainingTime, uint256 cost) {
     if (tokenId == 0) revert Subscriptions__NoSubscriptionFound(tokenId);
 
     address _owner = ownerOf(tokenId);
@@ -347,21 +352,22 @@ contract Subscriptions is ERC721, ISubscriptions, Credits {
       return (0, 0);
     }
 
-    uint256 remainingTime = temp.expiration - block.timestamp;
+    remainingTime = temp.expiration - block.timestamp;
     uint256 remainingTimeInDay = (remainingTime + TIME_UNIT_CONVERSION) / 1 days; // add 2 minutes buffer to round up
 
     uint256 baseValue = (remainingTimeInDay * 1000) / 30;
     uint256 newCost = fees[plan] * baseValue;
     uint256 leftOnInitialPayment = fees[temp.plan] * baseValue;
 
-    uint256 cost;
     if (newCost >= leftOnInitialPayment) {
       cost = newCost - leftOnInitialPayment;
     } else {
       cost = 0;
     }
 
-    return (remainingTime, cost / 1000);
+    cost = cost / 1000;
+
+    return (remainingTime, cost);
   }
 
   /**

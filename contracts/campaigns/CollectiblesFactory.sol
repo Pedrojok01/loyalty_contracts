@@ -52,7 +52,7 @@ contract CollectiblesFactory is Context, Errors {
     PromoLib.PromotionsType _type
   ) external returns (address newPromotion) {
     if (_type != PromoLib.PromotionsType.Stamps && _type != PromoLib.PromotionsType.Paninis)
-      revert CollectiblesFactory_TypeNotSupported();
+      revert CollectiblesFactory__TypeNotSupported();
 
     newPromotion = address(
       new Collectibles(uri, _msgSender(), startDate, endDate, loyaltyProgram, _storage)

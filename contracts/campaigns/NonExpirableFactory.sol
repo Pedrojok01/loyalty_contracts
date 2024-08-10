@@ -55,7 +55,7 @@ contract NonExpirableFactory is Context, Errors {
     PromoLib.PromotionsType _type
   ) external returns (address newPromotion) {
     if (_type != PromoLib.PromotionsType.VIPpass && _type != PromoLib.PromotionsType.Badges)
-      revert NonExpirableFactory_TypeNotSupported();
+      revert NonExpirableFactory__TypeNotSupported();
 
     newPromotion = address(
       new NonExpirable(name, symbol, uri, _msgSender(), data, loyaltyProgram, _storage)

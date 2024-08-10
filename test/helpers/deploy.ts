@@ -83,6 +83,7 @@ export async function deploy() {
     bundlesFactory,
     loyaltyProgram,
     expirationDate,
+    redeemCodeLib,
     owner,
     user1,
     user2,

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
+// solhint-disable no-unused-vars
 pragma solidity ^0.8.20;
 
 // import "hardhat/console.sol";
@@ -105,7 +106,7 @@ contract LoyaltyProgram is ILoyaltyProgram, ERC721, ERC721Enumerable, Adminable 
     _baseURIextended = _uri;
     factories = _factories;
 
-    for (uint i = 0; i < _factories.length; ) {
+    for (uint256 i = 0; i < _factories.length; ) {
       isFactory[_factories[i]] = true;
       unchecked {
         i++;
@@ -131,7 +132,7 @@ contract LoyaltyProgram is ILoyaltyProgram, ERC721, ERC721Enumerable, Adminable 
   }
 
   function updateMember(address member, uint32 amountVolume) external onlyOwnerOrAdmin {
-    if (amountVolume == 0) revert LoyaltyProgram_AmountVolumeIsZero();
+    if (amountVolume == 0) revert LoyaltyProgram__AmountVolumeIsZero();
     _creditsCheck();
     _updateMember(member, amountVolume);
   }
@@ -308,12 +309,12 @@ contract LoyaltyProgram is ILoyaltyProgram, ERC721, ERC721Enumerable, Adminable 
     uint256 _startDate,
     uint256 _endDate
   ) external onlyFactory {
-    uint promoCount = promoLib.promotions.length;
-    uint limit = _getCurrentPromotionLimit();
+    uint256 promoCount = promoLib.promotions.length;
+    uint256 limit = _getCurrentPromotionLimit();
 
     // If promo limit reached, try to replace an expired promotion
     if (promoCount >= limit) {
-      for (uint i = 0; i < promoCount; ) {
+      for (uint256 i = 0; i < promoCount; ) {
         if (!_isPromotionActiveAndNotExpired(promoLib.promotions[i])) {
           PromoLib._addPromotion(promotion, _type, _startDate, _endDate, promoLib);
           promoLib.promotionIndex[promotion] = i;
@@ -395,7 +396,7 @@ contract LoyaltyProgram is ILoyaltyProgram, ERC721, ERC721Enumerable, Adminable 
 
   function _addMember(address to) private {
     if (membershipPerAddress[to].level != 0) {
-      revert LoyaltyProgram_AlreadyMember();
+      revert LoyaltyProgram__AlreadyMember();
     }
 
     uint40 tokenId = _tokenIdCounter;
@@ -476,7 +477,7 @@ contract LoyaltyProgram is ILoyaltyProgram, ERC721, ERC721Enumerable, Adminable 
       abi.encodeWithSignature("getCurrentPromotionLimit(address)", owner())
     );
 
-    require(success, "LoyaltyProgram: getCurrentPromotionLimit failed");
+    if (!success) revert LoyaltyProgram__GetCurrentPromotionLimitFailed();
     return abi.decode(data, (uint256));
   }
 

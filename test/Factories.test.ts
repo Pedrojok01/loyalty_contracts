@@ -178,7 +178,7 @@ describe("Promotions Factories Contract", function () {
       ),
     ).to.be.revertedWithCustomError(
       loyaltyProgramFactory.instance,
-      "LoyaltyProgramFactory_NameAlreadyTaken",
+      "LoyaltyProgramFactory__NameAlreadyTaken",
     );
   });
 
@@ -243,7 +243,7 @@ describe("Promotions Factories Contract", function () {
       loyaltyProgramFactory.instance.blacklistContract(loyaltyProgramAddress),
     ).to.be.revertedWithCustomError(
       loyaltyProgramFactory.instance,
-      "LoyaltyProgramFactory_AlreadyBlacklisted",
+      "LoyaltyProgramFactory__AlreadyBlacklisted",
     );
 
     await expect(
@@ -264,7 +264,7 @@ describe("Promotions Factories Contract", function () {
       loyaltyProgramFactory.instance.unblacklistContract(loyaltyProgramAddress),
     ).to.be.revertedWithCustomError(
       loyaltyProgramFactory.instance,
-      "LoyaltyProgramFactory_NotBlacklisted",
+      "LoyaltyProgramFactory__NotBlacklisted",
     );
   });
 
@@ -416,7 +416,7 @@ describe("Promotions Factories Contract", function () {
         10_000,
         promoType.freeProducts,
       ),
-    ).to.be.revertedWithCustomError(bundlesFactory.instance, "BundlesFactory_TypeNotSupported");
+    ).to.be.revertedWithCustomError(bundlesFactory.instance, "BundlesFactory__TypeNotSupported");
 
     const receipt = await bundlesFactory.instance.createNewPromotion(
       "SuperPromo",
@@ -497,7 +497,7 @@ describe("Promotions Factories Contract", function () {
       loyaltyProgramFactory.instance.updateFactory(wrongIndex, collectiblesFactory.address),
     ).to.be.revertedWithCustomError(
       loyaltyProgramFactory.instance,
-      "LoyaltyProgramFactory_InvalidIndex",
+      "LoyaltyProgramFactory__InvalidIndex",
     );
 
     const receipt = await loyaltyProgramFactory.instance.updateFactory(
@@ -527,7 +527,7 @@ describe("Promotions Factories Contract", function () {
       loyaltyProgramFactory.instance.removeFactory(wrongIndex),
     ).to.be.revertedWithCustomError(
       loyaltyProgramFactory.instance,
-      "LoyaltyProgramFactory_InvalidIndex",
+      "LoyaltyProgramFactory__InvalidIndex",
     );
 
     const receipt = await loyaltyProgramFactory.instance.removeFactory(indexToDelete);

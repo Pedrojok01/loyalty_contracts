@@ -21,9 +21,13 @@ contract TimeLimited is Activation, Adminable {
     uint256 _startDate,
     uint256 _endDate,
     address _storageAddress,
+    // solhint-disable-next-line no-unused-vars
     address owner_
   ) Adminable(owner_, _storageAddress) {
-    require(endDate == 0 || _startDate < _endDate, "TimeLimited: invalid date");
+    if (endDate != 0 && _startDate >= _endDate) {
+      revert TimeLimited__InvalidDate();
+    }
+
     SUBSCRIPTIONS_CONTRACT = IStorage(_storageAddress).getSubscriptionControl();
     startDate = uint128(_startDate);
     endDate = uint128(_endDate);

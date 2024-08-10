@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
+// solhint-disable no-unused-vars
 pragma solidity ^0.8.20;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -38,7 +39,7 @@ contract NonExpirable is ERC721, INonExpirable, ICampaign, Adminable, Activation
     ///////////////////////////////////////////////////////////////////////////////*/
 
   string private _baseURIextended;
-  LoyaltyProgram private immutable loyaltyProgram;
+  LoyaltyProgram private immutable LOYALTY_PROGRAM;
   uint40 private _tokenIdCounter;
 
   struct Ticket {
@@ -59,8 +60,7 @@ contract NonExpirable is ERC721, INonExpirable, ICampaign, Adminable, Activation
     address _storageAddress
   ) ERC721(_name, _symbol) Adminable(_owner, _storageAddress) {
     _baseURIextended = _uri;
-    loyaltyProgram = LoyaltyProgram(_loyaltyProgram);
-    // transferOwnership(_owner);
+    LOYALTY_PROGRAM = LoyaltyProgram(_loyaltyProgram);
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -73,7 +73,7 @@ contract NonExpirable is ERC721, INonExpirable, ICampaign, Adminable, Activation
    * @param lvlMin Level required to mint the NFT (set to 0 for no level requirement);
    */
   function safeMint(address to, uint256 lvlMin) public onlyOwnerOrAdmin onlyProOrEnterprise {
-    uint8 currentLevel = loyaltyProgram.getMemberLevel(to);
+    uint8 currentLevel = LOYALTY_PROGRAM.getMemberLevel(to);
     if (currentLevel == 0) revert NonExpirable__NonExistantUser();
     if (currentLevel < uint8(lvlMin)) revert NonExpirable__InsufficientLevel();
 
@@ -133,7 +133,7 @@ contract NonExpirable is ERC721, INonExpirable, ICampaign, Adminable, Activation
 
   function autoMint(uint256 id, address to) external pure {
     // @todo implement conditional achievements system ?
-    revert("Not needed in this contract");
+    revert NonExpirable__NotNeededHere();
   }
 
   /*///////////////////////////////////////////////////////////////////////////////

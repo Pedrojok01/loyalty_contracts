@@ -38,6 +38,7 @@ contract Credits is Ownable, Errors {
   event CreditsAdded(address indexed user, uint256 totalCredits);
   event CreditsDeducted(address indexed user, uint256 totalCredits);
 
+  // solhint-disable-next-line no-unused-vars
   constructor(address adminRegistryAddress, address owner_) Ownable(owner_) {
     ADMIN_REGISTRY_CONTRACT = adminRegistryAddress;
     _initializeCreditsPlan();
@@ -100,6 +101,7 @@ contract Credits is Ownable, Errors {
   }
 
   function _autoRemoveUserCredits(address user) external {
+    // solhint-disable-next-line avoid-tx-origin
     if (tx.origin != AdminRegistry(ADMIN_REGISTRY_CONTRACT).admin())
       revert AdminRegistry__NotAdmin();
 

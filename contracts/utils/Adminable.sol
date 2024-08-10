@@ -21,11 +21,16 @@ contract Adminable is Ownable, SubscriberChecks {
   AdminRegistry private _adminRegistry;
 
   constructor(
+    // solhint-disable-next-line no-unused-vars
     address owner_,
     address _storageAddress
   ) SubscriberChecks(IStorage(_storageAddress).getSubscriptionControl()) Ownable(owner_) {
     address adminRegistry_ = IStorage(_storageAddress).getAdminRegistry();
-    require(adminRegistry_ != address(0), "Adminable: address zero");
+
+    if (adminRegistry_ == address(0)) {
+      revert Adminable__AddressZero();
+    }
+
     _adminRegistry = AdminRegistry(adminRegistry_);
   }
 
@@ -67,10 +72,12 @@ contract Adminable is Ownable, SubscriberChecks {
   }
 
   function _isSenderOwner() private view returns (bool) {
+    // solhint-disable-next-line avoid-tx-origin
     return _msgSender() == owner() || tx.origin == owner();
   }
 
   function _isSenderAdmin() private view returns (bool) {
+    // solhint-disable-next-line avoid-tx-origin
     return _msgSender() == _adminRegistry.admin() || tx.origin == _adminRegistry.admin();
   }
 }

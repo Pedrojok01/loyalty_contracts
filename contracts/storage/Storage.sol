@@ -22,6 +22,7 @@ contract Storage is Ownable {
   event AdminRegistryAddressChanged(address indexed newAddress);
   event SubscriptionControlAddressChanged(address indexed newAddress);
 
+  // solhint-disable-next-line no-unused-vars
   constructor(address adminRegistry_, address subscription_, address owner_) Ownable(owner_) {
     if (adminRegistry_ == address(0) || subscription_ == address(0)) {
       revert Storage_AddressZero();

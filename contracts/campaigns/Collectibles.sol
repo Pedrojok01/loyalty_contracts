@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
+// solhint-disable no-unused-vars
 pragma solidity ^0.8.20;
 
 // import "hardhat/console.sol";
@@ -19,7 +20,7 @@ import {ICampaign} from "../interfaces/ICampaign.sol";
  */
 
 contract Collectibles is ERC1155, ICampaign, TimeLimited {
-  LoyaltyProgram private immutable loyaltyProgram;
+  LoyaltyProgram private immutable LOYALTY_PROGRAM;
   uint256 private constant MAX_IDS = 64;
   uint40 private _collectibleCounter;
 
@@ -33,16 +34,14 @@ contract Collectibles is ERC1155, ICampaign, TimeLimited {
     address _loyaltyProgram,
     address _storageAddress
   ) ERC1155("") TimeLimited(_startDate, _expirationDate, _storageAddress, _owner) {
-    require(uris.length <= MAX_IDS, "CollectibleNFT: Too many URIs.");
-    require(
-      _expirationDate == 0 || _expirationDate > block.timestamp,
-      "Collectibles: invalid date"
-    );
+    if (uris.length > MAX_IDS) revert Collectibles__TooManyURIs();
+    if (_expirationDate != 0 && _expirationDate <= block.timestamp) {
+      revert Collectibles__InvalidDate();
+    }
     for (uint256 i = 0; i < uris.length; i++) {
       _uris[i] = uris[i];
     }
-    loyaltyProgram = LoyaltyProgram(_loyaltyProgram);
-    // transferOwnership(_owner);
+    LOYALTY_PROGRAM = LoyaltyProgram(_loyaltyProgram);
   }
 
   function uri(uint256 tokenId) public view override returns (string memory) {
@@ -65,7 +64,7 @@ contract Collectibles is ERC1155, ICampaign, TimeLimited {
     @param to Address which will receive the limited NFTs;
     */
   function autoMint(uint256 id, address to) external onlyOngoing onlyActive {
-    if (_msgSender() != address(loyaltyProgram)) revert Collectibles__NotCalledFromContract();
+    if (_msgSender() != address(LOYALTY_PROGRAM)) revert Collectibles__NotCalledFromContract();
     _onlySubscribers(owner());
 
     if (id >= MAX_IDS) revert Collectibles__InvalidTokenId();
@@ -73,9 +72,9 @@ contract Collectibles is ERC1155, ICampaign, TimeLimited {
   }
 
   function redeemReward(address account) public {
-    require(account != address(0), "CollectibleNFT: Invalid account address.");
+    if (account == address(0)) revert Collectibles__InvalidAccountAddress();
     for (uint256 i = 0; i < MAX_IDS; i++) {
-      require(balanceOf(account, i) > 0, "CollectibleNFT: Missing NFT.");
+      if (balanceOf(account, i) == 0) revert Collectibles__MissingNFT();
     }
 
     for (uint256 i = 0; i < MAX_IDS; i++) {

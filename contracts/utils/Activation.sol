@@ -42,6 +42,7 @@ contract Activation is Errors {
    */
   function _activate(address promoAddress) internal onlyInactive {
     active = true;
+    // solhint-disable-next-line avoid-tx-origin
     emit Activated(tx.origin, promoAddress);
   }
 
@@ -50,6 +51,7 @@ contract Activation is Errors {
    */
   function _deactivate(address promoAddress) internal onlyActive {
     active = false;
+    // solhint-disable-next-line avoid-tx-origin
     emit Deactivated(tx.origin, promoAddress);
   }
 

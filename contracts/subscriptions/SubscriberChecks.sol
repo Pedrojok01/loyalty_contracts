@@ -38,7 +38,7 @@ contract SubscriberChecks is Context, Errors {
    * @dev Return the subscription plan of a subscriber.
    * @param subscriber Address of the loyaltyProgram owner
    */
-  function _getSubscriberPlan(address subscriber) internal returns (uint) {
+  function _getSubscriberPlan(address subscriber) internal returns (uint256) {
     (bool success, bytes memory data) = SUBSCRIPTIONS_CONTRACT.call(
       abi.encodeWithSignature("getSubscriberPlan(address)", subscriber)
     );

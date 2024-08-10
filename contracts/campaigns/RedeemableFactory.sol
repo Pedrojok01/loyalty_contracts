@@ -54,7 +54,7 @@ contract RedeemableFactory is Context, Errors {
     if (
       _type != PromoLib.PromotionsType.DiscountVouchers &&
       _type != PromoLib.PromotionsType.FreeProducts
-    ) revert RedeemableFactory_TypeNotSupported();
+    ) revert RedeemableFactory__TypeNotSupported();
 
     newPromotion = address(
       new Redeemable(uri, _msgSender(), startDate, endDate, loyaltyProgram, _storage)

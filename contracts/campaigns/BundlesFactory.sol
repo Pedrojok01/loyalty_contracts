@@ -59,7 +59,7 @@ contract BundlesFactory is Context, Errors {
     uint256 maxLimit,
     PromoLib.PromotionsType _type
   ) external returns (address newPromotion) {
-    if (_type != PromoLib.PromotionsType.Packs) revert BundlesFactory_TypeNotSupported();
+    if (_type != PromoLib.PromotionsType.Packs) revert BundlesFactory__TypeNotSupported();
 
     CampaignDataLib.BundlesPromoData memory data = CampaignDataLib.BundlesPromoData({
       _startDate: startDate,

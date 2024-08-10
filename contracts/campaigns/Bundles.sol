@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
+// solhint-disable no-unused-vars
 pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -43,8 +44,8 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, ICampaign, Ti
   using SafeERC20 for IERC20;
 
   string private _baseURIextended;
-  ILoyaltyProgram private immutable loyaltyProgram;
-  uint256 public immutable maxPackSupply;
+  ILoyaltyProgram private immutable LOYALTY_PROGRAM;
+  uint256 public immutable MAX_PACK_SUPPLY;
   uint256 private nonce;
 
   struct BundleData {
@@ -64,9 +65,9 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, ICampaign, Ti
     ERC721(_name, _symbol)
     TimeLimited(data._startDate, data._expirationDate, _storageAddress, data._owner)
   {
-    maxPackSupply = data._maxLimit;
+    MAX_PACK_SUPPLY = data._maxLimit;
     _baseURIextended = _uri;
-    loyaltyProgram = ILoyaltyProgram(data._loyaltyProgram);
+    LOYALTY_PROGRAM = ILoyaltyProgram(data._loyaltyProgram);
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -119,7 +120,7 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, ICampaign, Ti
   ) external payable onlyOwnerOrAdmin onlyOngoing {
     if (_to == address(0)) revert Bundles__MintToAddress0();
     if (msg.value != _arrayOfNumbers[0][0] * _amountOfPacks) revert Bundles__ValuesDontMatch();
-    if (maxPackSupply != 0 && nonce + _amountOfPacks > maxPackSupply)
+    if (MAX_PACK_SUPPLY != 0 && nonce + _amountOfPacks > MAX_PACK_SUPPLY)
       revert Bundles__MaxSupplyReached();
 
     for (uint256 i = 0; i < _amountOfPacks; ) {
@@ -177,7 +178,7 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, ICampaign, Ti
   }
 
   function autoMint(uint256 id, address to) external pure {
-    revert("Not needed in this contract");
+    revert Bundles__NotNeededHere();
   }
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -208,13 +209,13 @@ contract Bundles is ERC721, ERC721Holder, ERC1155Holder, IBundles, ICampaign, Ti
     address[] memory addresses,
     uint256[] memory numbers
   ) private view {
-    uint8 currentLevel = loyaltyProgram.getMemberLevel(to);
+    uint8 currentLevel = LOYALTY_PROGRAM.getMemberLevel(to);
     if (to == address(0)) revert Bundles__MintToAddress0();
     if (currentLevel == 0) revert Redeemable__NonExistantUser();
     if (currentLevel < uint8(lvlMin)) revert Redeemable__InsufficientLevel();
     if (addresses.length != numbers[1] + numbers[2] + numbers[3]) revert Bundles__ArraysDontMatch();
     if (addresses.length != numbers.length - 4 - numbers[3]) revert Bundles__NumbersDontMatch();
-    if (maxPackSupply != 0 && nonce >= maxPackSupply) revert Bundles__MaxSupplyReached();
+    if (MAX_PACK_SUPPLY != 0 && nonce >= MAX_PACK_SUPPLY) revert Bundles__MaxSupplyReached();
   }
 
   function _transferAssetsToContract(address[] memory addresses, uint256[] memory numbers) private {

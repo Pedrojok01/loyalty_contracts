@@ -13,31 +13,32 @@ pragma solidity ^0.8.20;
 
 contract Errors {
   // LoyaltyProgram
-  error LoyaltyProgram_AlreadyMember();
-  error LoyaltyProgram_InvalidPromotionType();
-  error LoyaltyProgram_AmountVolumeIsZero();
+  error LoyaltyProgram__AlreadyMember();
+  error LoyaltyProgram__InvalidPromotionType();
+  error LoyaltyProgram__AmountVolumeIsZero();
   error LoyaltyProgram__AuthorizedFactoryOnly();
   error LoyaltyProgram__PromotionLimitReached();
   error LoyaltyProgram__LevelOutOfRange();
+  error LoyaltyProgram__GetCurrentPromotionLimitFailed();
 
   // LoyaltyProgramFactory
-  error LoyaltyProgramFactory_AlreadyExists();
-  error LoyaltyProgramFactory_NameAlreadyTaken();
-  error LoyaltyProgramFactory_InvalidIndex();
-  error LoyaltyProgramFactory_AlreadyBlacklisted();
-  error LoyaltyProgramFactory_NotBlacklisted();
+  error LoyaltyProgramFactory__AlreadyExists();
+  error LoyaltyProgramFactory__NameAlreadyTaken();
+  error LoyaltyProgramFactory__InvalidIndex();
+  error LoyaltyProgramFactory__AlreadyBlacklisted();
+  error LoyaltyProgramFactory__NotBlacklisted();
 
   // RedeemableFactory
-  error RedeemableFactory_TypeNotSupported();
+  error RedeemableFactory__TypeNotSupported();
 
   //NonExpirableFactory
-  error NonExpirableFactory_TypeNotSupported();
+  error NonExpirableFactory__TypeNotSupported();
 
   // CollectiblesFactory
-  error CollectiblesFactory_TypeNotSupported();
+  error CollectiblesFactory__TypeNotSupported();
 
   // BundlesFactory
-  error BundlesFactory_TypeNotSupported();
+  error BundlesFactory__TypeNotSupported();
 
   // Bundles
   error Bundles__MintToAddress0();
@@ -50,6 +51,7 @@ contract Errors {
   error Bundles__TokenNotOwned();
   error Bundles__TokenIdDoesntMatch();
   error Bundles__QueryForNonExistantToken();
+  error Bundles__NotNeededHere();
 
   // Redeemable
   error Redeemable__TokenNotRedeemable(uint256 id);
@@ -62,11 +64,17 @@ contract Errors {
   error Redeemable__NonExistantUser();
   error Redeemable__InsufficientLevel();
   error Redeemable__NotCalledFromContract();
+  error Redeemable__InvalidDate();
+  error Redeemable__NotOwnerOrApproved();
 
   // Collectibles
   error Collectibles__InvalidTokenId();
   error Collectibles__EventExpired();
   error Collectibles__NotCalledFromContract();
+  error Collectibles__TooManyURIs();
+  error Collectibles__InvalidDate();
+  error Collectibles__InvalidAccountAddress();
+  error Collectibles__MissingNFT();
 
   //NonExpirable
   error NonExpirable__InvalidMintType();
@@ -77,6 +85,7 @@ contract Errors {
   error NonExpirable__TicketNotOwned();
   error NonExpirable__NotOwnerOrApproved();
   error NonExpirable__TicketAlreadyUsed(uint256 ticketId);
+  error NonExpirable__NotNeededHere();
 
   // Subscriptions
   error Subscriptions__TokenNotOwned();
@@ -90,6 +99,8 @@ contract Errors {
   error Subscriptions__IncorrectPrice();
   error Subscriptions__PaymentFailed();
   error Subscriptions__WithdrawalFailed();
+  error Subscriptions__InvalidURIsLength();
+  error Subscriptions__ExcessPaymentRefundFailed();
 
   // SubscriberChecks
   error SubscriberChecks__PleaseSubscribeFirst();
@@ -108,6 +119,7 @@ contract Errors {
   error Adminable__UserNotRegistered();
   error Adminable__UserOptedOut();
   error Adminable__NotAuthorized();
+  error Adminable__AddressZero();
 
   // AdminRegistry
   error AdminRegistry__NotAdmin();

@@ -25,6 +25,7 @@ describe("Redeemable Promotion Contract", function () {
       redeemableFactory,
       loyaltyProgram,
       expirationDate,
+      redeemCodeLib,
       owner,
       user1,
       user2,
@@ -59,6 +60,7 @@ describe("Redeemable Promotion Contract", function () {
       loyaltyProgramAddress,
       redeemable,
       expirationDate,
+      redeemCodeLib,
       owner,
       user1,
       user2,
@@ -76,7 +78,7 @@ describe("Redeemable Promotion Contract", function () {
   });
 
   it("should revert when adding new promo if invalid expiration date", async () => {
-    const { loyaltyProgramFactory, redeemableFactory } = await loadFixture(deployFixture);
+    const { loyaltyProgramFactory, redeemableFactory, redeemable,  } = await loadFixture(deployFixture);
 
     const loyaltyProgramAddress = await loyaltyProgramFactory.instance.getLoyaltyProgramPerIndex(0);
     const startDate = Math.floor(Date.now() / 1000).toString();
@@ -90,7 +92,7 @@ describe("Redeemable Promotion Contract", function () {
         loyaltyProgramAddress,
         promoType.freeProducts, // 1
       ),
-    ).to.be.revertedWith("Redeemable: invalid date");
+    ).to.be.revertedWithCustomError(redeemable, "Redeemable__InvalidDate()");
   });
 
   /*///////////////////////////////////////////////////////////////////////////////
@@ -427,14 +429,14 @@ describe("Redeemable Promotion Contract", function () {
   });
 
   it("should revert redeemFromCode if the code is invalid or empty", async () => {
-    const { redeemable, user1 } = await loadFixture(deployFixture);
+    const { redeemable, redeemCodeLib, user1 } = await loadFixture(deployFixture);
 
-    await expect(redeemable.redeemFromCode(user1.address, "TESTCODE")).to.be.revertedWith(
-      "Invalid redeem code",
+    await expect(redeemable.redeemFromCode(user1.address, "TESTCODE")).to.be.revertedWithCustomError(
+      redeemCodeLib.instance, "RedeemCodeLib__InvalidRedeemCode",
     );
 
-    await expect(redeemable.redeemFromCode(user1.address, "")).to.be.revertedWith(
-      "Invalid redeem code",
+    await expect(redeemable.redeemFromCode(user1.address, "")).to.be.revertedWithCustomError(
+      redeemCodeLib.instance, "RedeemCodeLib__InvalidRedeemCode",
     );
   });
 

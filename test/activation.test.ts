@@ -271,7 +271,7 @@ describe("Activation Feature", function () {
       ),
     ).to.be.revertedWithCustomError(
       collectiblesFactory.instance,
-      "CollectiblesFactory_TypeNotSupported",
+      "CollectiblesFactory__TypeNotSupported",
     );
 
     await collectiblesFactory.instance.createNewPromotion(

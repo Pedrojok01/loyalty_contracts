@@ -78,6 +78,7 @@ contract LoyaltyProgramFactory is Context, Errors, Ownable {
   /// @notice Blacklist mapping, to either blacklist or "delete" a LoyaltyProgram
   mapping(address => bool) public blacklist;
 
+  // solhint-disable-next-line no-unused-vars
   constructor(address storage_, address[] memory _factories, address _owner) Ownable(_owner) {
     _storage = storage_;
     factories = _factories;
@@ -121,11 +122,11 @@ contract LoyaltyProgramFactory is Context, Errors, Ownable {
     uint256 loyaltyId = loyaltyProgramList.length;
 
     if (loyaltyAddress[loyaltyId] != ILoyaltyProgram(address(0))) {
-      revert LoyaltyProgramFactory_AlreadyExists();
+      revert LoyaltyProgramFactory__AlreadyExists();
     }
 
     if (loyaltyIDPerName[name] != 0) {
-      revert LoyaltyProgramFactory_NameAlreadyTaken();
+      revert LoyaltyProgramFactory__NameAlreadyTaken();
     }
 
     return
@@ -230,7 +231,7 @@ contract LoyaltyProgramFactory is Context, Errors, Ownable {
    * @dev Updater function that allows the owner to modify a factory at a specific index;
    */
   function updateFactory(uint256 index, address factory) external onlyOwner {
-    if (index >= factories.length) revert LoyaltyProgramFactory_InvalidIndex();
+    if (index >= factories.length) revert LoyaltyProgramFactory__InvalidIndex();
     address oldFactory = factories[index];
     factories[index] = factory;
 
@@ -246,7 +247,7 @@ contract LoyaltyProgramFactory is Context, Errors, Ownable {
    * @dev Deleter function that allows the owner to remove a factory at a specific index;
    */
   function removeFactory(uint256 index) external onlyOwner {
-    if (index >= factories.length) revert LoyaltyProgramFactory_InvalidIndex();
+    if (index >= factories.length) revert LoyaltyProgramFactory__InvalidIndex();
     address oldFactory = factories[index];
     address lastFactory = factories[factories.length - 1];
 
@@ -272,7 +273,7 @@ contract LoyaltyProgramFactory is Context, Errors, Ownable {
    * @dev Adds a contract to the blacklist
    */
   function blacklistContract(address contractAddress) external onlyOwner {
-    if (blacklist[contractAddress]) revert LoyaltyProgramFactory_AlreadyBlacklisted();
+    if (blacklist[contractAddress]) revert LoyaltyProgramFactory__AlreadyBlacklisted();
     blacklist[contractAddress] = true;
 
     emit AddedToBlacklist(contractAddress);
@@ -284,7 +285,7 @@ contract LoyaltyProgramFactory is Context, Errors, Ownable {
    * @dev Removes a contract from the blacklist
    */
   function unblacklistContract(address contractAddress) external onlyOwner {
-    if (!blacklist[contractAddress]) revert LoyaltyProgramFactory_NotBlacklisted();
+    if (!blacklist[contractAddress]) revert LoyaltyProgramFactory__NotBlacklisted();
     blacklist[contractAddress] = false;
 
     emit RemovedFromblacklist(contractAddress);

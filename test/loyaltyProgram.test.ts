@@ -159,7 +159,7 @@ describe("LoyaltyProgram Contract", function () {
     // revert if already subscribed
     await expect(loyaltyProgram.mint(user1.address)).to.be.revertedWithCustomError(
       loyaltyProgram,
-      "LoyaltyProgram_AlreadyMember",
+      "LoyaltyProgram__AlreadyMember",
     );
 
     expect(await loyaltyProgram.isMember(user1.address)).to.equal(true);
@@ -248,7 +248,7 @@ describe("LoyaltyProgram Contract", function () {
     // revert if amount is 0
     await expect(loyaltyProgram.updateMember(user1.address, 0)).to.be.revertedWithCustomError(
       loyaltyProgram,
-      "LoyaltyProgram_AmountVolumeIsZero",
+      "LoyaltyProgram__AmountVolumeIsZero",
     );
 
     // Update the member after purchase (without tier increase)

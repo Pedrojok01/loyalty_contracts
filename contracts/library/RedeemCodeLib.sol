@@ -26,33 +26,43 @@ library RedeemCodeLib {
     uint256 codeIndex;
   }
 
+  error RedeemCodeLib__InvalidRedeemCode();
+  error RedeemCodeLib__RedeemCodeAlreadyExists();
+
   function getDataFromRedeemCode(
     RedeemCodeStorage storage self,
     string memory code
-  ) public view returns (address, uint256) {
+  ) public view returns (address voucherAddress, uint256 tokenID) {
     Voucher storage voucher = self.redeemCodes[code];
-    require(voucher.contractAddress != address(0), "Invalid redeem code");
 
-    return (voucher.contractAddress, voucher.tokenID);
+    voucherAddress = voucher.contractAddress;
+    tokenID = voucher.tokenID;
+
+    if (voucherAddress == address(0)) {
+      revert RedeemCodeLib__InvalidRedeemCode();
+    }
+
+    return (voucherAddress, tokenID);
   }
 
   function generateRedeemCode(
     RedeemCodeStorage storage self,
     address _contractAddress,
     uint256 _tokenID
-  ) internal returns (string memory) {
+  ) internal returns (string memory code) {
     uint256 index = self.codeIndex;
-    string memory code = generateUniqueCode(index);
+    code = generateUniqueCode(index);
 
     Voucher storage voucher = self.redeemCodes[code];
-    require(voucher.contractAddress == address(0), "Redeem code already exists");
+
+    if (voucher.contractAddress != address(0)) {
+      revert RedeemCodeLib__RedeemCodeAlreadyExists();
+    }
 
     voucher.contractAddress = _contractAddress;
     voucher.tokenID = _tokenID;
 
     self.codeIndex++;
-
-    return code;
   }
 
   function generateUniqueCode(uint256 index) private pure returns (string memory) {
