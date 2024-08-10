@@ -11,7 +11,7 @@ import {Collectibles} from "../campaigns/Collectibles.sol";
 
 /**
  * @title CollectiblesFactory
- * @author Pierre Estrabaud (@Pedrojok01)
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev Contracts factory to deploy a Collectibles type promotion (ERC1155);
  *  - Allows brands to deploy a Collectibles campaign (Discount vouchers, Freebies, etc);

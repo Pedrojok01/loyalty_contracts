@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 /**
  * @title RedeemCodeLib
- * @author Pierre Estrabaud (@Pedrojok01)
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev Provides "random" redeem code getter and setter for all promotion's vouchers.
  *

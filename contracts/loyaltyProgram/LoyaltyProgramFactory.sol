@@ -13,7 +13,7 @@ import {IStorage} from "../interfaces/IStorage.sol";
 
 /**
  * @title LoyaltyProgramFactory
- * @author Pedrojok01
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev Contracts factory to deploy the LoyaltyProgram ERC721;
  *  - Deployer can launch its own Membership program.

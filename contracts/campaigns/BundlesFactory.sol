@@ -12,7 +12,7 @@ import {Bundles} from "../campaigns/Bundles.sol";
 
 /**
  * @title BundlesFactory
- * @author Pierre Estrabaud (@Pedrojok01)
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev Contracts factory to deploy a Bundles type promotion (ERC721);
  *  - Allows brands to deploy a Bundles campaign (Mystery Packs).

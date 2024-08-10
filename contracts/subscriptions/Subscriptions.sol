@@ -9,7 +9,7 @@ import {Credits} from "../utils/Credits.sol";
 
 /**
  * @title Subscription
- * @author Pierre Estrabaud (@Pedrojok01)
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev Main Payment controller in charge of handling subscriptions and features access;
  *

@@ -13,7 +13,7 @@ import {IStorage} from "../interfaces/IStorage.sol";
 
 /**
  * @title Redeemable
- * @author Pierre Estrabaud (@Pedrojok01)
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev Reedemable are NFTs that can be redeemed for a product or a discount;
  *  - The redeemanle type is defined by its id

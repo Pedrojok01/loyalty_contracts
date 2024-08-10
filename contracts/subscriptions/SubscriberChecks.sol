@@ -7,7 +7,7 @@ import {Errors} from "../utils/Errors.sol";
 
 /**
  * @title SubscriberChecks
- * @author Pierre Estrabaud (@Pedrojok01)
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev Provides modifiers to valid the plan of a subscriber.
  */

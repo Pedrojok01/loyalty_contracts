@@ -11,7 +11,7 @@ import {NonExpirable} from "../campaigns/NonExpirable.sol";
 
 /**
  * @title NonExpirableFactory
- * @author Pierre Estrabaud (@Pedrojok01)
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev Contracts factory to deploy a NonExpirable promotion (ERC721);
  *  - Allows brands to deploy a NonExpirable campaign (Badge, VIP/MVP pass, etc..);

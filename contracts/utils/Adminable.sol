@@ -9,7 +9,7 @@ import {IStorage} from "../interfaces/IStorage.sol";
 
 /**
  * @title Adminable;
- * @author Pierre Estrabaud (@Pedrojok01)
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev Contract module which provides an access control mechanism for
  * either the owner or the admin.

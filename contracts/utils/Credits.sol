@@ -8,7 +8,7 @@ import {Errors} from "../utils/Errors.sol";
 
 /**
  * @title Credits;
- * @author Pierre Estrabaud (@Pedrojok01)
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev Contract module which provides an access control mechanism based
  * on credits to limit the use of the admin mode.

@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 /**
  * @title Errors
- * @author Pierre Estrabaud (@Pedrojok01)
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev Stores all the errors used in the contracts:
  * - saves gas;

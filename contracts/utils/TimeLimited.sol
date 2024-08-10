@@ -7,7 +7,7 @@ import {IStorage} from "../interfaces/IStorage.sol";
 
 /**
  * @title TimeLimited
- * @author Pierre Estrabaud (@Pedrojok01)
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev Add a time limit mechanism to a contract, can be used with Activation;
  */

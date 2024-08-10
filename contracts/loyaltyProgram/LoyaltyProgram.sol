@@ -13,7 +13,7 @@ import {IStorage} from "../interfaces/IStorage.sol";
 
 /**
  * @title LoyaltyProgram
- * @author Pedrojok01
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev ERC721 NFT with the following features:
  *  - Deployer can mint to recipients.

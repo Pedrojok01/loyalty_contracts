@@ -11,7 +11,7 @@ import {Redeemable} from "../campaigns/Redeemable.sol";
 
 /**
  * @title RedeemableFactory
- * @author Pierre Estrabaud (@Pedrojok01)
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev Contracts factory to deploy a Redeemable promotion (ERC1155);
  *  - Allows brands to deploy a redeemable campaign (Discount vouchers, Freebies, etc).

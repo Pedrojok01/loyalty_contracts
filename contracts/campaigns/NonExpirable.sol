@@ -13,7 +13,7 @@ import {ICampaign} from "../interfaces/ICampaign.sol";
 
 /**
  * @titleNonExpirable
- * @author Pedrojok01
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev ERC721 time limited NFT | Auto-burn when used:
  *  - Can either be airdrop to a specified membership level, or

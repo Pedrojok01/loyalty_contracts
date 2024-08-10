@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 /**
  * @title PromoLib
- * @author Pierre Estrabaud (@Pedrojok01)
+ * @author @Pedrojok01
  * @notice Part of the Loyalty Platform
  * @dev Provides safe getter and setter for promotion status and type.
  *
